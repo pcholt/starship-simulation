@@ -3,15 +3,21 @@ import { createLocalEngineClient } from '../adapters/local-engine-client.js';
 import { WorldStateStore } from './world-state.svelte.js';
 
 describe('WorldStateStore', () => {
-	it('reflects dispatched command results in state', () => {
+	it('reflects dispatched command results in state', async () => {
 		const store = new WorldStateStore(createLocalEngineClient());
-		store.dispatch({ module: 'controller', type: 'Execute', target: 'navigation' });
-		expect(store.state.modules.navigation).toBe('running');
+		await store.dispatch({ module: 'controller', type: 'Halt', target: 'navigation' });
+		expect(store.state.modules.navigation).toBe('halted');
 	});
 
-	it('forwards loadScenario to the underlying client and reflects it in state', () => {
+	it('resolves dispatch with the CommandResult', async () => {
 		const store = new WorldStateStore(createLocalEngineClient());
-		store.loadScenario({ steps: [] });
+		const result = await store.dispatch({ module: 'controller', type: 'Execute', target: 'navigation' });
+		expect(result).toEqual({ ok: true });
+	});
+
+	it('forwards loadScenario to the underlying client and reflects it in state', async () => {
+		const store = new WorldStateStore(createLocalEngineClient());
+		await store.loadScenario({ steps: [] });
 		expect(store.state.scenario).not.toBeNull();
 	});
 

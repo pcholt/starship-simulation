@@ -63,14 +63,14 @@
 
 	const KIND_LABELS = { celestialObject: 'celestial object', enemyCraft: 'enemy craft', federationCraft: 'federation craft' };
 
-	function handleSubmit(text: string) {
-		const result = parseNavigationCommand(text);
-		if (!result.ok) {
-			errorMessage = result.reason;
+	async function handleSubmit(text: string) {
+		const parsed = parseNavigationCommand(text);
+		if (!parsed.ok) {
+			errorMessage = parsed.reason;
 			return;
 		}
-		errorMessage = null;
-		store.dispatch(result.command);
+		const result = await store.dispatch(parsed.command);
+		errorMessage = result.ok ? null : result.reason;
 	}
 </script>
 

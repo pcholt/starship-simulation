@@ -5,10 +5,10 @@ import type { EngineClient } from './engine-client.js';
 export function createLocalEngineClient(deps?: EngineDeps): EngineClient {
 	const engine: Engine = createEngine(deps);
 	return {
-		dispatch: (command) => engine.dispatch(command),
+		dispatch: (command) => Promise.resolve(engine.dispatch(command)),
 		getState: () => engine.getState(),
 		subscribe: (listener) => engine.subscribe(listener),
-		loadScenario: (script) => engine.loadScenario(script),
+		loadScenario: (script) => Promise.resolve(engine.loadScenario(script)),
 		tick: (deltaMs) => engine.tick(deltaMs)
 	};
 }

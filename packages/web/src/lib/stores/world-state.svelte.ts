@@ -20,12 +20,14 @@ export class WorldStateStore {
 		});
 	}
 
-	dispatch(command: Command): CommandResult {
-		return this.#client.dispatch(command);
+	async dispatch(command: Command): Promise<CommandResult> {
+		const result = await this.#client.dispatch(command);
+		this.state = this.#client.getState();
+		return result;
 	}
 
-	loadScenario(script: ScenarioScript): void {
-		this.#client.loadScenario(script);
+	async loadScenario(script: ScenarioScript): Promise<void> {
+		await this.#client.loadScenario(script);
 		this.state = this.#client.getState();
 	}
 

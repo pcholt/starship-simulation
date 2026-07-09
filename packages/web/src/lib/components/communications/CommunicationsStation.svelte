@@ -16,13 +16,13 @@
 	let queueLength = $derived(store.state.communications.messageQueue.length);
 	let log = $derived(store.state.communications.log);
 
-	function handleSubmit(text: string) {
+	async function handleSubmit(text: string) {
 		const parsed = parseCommunicationsCommand(text);
 		if (!parsed.ok) {
 			errorMessage = parsed.reason;
 			return;
 		}
-		const result = store.dispatch(parsed.command);
+		const result = await store.dispatch(parsed.command);
 		errorMessage = result.ok ? null : result.reason;
 	}
 </script>

@@ -16,13 +16,13 @@
 	let scan = $derived(store.state.lastScanResult);
 	let computer = $derived(store.state.engineering.devices.sciencesComputer!);
 
-	function handleSubmit(text: string) {
+	async function handleSubmit(text: string) {
 		const parsed = parseSciencesCommand(text);
 		if (!parsed.ok) {
 			errorMessage = parsed.reason;
 			return;
 		}
-		const result = store.dispatch(parsed.command);
+		const result = await store.dispatch(parsed.command);
 		errorMessage = result.ok ? null : result.reason;
 	}
 </script>

@@ -29,32 +29,32 @@
 		}));
 	});
 
-	function handleSubmit(text: string) {
+	async function handleSubmit(text: string) {
 		const parsed = parseControllerCommand(text);
 		if (!parsed.ok) {
 			errorMessage = parsed.reason;
 			return;
 		}
-		const result = store.dispatch(parsed.command);
+		const result = await store.dispatch(parsed.command);
 		errorMessage = result.ok ? null : result.reason;
 	}
 
-	function handleLoadScenario() {
+	async function handleLoadScenario() {
 		try {
 			const script = JSON.parse(scenarioText) as ScenarioScript;
-			store.loadScenario(script);
+			await store.loadScenario(script);
 			scenarioError = null;
 		} catch {
 			scenarioError = 'Invalid scenario JSON';
 		}
 	}
 
-	function handleRunScenario() {
-		store.dispatch({ module: 'controller', type: 'RunScenario' });
+	async function handleRunScenario() {
+		await store.dispatch({ module: 'controller', type: 'RunScenario' });
 	}
 
-	function handleHaltScenario() {
-		store.dispatch({ module: 'controller', type: 'HaltScenario' });
+	async function handleHaltScenario() {
+		await store.dispatch({ module: 'controller', type: 'HaltScenario' });
 	}
 </script>
 

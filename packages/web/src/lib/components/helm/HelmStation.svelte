@@ -33,13 +33,13 @@
 		return command.target.kind === 'object' ? command.target.name! : 'coordinates';
 	}
 
-	function handleSubmit(text: string) {
+	async function handleSubmit(text: string) {
 		const parsed = parseHelmCommand(text);
 		if (!parsed.ok) {
 			errorMessage = parsed.reason;
 			return;
 		}
-		const result = store.dispatch(parsed.command);
+		const result = await store.dispatch(parsed.command);
 		if (!result.ok) {
 			errorMessage = result.reason;
 			return;
