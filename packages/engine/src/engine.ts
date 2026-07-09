@@ -4,6 +4,7 @@ import { ALL_MODULE_NAMES } from './domain/module.js';
 import { createInitialWorldState, type WorldState } from './domain/world-state.js';
 import { advancePosition } from './domain/navigation.js';
 import { scanCelestialObject, scanCraft, distanceBetween, type ScanResult } from './domain/sciences.js';
+import { allocateEnergy } from './domain/engineering.js';
 import type { Vector3 } from './domain/vector.js';
 import type { EngineEvent, Unsubscribe } from './events.js';
 import { createScenarioRuntimeState, dueSteps, type ScenarioScript } from './scenario/scenario.js';
@@ -165,6 +166,28 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 					draft.lastScanResult = result;
 				});
 				emit({ type: 'StateChanged', paths: ['lastScanResult'] });
+				return { ok: true };
+			}
+			case 'SetEnergyAllocation': {
+				if (!(command.deviceId in state.engineering.devices)) {
+					return { ok: false, reason: `No device named "${command.deviceId}"` };
+				}
+				const nextEngineering = allocateEnergy(state.engineering, command.deviceId, command.amount);
+				state = produce(state, (draft) => {
+					draft.engineering = nextEngineering;
+				});
+				emit({ type: 'StateChanged', paths: ['engineering.devices'] });
+				return { ok: true };
+			}
+			case 'SetShuttlecraftMission': {
+				const shuttle = state.engineering.shuttlecraft.find((s) => s.id === command.shuttlecraftId);
+				if (!shuttle) return { ok: false, reason: `No shuttlecraft numbered ${command.shuttlecraftId}` };
+				state = produce(state, (draft) => {
+					const draftShuttle = draft.engineering.shuttlecraft.find((s) => s.id === command.shuttlecraftId)!;
+					draftShuttle.mission = command.mission;
+					draftShuttle.destination = command.destination ?? null;
+				});
+				emit({ type: 'StateChanged', paths: ['engineering.shuttlecraft'] });
 				return { ok: true };
 			}
 		}

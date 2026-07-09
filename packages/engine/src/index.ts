@@ -25,3 +25,5 @@ export {
 	scanCelestialObject,
 	scanCraft
 } from './domain/sciences.js';
+export type { EngineeringState, Shuttlecraft, ShuttlecraftMission } from './domain/engineering.js';
+export { createEngineeringState, allocateEnergy, DEVICE_IDS } from './domain/engineering.js';

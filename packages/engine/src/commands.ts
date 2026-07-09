@@ -30,6 +30,14 @@ export type Command =
 	| { module: 'navigation'; type: 'SetSpeed'; warpSpeed: number }
 	| { module: 'sciences'; type: 'ScanObject'; name: string }
 	| { module: 'sciences'; type: 'ScanArea'; position: Vector3 }
-	| { module: 'sciences'; type: 'ScanRandom' };
+	| { module: 'sciences'; type: 'ScanRandom' }
+	| { module: 'engineering'; type: 'SetEnergyAllocation'; deviceId: string; amount: number }
+	| {
+			module: 'engineering';
+			type: 'SetShuttlecraftMission';
+			shuttlecraftId: number;
+			mission: 'none' | 'deliverCargo' | 'seekSensorData' | 'transportPersonnel' | 'seekEnterprise';
+			destination?: Location;
+	  };
 
 export type CommandResult = { ok: true } | { ok: false; reason: string };
