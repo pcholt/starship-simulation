@@ -5,6 +5,7 @@
 	import CommandBox from '../shared/CommandBox.svelte';
 	import CommandReference from '../shared/CommandReference.svelte';
 	import { parseControllerCommand, CONTROLLER_COMMANDS } from './controller-command-parser.js';
+	import { PRESET_SCENARIOS, type PresetScenario } from './preset-scenarios.js';
 
 	interface Props {
 		store: WorldStateStore;
@@ -56,6 +57,12 @@
 
 	async function handleHaltScenario() {
 		const result = await store.dispatch({ module: 'controller', type: 'HaltScenario' });
+		scenarioError = result.ok ? null : result.reason;
+	}
+
+	async function handlePreset(preset: PresetScenario) {
+		await store.loadScenario(preset.script);
+		const result = await store.dispatch({ module: 'controller', type: 'RunScenario' });
 		scenarioError = result.ok ? null : result.reason;
 	}
 </script>
@@ -114,6 +121,17 @@
 
 	<h3>Scenario</h3>
 	<p data-testid="scenario-status">SCENARIO {scenarioRunning ? 'IS RUNNING' : 'IS NOT RUNNING'}</p>
+
+	<h4>Preset Scenarios</h4>
+	<ul data-testid="preset-scenarios">
+		{#each PRESET_SCENARIOS as preset (preset.id)}
+			<li>
+				<strong>{preset.name}</strong> — {preset.description}
+				<button type="button" onclick={() => handlePreset(preset)}>Load & Run: {preset.name}</button>
+			</li>
+		{/each}
+	</ul>
+
 	<label>
 		Scenario script (JSON)
 		<textarea aria-label="Scenario script" bind:value={scenarioText}></textarea>

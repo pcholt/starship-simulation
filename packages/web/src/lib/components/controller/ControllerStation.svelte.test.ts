@@ -85,4 +85,25 @@ describe('ControllerStation', () => {
 
 		await expect.element(page.getByRole('alert')).toBeInTheDocument();
 	});
+
+	it('lists the preset scenarios by name', async () => {
+		const store = setup();
+		render(ControllerStation, { store });
+
+		await expect.element(page.getByTestId('preset-scenarios')).toHaveTextContent('Klingon Ambush');
+		await expect.element(page.getByTestId('preset-scenarios')).toHaveTextContent('First Contact');
+		await expect.element(page.getByTestId('preset-scenarios')).toHaveTextContent('Distress Call');
+		await expect.element(page.getByTestId('preset-scenarios')).toHaveTextContent('Derelict Encounter');
+	});
+
+	it('loads and runs a preset scenario in a single click', async () => {
+		const store = setup();
+		render(ControllerStation, { store });
+
+		await page.getByRole('button', { name: 'Load & Run: Klingon Ambush' }).click();
+
+		await expect.element(page.getByTestId('scenario-status')).toHaveTextContent('IS RUNNING');
+		store.tick(0);
+		await expect.element(page.getByTestId('variable-display')).toHaveTextContent('Klingon Bird of Prey');
+	});
 });
