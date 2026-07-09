@@ -394,9 +394,12 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 						return recovered.health <= 0 || recovered.health >= 10 ? null : recovered;
 					});
 				}
+				if (draft.scenario?.runState === 'running') {
+					draft.scenario.elapsedMs += deltaMs;
+				}
 			});
 			if (!state.scenario) return;
-			const steps = dueSteps(state.scenario, state.simulatedTimeMs);
+			const steps = dueSteps(state.scenario);
 			if (steps.length === 0) return;
 			state = produce(state, (draft) => {
 				draft.scenario!.nextStepIndex += steps.length;

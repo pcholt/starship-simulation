@@ -50,11 +50,13 @@
 	}
 
 	async function handleRunScenario() {
-		await store.dispatch({ module: 'controller', type: 'RunScenario' });
+		const result = await store.dispatch({ module: 'controller', type: 'RunScenario' });
+		scenarioError = result.ok ? null : result.reason;
 	}
 
 	async function handleHaltScenario() {
-		await store.dispatch({ module: 'controller', type: 'HaltScenario' });
+		const result = await store.dispatch({ module: 'controller', type: 'HaltScenario' });
+		scenarioError = result.ok ? null : result.reason;
 	}
 </script>
 

@@ -57,6 +57,25 @@ describe('ControllerStation', () => {
 		await expect.element(page.getByTestId('scenario-status')).toHaveTextContent('IS RUNNING');
 	});
 
+	it('shows an error message when Run Scenario is clicked before a scenario is loaded', async () => {
+		const store = setup();
+		render(ControllerStation, { store });
+
+		await page.getByRole('button', { name: 'Run Scenario' }).click();
+
+		await expect.element(page.getByRole('alert')).toHaveTextContent('No scenario loaded');
+		await expect.element(page.getByTestId('scenario-status')).toHaveTextContent('IS NOT RUNNING');
+	});
+
+	it('shows an error message when Halt Scenario is clicked before a scenario is loaded', async () => {
+		const store = setup();
+		render(ControllerStation, { store });
+
+		await page.getByRole('button', { name: 'Halt Scenario' }).click();
+
+		await expect.element(page.getByRole('alert')).toHaveTextContent('No scenario loaded');
+	});
+
 	it('shows an error message for an unrecognized command', async () => {
 		const store = setup();
 		render(ControllerStation, { store });

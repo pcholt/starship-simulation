@@ -254,4 +254,57 @@ describe('engine.tick + scenario', () => {
 		expect(engine.getState().celestialObjects).toHaveLength(1);
 		expect(engine.getState().celestialObjects[0]!.name).toBe('First');
 	});
+
+	it('times scenario steps relative to when the scenario starts running, not absolute simulated time already elapsed before it was loaded', () => {
+		const engine = createEngine();
+		engine.tick(5000); // simulated clock is already well past 1000ms before the scenario even exists
+		engine.loadScenario({
+			steps: [
+				{
+					atMs: 1000,
+					command: {
+						module: 'controller',
+						type: 'CreateCelestialObject',
+						name: 'Nova',
+						position: { x: 0, y: 0, z: 0 },
+						radius: 1,
+						mass: 1
+					}
+				}
+			]
+		});
+		engine.dispatch({ module: 'controller', type: 'RunScenario' });
+		engine.tick(500); // only 500ms of scenario-relative time has passed
+		expect(engine.getState().celestialObjects).toHaveLength(0);
+		engine.tick(600); // now 1100ms of scenario-relative time has passed
+		expect(engine.getState().celestialObjects).toHaveLength(1);
+	});
+
+	it('does not advance scenario-relative time while halted, so resuming continues where it paused rather than skipping ahead', () => {
+		const engine = createEngine();
+		engine.loadScenario({
+			steps: [
+				{
+					atMs: 1000,
+					command: {
+						module: 'controller',
+						type: 'CreateCelestialObject',
+						name: 'Nova',
+						position: { x: 0, y: 0, z: 0 },
+						radius: 1,
+						mass: 1
+					}
+				}
+			]
+		});
+		engine.dispatch({ module: 'controller', type: 'RunScenario' });
+		engine.tick(800); // 800ms of scenario time elapsed
+		engine.dispatch({ module: 'controller', type: 'HaltScenario' });
+		engine.tick(5000); // lots of real/simulated time passes while paused — must not count
+		engine.dispatch({ module: 'controller', type: 'RunScenario' });
+		engine.tick(100); // only 100ms more needed to reach the 1000ms mark
+		expect(engine.getState().celestialObjects).toHaveLength(0);
+		engine.tick(150); // now past 1000ms of scenario-relative time
+		expect(engine.getState().celestialObjects).toHaveLength(1);
+	});
 });
