@@ -3,6 +3,7 @@ export type { Engine, EngineDeps } from './engine.js';
 export type { Command, CommandResult, ModuleTarget } from './commands.js';
 export type { EngineEvent, Unsubscribe } from './events.js';
 export type { ScenarioScript, ScenarioStep, ScenarioRuntimeState, ScenarioRunState } from './scenario/scenario.js';
+export type { ClientMessage, ServerMessage } from './protocol.js';
 
 export type { WorldState } from './domain/world-state.js';
 export { createInitialWorldState } from './domain/world-state.js';

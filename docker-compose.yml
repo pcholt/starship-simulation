@@ -6,3 +6,11 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+  server:
+    build:
+      context: .
+      dockerfile: packages/server/Dockerfile
+    ports:
+      - '8080:8080'
+    environment:
+      - PORT=8080
