@@ -1,4 +1,5 @@
 import type { ModuleName } from './domain/module.js';
+import type { Location } from './domain/location.js';
 import type { Vector3 } from './domain/vector.js';
 
 export type ModuleTarget = ModuleName | 'all';
@@ -23,6 +24,9 @@ export type Command =
 			mass: number;
 	  }
 	| { module: 'controller'; type: 'RunScenario' }
-	| { module: 'controller'; type: 'HaltScenario' };
+	| { module: 'controller'; type: 'HaltScenario' }
+	| { module: 'navigation'; type: 'SetCourse'; destination: Location }
+	| { module: 'navigation'; type: 'SetDirection'; xyAngleDeg: number; xzAngleDeg: number }
+	| { module: 'navigation'; type: 'SetSpeed'; warpSpeed: number };
 
 export type CommandResult = { ok: true } | { ok: false; reason: string };

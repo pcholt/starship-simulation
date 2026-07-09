@@ -15,3 +15,5 @@ export { createDeviceStatus, damageDevice, repairDevice } from './domain/device.
 export type { Vector3 } from './domain/vector.js';
 export type { CelestialObject } from './domain/celestial-object.js';
 export type { Craft } from './domain/craft.js';
+export type { NavigationState, Velocity } from './domain/navigation.js';
+export { createNavigationState, headingVector, advancePosition } from './domain/navigation.js';

@@ -1,2 +1,5 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+<h1>STAR SHIP Simulation</h1>
+<p>Choose a station:</p>
+<ul>
+	<li><a href="/station/navigation">Navigation</a></li>
+</ul>

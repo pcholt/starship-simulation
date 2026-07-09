@@ -2,6 +2,7 @@ import { produce } from 'immer';
 import type { Command, CommandResult } from './commands.js';
 import { ALL_MODULE_NAMES } from './domain/module.js';
 import { createInitialWorldState, type WorldState } from './domain/world-state.js';
+import { advancePosition } from './domain/navigation.js';
 import type { EngineEvent, Unsubscribe } from './events.js';
 import { createScenarioRuntimeState, dueSteps, type ScenarioScript } from './scenario/scenario.js';
 
@@ -93,6 +94,28 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				emit({ type: 'StateChanged', paths: ['scenario.runState'] });
 				return { ok: true };
 			}
+			case 'SetDirection': {
+				state = produce(state, (draft) => {
+					draft.enterpriseNavigation.velocity.xyAngleDeg = command.xyAngleDeg;
+					draft.enterpriseNavigation.velocity.xzAngleDeg = command.xzAngleDeg;
+				});
+				emit({ type: 'StateChanged', paths: ['enterpriseNavigation.velocity'] });
+				return { ok: true };
+			}
+			case 'SetSpeed': {
+				state = produce(state, (draft) => {
+					draft.enterpriseNavigation.velocity.warpSpeed = command.warpSpeed;
+				});
+				emit({ type: 'StateChanged', paths: ['enterpriseNavigation.velocity'] });
+				return { ok: true };
+			}
+			case 'SetCourse': {
+				state = produce(state, (draft) => {
+					draft.enterpriseNavigation.destination = command.destination;
+				});
+				emit({ type: 'StateChanged', paths: ['enterpriseNavigation.destination'] });
+				return { ok: true };
+			}
 		}
 	}
 
@@ -110,6 +133,9 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 		tick(deltaMs) {
 			state = produce(state, (draft) => {
 				draft.simulatedTimeMs += deltaMs;
+				if (draft.modules.navigation === 'running') {
+					draft.enterpriseNavigation.position = advancePosition(draft.enterpriseNavigation, deltaMs);
+				}
 			});
 			if (!state.scenario) return;
 			const steps = dueSteps(state.scenario, state.simulatedTimeMs);
