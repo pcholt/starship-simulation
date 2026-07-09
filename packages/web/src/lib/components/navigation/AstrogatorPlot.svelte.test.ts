@@ -52,4 +52,38 @@ describe('AstrogatorPlot', () => {
 		await expect.element(page.getByTestId('symbol-key')).toHaveTextContent('FEDERATION CRAFT');
 		await expect.element(page.getByTestId('symbol-key')).toHaveTextContent('CELESTIAL OBJECT');
 	});
+
+	it('shows a zoom slider initialized to the given range', async () => {
+		render(AstrogatorPlot, { center: { x: 0, y: 0, z: 0 }, entities: [], range: 1000 });
+
+		await expect.element(page.getByLabelText('Zoom (plot range)')).toHaveValue('1000');
+	});
+
+	it('zooming out reveals an entity previously beyond the plot range', async () => {
+		render(AstrogatorPlot, {
+			center: { x: 0, y: 0, z: 0 },
+			entities: [{ name: 'Far Object', kind: 'celestialObject', position: { x: 3000, y: 0, z: 0 } }],
+			range: 1000
+		});
+
+		await expect.element(page.getByTestId('plot-mark-celestialObject-Far Object')).not.toBeInTheDocument();
+
+		await page.getByLabelText('Zoom (plot range)').fill('4000');
+
+		await expect.element(page.getByTestId('plot-mark-celestialObject-Far Object')).toBeInTheDocument();
+	});
+
+	it('zooming in hides an entity previously within the plot range', async () => {
+		render(AstrogatorPlot, {
+			center: { x: 0, y: 0, z: 0 },
+			entities: [{ name: 'Nearby Object', kind: 'celestialObject', position: { x: 800, y: 0, z: 0 } }],
+			range: 1000
+		});
+
+		await expect.element(page.getByTestId('plot-mark-celestialObject-Nearby Object')).toBeInTheDocument();
+
+		await page.getByLabelText('Zoom (plot range)').fill('500');
+
+		await expect.element(page.getByTestId('plot-mark-celestialObject-Nearby Object')).not.toBeInTheDocument();
+	});
 });

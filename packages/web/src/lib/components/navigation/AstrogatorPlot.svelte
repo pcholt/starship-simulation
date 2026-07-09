@@ -12,7 +12,7 @@
 	interface Props {
 		center: Vector3;
 		entities: PlotEntity[];
-		/** Plot radius in world distance-units — entities further than this (in the x/y plane) aren't shown. */
+		/** Initial plot radius in world distance-units — entities further than the current zoom level (in the x/y plane) aren't shown. */
 		range: number;
 	}
 
@@ -20,6 +20,15 @@
 
 	const VIEW_SIZE = 100;
 	const PLOT_RADIUS_PCT = 45;
+
+	// The displayed plot radius, adjustable via the zoom slider independent of the initial `range` prop.
+	// Deliberately seeded only once from `range` (not kept in sync with it) — the zoom slider is the
+	// user's control from here on.
+	// svelte-ignore state_referenced_locally
+	let zoomRange = $state(range);
+	let zoomMin = $derived(Math.max(1, Math.round(range / 10)));
+	let zoomMax = $derived(range * 4);
+	let zoomStep = $derived(Math.max(1, Math.round(range / 10)));
 
 	// Projected onto the x/y plane (top-down), matching the book's flat Astrogator grid.
 	let plotted = $derived(
@@ -30,11 +39,11 @@
 				const distance = Math.sqrt(dx * dx + dy * dy);
 				return { ...e, dx, dy, distance };
 			})
-			.filter((e) => e.distance <= range)
+			.filter((e) => e.distance <= zoomRange)
 			.map((e) => ({
 				...e,
-				plotX: VIEW_SIZE / 2 + (e.dx / range) * PLOT_RADIUS_PCT,
-				plotY: VIEW_SIZE / 2 - (e.dy / range) * PLOT_RADIUS_PCT
+				plotX: VIEW_SIZE / 2 + (e.dx / zoomRange) * PLOT_RADIUS_PCT,
+				plotY: VIEW_SIZE / 2 - (e.dy / zoomRange) * PLOT_RADIUS_PCT
 			}))
 	);
 
@@ -73,6 +82,12 @@
 		{/each}
 	</svg>
 
+	<label class="zoom-control">
+		Zoom (plot range)
+		<input type="range" aria-label="Zoom (plot range)" min={zoomMin} max={zoomMax} step={zoomStep} bind:value={zoomRange} />
+		<span>{zoomRange} units</span>
+	</label>
+
 	<ul data-testid="symbol-key">
 		<li>◉ ENTERPRISE</li>
 		<li>△ ENEMY CRAFT</li>
@@ -85,7 +100,16 @@
 	svg {
 		display: block;
 		width: 100%;
-		max-width: 320px;
+		max-width: 640px;
 		aspect-ratio: 1;
+	}
+	.zoom-control {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		max-width: 640px;
+	}
+	.zoom-control input[type='range'] {
+		flex: 1;
 	}
 </style>
