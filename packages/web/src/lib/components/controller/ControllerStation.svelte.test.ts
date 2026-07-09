@@ -23,7 +23,7 @@ describe('ControllerStation', () => {
 		const store = setup();
 		render(ControllerStation, { store });
 
-		await expect.element(page.getByTestId('module-status-navigation')).toHaveTextContent('halted');
+		await expect.element(page.getByTestId('module-status-navigation')).toHaveTextContent('running');
 	});
 
 	it('executes a module via the command box and reflects it in the module status table', async () => {

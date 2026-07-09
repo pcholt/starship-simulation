@@ -22,6 +22,7 @@ describe('medical commands', () => {
 describe('medical recovery during tick', () => {
 	it('does not change patient health while the medical module is halted', () => {
 		const engine = createEngine();
+		engine.dispatch({ module: 'controller', type: 'Halt', target: 'medical' });
 		engine.dispatch({ module: 'medical', type: 'AdmitPatient', personnelId: 1, name: 'Ensign Kim', health: 4 });
 		engine.tick(5000);
 		expect(engine.getState().medical.icu[0]!.health).toBe(4);

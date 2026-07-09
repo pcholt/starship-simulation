@@ -2,6 +2,7 @@
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import CommandBox from '../shared/CommandBox.svelte';
 	import CommandReference from '../shared/CommandReference.svelte';
+	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import { parseSciencesCommand, SCIENCES_COMMANDS } from './sciences-command-parser.js';
 
 	interface Props {
@@ -28,6 +29,7 @@
 
 <section aria-label="Sciences station">
 	<h2>Sciences</h2>
+	<StationStatusBar {store} moduleName="sciences" />
 
 	<h3>Sciences Computer</h3>
 	<dl>

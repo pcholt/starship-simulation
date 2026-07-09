@@ -2,6 +2,7 @@
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import CommandBox from '../shared/CommandBox.svelte';
 	import CommandReference from '../shared/CommandReference.svelte';
+	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import { parseCommunicationsCommand, COMMUNICATIONS_COMMANDS } from './communications-command-parser.js';
 
 	interface Props {
@@ -28,6 +29,7 @@
 
 <section aria-label="Communications station">
 	<h2>Communications</h2>
+	<StationStatusBar {store} moduleName="communications" />
 
 	<h3>Current Message</h3>
 	<p data-testid="current-message">

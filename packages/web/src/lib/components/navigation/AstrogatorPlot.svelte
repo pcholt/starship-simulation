@@ -80,3 +80,12 @@
 		<li>○ CELESTIAL OBJECT</li>
 	</ul>
 </div>
+
+<style>
+	svg {
+		display: block;
+		width: 100%;
+		max-width: 320px;
+		aspect-ratio: 1;
+	}
+</style>

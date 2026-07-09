@@ -38,6 +38,7 @@ describe('navigation commands', () => {
 describe('navigation movement during tick', () => {
 	it('does not move the ship while the navigation module is halted', () => {
 		const engine = createEngine();
+		engine.dispatch({ module: 'controller', type: 'Halt', target: 'navigation' });
 		engine.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg: 0, xzAngleDeg: 0 });
 		engine.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 10 });
 		engine.tick(1000);

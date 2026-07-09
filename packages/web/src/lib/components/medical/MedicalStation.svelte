@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
+	import StationStatusBar from '../shared/StationStatusBar.svelte';
 
 	interface Props {
 		store: WorldStateStore;
@@ -13,6 +14,7 @@
 
 <section aria-label="Medical station">
 	<h2>Medical</h2>
+	<StationStatusBar {store} moduleName="medical" />
 
 	<h3>Intensive Care Unit</h3>
 	<table>

@@ -3,6 +3,7 @@
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import CommandBox from '../shared/CommandBox.svelte';
 	import CommandReference from '../shared/CommandReference.svelte';
+	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import AstrogatorPlot from './AstrogatorPlot.svelte';
 	import { parseNavigationCommand, NAVIGATION_COMMANDS } from './navigation-command-parser.js';
 
@@ -75,6 +76,7 @@
 
 <section aria-label="Navigation station">
 	<h2>Navigation</h2>
+	<StationStatusBar {store} moduleName="navigation" />
 
 	<dl>
 		<dt>X-COORDINATE</dt>

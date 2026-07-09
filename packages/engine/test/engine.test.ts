@@ -6,7 +6,7 @@ describe('createEngine', () => {
 	it('starts from a fresh initial world state by default', () => {
 		const engine = createEngine();
 		expect(engine.getState().simulatedTimeMs).toBe(0);
-		expect(engine.getState().modules.navigation).toBe('halted');
+		expect(engine.getState().modules.navigation).toBe('running');
 	});
 
 	it('accepts a seeded initial state', () => {
@@ -16,11 +16,12 @@ describe('createEngine', () => {
 });
 
 describe('engine.dispatch — module lifecycle', () => {
-	it('sets a single module to running on Execute', () => {
+	it('sets a single module back to running on Execute after it was halted', () => {
 		const engine = createEngine();
+		engine.dispatch({ module: 'controller', type: 'Halt', target: 'navigation' });
 		engine.dispatch({ module: 'controller', type: 'Execute', target: 'navigation' });
 		expect(engine.getState().modules.navigation).toBe('running');
-		expect(engine.getState().modules.helm).toBe('halted');
+		expect(engine.getState().modules.helm).toBe('running');
 	});
 
 	it('sets a single module to halted on Halt', () => {

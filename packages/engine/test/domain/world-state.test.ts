@@ -6,15 +6,15 @@ describe('createInitialWorldState', () => {
 		expect(createInitialWorldState().simulatedTimeMs).toBe(0);
 	});
 
-	it('starts every gameplay module halted', () => {
+	it('starts every gameplay module running, as on an active bridge — Halt is for the Controller to take a station offline (damage, GM narrative), not a startup gate', () => {
 		const state = createInitialWorldState();
 		expect(state.modules).toEqual({
-			communications: 'halted',
-			navigation: 'halted',
-			sciences: 'halted',
-			engineering: 'halted',
-			medical: 'halted',
-			helm: 'halted'
+			communications: 'running',
+			navigation: 'running',
+			sciences: 'running',
+			engineering: 'running',
+			medical: 'running',
+			helm: 'running'
 		});
 	});
 

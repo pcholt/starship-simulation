@@ -2,6 +2,7 @@
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import CommandBox from '../shared/CommandBox.svelte';
 	import CommandReference from '../shared/CommandReference.svelte';
+	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import { parseHelmCommand, HELM_COMMANDS } from './helm-command-parser.js';
 
 	interface Props {
@@ -53,6 +54,7 @@
 
 <section aria-label="Helm station">
 	<h2>Helm</h2>
+	<StationStatusBar {store} moduleName="helm" />
 
 	<h3>Phasers</h3>
 	<table>

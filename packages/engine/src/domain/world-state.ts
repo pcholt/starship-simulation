@@ -25,7 +25,9 @@ export interface WorldState {
 }
 
 export function createInitialWorldState(): WorldState {
-	const modules = Object.fromEntries(ALL_MODULE_NAMES.map((name) => [name, 'halted'])) as Record<
+	// Every station starts running, as on an active bridge — Halt models a station going offline
+	// (damage, a Controller-scripted malfunction), not something the player must switch on to begin.
+	const modules = Object.fromEntries(ALL_MODULE_NAMES.map((name) => [name, 'running'])) as Record<
 		ModuleName,
 		ModuleRunState
 	>;
