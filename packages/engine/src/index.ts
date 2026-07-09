@@ -25,5 +25,7 @@ export {
 	scanCelestialObject,
 	scanCraft
 } from './domain/sciences.js';
-export type { EngineeringState, Shuttlecraft, ShuttlecraftMission } from './domain/engineering.js';
-export { createEngineeringState, allocateEnergy, DEVICE_IDS } from './domain/engineering.js';
+export type { EngineeringState, Shuttlecraft, ShuttlecraftMission, BankLocation } from './domain/engineering.js';
+export { createEngineeringState, allocateEnergy, DEVICE_IDS, BANK_LOCATIONS } from './domain/engineering.js';
+export { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage } from './domain/combat.js';
+export type { WeaponTarget } from './commands.js';

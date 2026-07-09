@@ -6,4 +6,6 @@ export interface Craft {
 	name: string;
 	mission: string;
 	position: Vector3;
+	/** 0-100; a combat target's remaining structural integrity. 0 = destroyed. */
+	hullIntegrity: number;
 }

@@ -5,9 +5,9 @@ describe('engineering commands', () => {
 	it('SetEnergyAllocation assigns energy to a device, zero-sum across the rest', () => {
 		const engine = createEngine();
 		const totalEnergy = engine.getState().engineering.totalEnergy;
-		engine.dispatch({ module: 'engineering', type: 'SetEnergyAllocation', deviceId: 'phaser-1', amount: 100 });
+		engine.dispatch({ module: 'engineering', type: 'SetEnergyAllocation', deviceId: 'phaser-fore', amount: 100 });
 		const devices = engine.getState().engineering.devices;
-		expect(devices['phaser-1']!.energyAssigned).toBe(100);
+		expect(devices['phaser-fore']!.energyAssigned).toBe(100);
 		const total = Object.values(devices).reduce((sum, d) => sum + d.energyAssigned, 0);
 		expect(total).toBeCloseTo(totalEnergy);
 	});

@@ -3,9 +3,9 @@ import { parseEngineeringCommand } from './engineering-command-parser.js';
 
 describe('parseEngineeringCommand', () => {
 	it('parses "E D <deviceId> <amount>" into a SetEnergyAllocation command', () => {
-		expect(parseEngineeringCommand('E D phaser-1 500')).toEqual({
+		expect(parseEngineeringCommand('E D phaser-fore 500')).toEqual({
 			ok: true,
-			command: { module: 'engineering', type: 'SetEnergyAllocation', deviceId: 'phaser-1', amount: 500 }
+			command: { module: 'engineering', type: 'SetEnergyAllocation', deviceId: 'phaser-fore', amount: 500 }
 		});
 	});
 
@@ -21,7 +21,7 @@ describe('parseEngineeringCommand', () => {
 	});
 
 	it('rejects a non-numeric energy amount', () => {
-		expect(parseEngineeringCommand('E D phaser-1 lots').ok).toBe(false);
+		expect(parseEngineeringCommand('E D phaser-fore lots').ok).toBe(false);
 	});
 
 	it('rejects an unrecognized command', () => {

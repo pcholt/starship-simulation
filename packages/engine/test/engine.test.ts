@@ -62,7 +62,13 @@ describe('engine.dispatch — creating craft and celestial objects', () => {
 			position: { x: 1, y: 2, z: 3 }
 		});
 		expect(engine.getState().enemyCraft).toEqual([
-			{ id: 1, name: 'Klingon Bird of Prey', mission: 'unconditionalAttack', position: { x: 1, y: 2, z: 3 } }
+			{
+				id: 1,
+				name: 'Klingon Bird of Prey',
+				mission: 'unconditionalAttack',
+				position: { x: 1, y: 2, z: 3 },
+				hullIntegrity: 100
+			}
 		]);
 	});
 

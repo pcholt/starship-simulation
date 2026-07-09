@@ -1,10 +1,12 @@
 import { produce } from 'immer';
-import type { Command, CommandResult } from './commands.js';
+import type { Command, CommandResult, WeaponTarget } from './commands.js';
 import { ALL_MODULE_NAMES } from './domain/module.js';
 import { createInitialWorldState, type WorldState } from './domain/world-state.js';
 import { advancePosition } from './domain/navigation.js';
-import { scanCelestialObject, scanCraft, distanceBetween, type ScanResult } from './domain/sciences.js';
+import { scanCelestialObject, scanCraft, distanceBetween, scanQualityForDistance, type ScanResult } from './domain/sciences.js';
 import { allocateEnergy } from './domain/engineering.js';
+import { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage } from './domain/combat.js';
+import type { Craft } from './domain/craft.js';
 import type { Vector3 } from './domain/vector.js';
 import type { EngineEvent, Unsubscribe } from './events.js';
 import { createScenarioRuntimeState, dueSteps, type ScenarioScript } from './scenario/scenario.js';
@@ -53,6 +55,52 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 		for (const listener of listeners) listener(event);
 	}
 
+	function findCraftByName(name: string): { craft: Craft; fleet: 'enemyCraft' | 'federationCraft' } | undefined {
+		const enemy = state.enemyCraft.find((c) => c.name === name);
+		if (enemy) return { craft: enemy, fleet: 'enemyCraft' };
+		const federation = state.federationCraft.find((c) => c.name === name);
+		if (federation) return { craft: federation, fleet: 'federationCraft' };
+		return undefined;
+	}
+
+	const WEAPON_HIT_RADIUS = 5;
+
+	function findCraftNear(position: { x: number; y: number; z: number }): { craft: Craft; fleet: 'enemyCraft' | 'federationCraft' } | undefined {
+		for (const fleet of ['enemyCraft', 'federationCraft'] as const) {
+			const craft = state[fleet].find((c) => distanceBetween(c.position, position) <= WEAPON_HIT_RADIUS);
+			if (craft) return { craft, fleet };
+		}
+		return undefined;
+	}
+
+	function resolveWeaponTarget(
+		target: WeaponTarget
+	): { craft: Craft; fleet: 'enemyCraft' | 'federationCraft' } | { ok: false; reason: string } {
+		if (target.kind === 'object') {
+			const found = findCraftByName(target.name);
+			if (!found) return { ok: false, reason: `No object or craft named "${target.name}"` };
+			return found;
+		}
+		const found = findCraftNear(target.position);
+		if (!found) return { ok: false, reason: 'Nothing at those coordinates' };
+		return found;
+	}
+
+	function applyDamage(fleet: 'enemyCraft' | 'federationCraft', craftId: number, damage: number): void {
+		state = produce(state, (draft) => {
+			const list = draft[fleet];
+			const index = list.findIndex((c) => c.id === craftId);
+			if (index === -1) return;
+			const nextIntegrity = Math.max(0, list[index]!.hullIntegrity - damage);
+			if (nextIntegrity <= 0) {
+				list.splice(index, 1);
+			} else {
+				list[index]!.hullIntegrity = nextIntegrity;
+			}
+		});
+		emit({ type: 'StateChanged', paths: [fleet] });
+	}
+
 	function applyCommand(command: Command): CommandResult {
 		switch (command.type) {
 			case 'Initialize':
@@ -69,7 +117,7 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 			case 'CreateEnemyCraft': {
 				const id = nextCraftId++;
 				state = produce(state, (draft) => {
-					draft.enemyCraft.push({ id, name: command.name, mission: command.mission, position: command.position });
+					draft.enemyCraft.push({ id, name: command.name, mission: command.mission, position: command.position, hullIntegrity: 100 });
 				});
 				emit({ type: 'StateChanged', paths: ['enemyCraft'] });
 				return { ok: true };
@@ -77,7 +125,7 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 			case 'CreateFederationCraft': {
 				const id = nextCraftId++;
 				state = produce(state, (draft) => {
-					draft.federationCraft.push({ id, name: command.name, mission: command.mission, position: command.position });
+					draft.federationCraft.push({ id, name: command.name, mission: command.mission, position: command.position, hullIntegrity: 100 });
 				});
 				emit({ type: 'StateChanged', paths: ['federationCraft'] });
 				return { ok: true };
@@ -177,6 +225,45 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 					draft.engineering = nextEngineering;
 				});
 				emit({ type: 'StateChanged', paths: ['engineering.devices'] });
+				return { ok: true };
+			}
+			case 'FirePhasers': {
+				const resolved = resolveWeaponTarget(command.target);
+				if ('reason' in resolved) return { ok: false, reason: resolved.reason };
+				const { craft, fleet } = resolved;
+				const distance = distanceBetween(state.enterpriseNavigation.position, craft.position);
+				if (scanQualityForDistance(distance) === 'none') return { ok: false, reason: 'Target out of sensor range' };
+				const bank = bankLocationForRelativePosition(state.enterpriseNavigation.position, craft.position);
+				const phaserBank = state.engineering.devices[`phaser-${bank}`];
+				if (!phaserBank || phaserBank.functionalStatus <= 0) {
+					return { ok: false, reason: `Phaser bank (${bank}) is not operational` };
+				}
+				// The target's own shields aren't modeled yet (only the Enterprise's device catalogue is) — treat non-Enterprise craft as unshielded.
+				const damage = computePhaserDamage(distance, 0);
+				applyDamage(fleet, craft.id, damage);
+				return { ok: true };
+			}
+			case 'FireTorpedo': {
+				const resolved = resolveWeaponTarget(command.target);
+				if ('reason' in resolved) return { ok: false, reason: resolved.reason };
+				const { craft, fleet } = resolved;
+				const distance = distanceBetween(state.enterpriseNavigation.position, craft.position);
+				if (scanQualityForDistance(distance) === 'none') return { ok: false, reason: 'Target out of sensor range' };
+				const hasFunctionalTube = Object.entries(state.engineering.devices).some(
+					([id, device]) => id.startsWith('torpedoTube-') && device.functionalStatus > 0
+				);
+				if (!hasFunctionalTube) return { ok: false, reason: 'No functional torpedo tubes' };
+				const damage = computeTorpedoDamage(0);
+				applyDamage(fleet, craft.id, damage);
+				return { ok: true };
+			}
+			case 'SetShieldLevel': {
+				const deviceId = `shield-${command.location}`;
+				const level = Math.min(100, Math.max(0, command.level));
+				state = produce(state, (draft) => {
+					draft.engineering.devices[deviceId]!.operationalStatus = level;
+				});
+				emit({ type: 'StateChanged', paths: [`engineering.devices.${deviceId}`] });
 				return { ok: true };
 			}
 			case 'SetShuttlecraftMission': {

@@ -1,6 +1,9 @@
 import type { ModuleName } from './domain/module.js';
 import type { Location } from './domain/location.js';
 import type { Vector3 } from './domain/vector.js';
+import type { BankLocation } from './domain/engineering.js';
+
+export type WeaponTarget = { kind: 'object'; name: string } | { kind: 'coordinates'; position: Vector3 };
 
 export type ModuleTarget = ModuleName | 'all';
 
@@ -38,6 +41,9 @@ export type Command =
 			shuttlecraftId: number;
 			mission: 'none' | 'deliverCargo' | 'seekSensorData' | 'transportPersonnel' | 'seekEnterprise';
 			destination?: Location;
-	  };
+	  }
+	| { module: 'helm'; type: 'FirePhasers'; target: WeaponTarget }
+	| { module: 'helm'; type: 'FireTorpedo'; target: WeaponTarget }
+	| { module: 'helm'; type: 'SetShieldLevel'; location: BankLocation; level: number };
 
 export type CommandResult = { ok: true } | { ok: false; reason: string };

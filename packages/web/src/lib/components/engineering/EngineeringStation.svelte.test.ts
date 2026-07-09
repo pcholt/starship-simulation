@@ -21,21 +21,21 @@ describe('EngineeringStation', () => {
 		}
 	});
 
-	it('shows a device row for phaser-1 with its starting energy allocation', async () => {
+	it('shows a device row for phaser-fore with its starting energy allocation', async () => {
 		const store = setup();
 		render(EngineeringStation, { store });
 
-		await expect.element(page.getByTestId('device-phaser-1-energy')).toBeInTheDocument();
+		await expect.element(page.getByTestId('device-phaser-fore-energy')).toBeInTheDocument();
 	});
 
 	it('updates energy allocation after an E D command is entered', async () => {
 		const store = setup();
 		render(EngineeringStation, { store });
 
-		await page.getByLabelText('Command input').fill('E D phaser-1 500');
+		await page.getByLabelText('Command input').fill('E D phaser-fore 500');
 		await page.getByRole('button', { name: 'Enter' }).click();
 
-		await expect.element(page.getByTestId('device-phaser-1-energy')).toHaveTextContent('500');
+		await expect.element(page.getByTestId('device-phaser-fore-energy')).toHaveTextContent('500');
 	});
 
 	it('updates a shuttlecraft mission after an S S command is entered', async () => {

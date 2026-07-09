@@ -24,27 +24,27 @@ describe('createEngineeringState', () => {
 describe('allocateEnergy', () => {
 	it('assigns the requested amount to the target device', () => {
 		const state = createEngineeringState();
-		const next = allocateEnergy(state, 'phaser-1', 50);
-		expect(next.devices['phaser-1']!.energyAssigned).toBe(50);
+		const next = allocateEnergy(state, 'phaser-fore', 50);
+		expect(next.devices['phaser-fore']!.energyAssigned).toBe(50);
 	});
 
 	it('keeps the total energy assigned across all devices constant (zero-sum)', () => {
 		const state = createEngineeringState();
-		const next = allocateEnergy(state, 'phaser-1', 50);
+		const next = allocateEnergy(state, 'phaser-fore', 50);
 		const total = Object.values(next.devices).reduce((sum, d) => sum + d.energyAssigned, 0);
 		expect(total).toBeCloseTo(state.totalEnergy);
 	});
 
 	it('reduces every other device equally to make room', () => {
 		const state = createEngineeringState();
-		const next = allocateEnergy(state, 'phaser-1', state.totalEnergy);
-		const others = Object.entries(next.devices).filter(([id]) => id !== 'phaser-1');
+		const next = allocateEnergy(state, 'phaser-fore', state.totalEnergy);
+		const others = Object.entries(next.devices).filter(([id]) => id !== 'phaser-fore');
 		for (const [, device] of others) expect(device.energyAssigned).toBeCloseTo(0);
 	});
 
 	it('clamps the requested amount to the total energy pool', () => {
 		const state = createEngineeringState();
-		const next = allocateEnergy(state, 'phaser-1', state.totalEnergy * 10);
-		expect(next.devices['phaser-1']!.energyAssigned).toBeCloseTo(state.totalEnergy);
+		const next = allocateEnergy(state, 'phaser-fore', state.totalEnergy * 10);
+		expect(next.devices['phaser-fore']!.energyAssigned).toBeCloseTo(state.totalEnergy);
 	});
 });
