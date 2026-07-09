@@ -19,6 +19,22 @@ describe('HelmStation', () => {
 		await expect.element(page.getByTestId('shield-fore-level')).toHaveTextContent('100');
 	});
 
+	it('lists all six phaser banks with their functional status (Figure 3.17 PHASERS table)', async () => {
+		const store = setup();
+		render(HelmStation, { store });
+
+		await expect.element(page.getByTestId('phaser-fore-func')).toBeInTheDocument();
+		await expect.element(page.getByTestId('phaser-bottom-func')).toBeInTheDocument();
+	});
+
+	it('lists all six torpedo tubes with their functional status (Figure 3.17 TORPEDO table)', async () => {
+		const store = setup();
+		render(HelmStation, { store });
+
+		await expect.element(page.getByTestId('torpedo-tube-1-func')).toBeInTheDocument();
+		await expect.element(page.getByTestId('torpedo-tube-6-func')).toBeInTheDocument();
+	});
+
 	it('updates a shield level after an S D command is entered', async () => {
 		const store = setup();
 		render(HelmStation, { store });

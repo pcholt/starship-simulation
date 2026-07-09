@@ -61,4 +61,48 @@ describe('NavigationStation', () => {
 
 		await expect.element(page.getByRole('alert')).toBeInTheDocument();
 	});
+
+	it('shows the simulated-time chronometer', async () => {
+		const store = setup();
+		render(NavigationStation, { store });
+
+		await expect.element(page.getByTestId('nav-chronometer')).toHaveTextContent('0');
+	});
+
+	it('computes an ETA once a course and speed toward coordinates are both set', async () => {
+		const store = setup();
+		render(NavigationStation, { store });
+
+		await page.getByLabelText('Command input').fill('SCC 100 0 0');
+		await page.getByRole('button', { name: 'Enter' }).click();
+		await page.getByLabelText('Command input').fill('SV 10');
+		await page.getByRole('button', { name: 'Enter' }).click();
+
+		await expect.element(page.getByTestId('nav-eta')).toHaveTextContent('10');
+	});
+
+	it('shows ETA as N/A when speed is zero', async () => {
+		const store = setup();
+		render(NavigationStation, { store });
+
+		await page.getByLabelText('Command input').fill('SCC 100 0 0');
+		await page.getByRole('button', { name: 'Enter' }).click();
+
+		await expect.element(page.getByTestId('nav-eta')).toHaveTextContent('N/A');
+	});
+
+	it('lists nearby celestial objects and craft (text substitute for the Astrogator plot)', async () => {
+		const store = setup();
+		store.dispatch({
+			module: 'controller',
+			type: 'CreateCelestialObject',
+			name: 'Rigel VII',
+			position: { x: 10, y: 0, z: 0 },
+			radius: 6000,
+			mass: 5.9e24
+		});
+		render(NavigationStation, { store });
+
+		await expect.element(page.getByTestId('nearby-objects')).toHaveTextContent('Rigel VII');
+	});
 });

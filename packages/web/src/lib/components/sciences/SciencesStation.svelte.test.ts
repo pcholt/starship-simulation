@@ -28,6 +28,14 @@ describe('SciencesStation', () => {
 		await expect.element(page.getByTestId('scan-identity')).toHaveTextContent('NONE');
 	});
 
+	it('shows the Sciences Computer functional and operational status (Figure 3.12)', async () => {
+		const store = setup();
+		render(SciencesStation, { store });
+
+		await expect.element(page.getByTestId('sciences-computer-funcstat')).toHaveTextContent('100');
+		await expect.element(page.getByTestId('sciences-computer-opstat')).toHaveTextContent('100');
+	});
+
 	it('displays scan results after scanning a named object', async () => {
 		const store = setup();
 		store.dispatch({

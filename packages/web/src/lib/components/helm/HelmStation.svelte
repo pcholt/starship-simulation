@@ -18,6 +18,15 @@
 			device: store.state.engineering.devices[`shield-${location}`]!
 		}))
 	);
+	let phasers = $derived(
+		(['fore', 'aft', 'port', 'starboard', 'top', 'bottom'] as const).map((location) => ({
+			location,
+			device: store.state.engineering.devices[`phaser-${location}`]!
+		}))
+	);
+	let torpedoTubes = $derived(
+		[1, 2, 3, 4, 5, 6].map((n) => ({ number: n, device: store.state.engineering.devices[`torpedoTube-${n}`]! }))
+	);
 
 	function describeTarget(command: { type: 'FirePhasers' | 'FireTorpedo'; target: { kind: string; name?: string } }): string {
 		return command.target.kind === 'object' ? command.target.name! : 'coordinates';
@@ -44,6 +53,50 @@
 
 <section aria-label="Helm station">
 	<h2>Helm</h2>
+
+	<h3>Phasers</h3>
+	<table>
+		<thead>
+			<tr>
+				<th>NBR</th>
+				<th>OP</th>
+				<th>FUNC</th>
+				<th>REL</th>
+			</tr>
+		</thead>
+		<tbody>
+			{#each phasers as phaser (phaser.location)}
+				<tr>
+					<td>{phaser.location.toUpperCase()}</td>
+					<td>{phaser.device.operationalStatus}</td>
+					<td data-testid={`phaser-${phaser.location}-func`}>{phaser.device.functionalStatus}</td>
+					<td>{phaser.device.reliabilityFactor}</td>
+				</tr>
+			{/each}
+		</tbody>
+	</table>
+
+	<h3>Torpedo Tubes</h3>
+	<table>
+		<thead>
+			<tr>
+				<th>STA</th>
+				<th>OP</th>
+				<th>FUNC</th>
+				<th>REL</th>
+			</tr>
+		</thead>
+		<tbody>
+			{#each torpedoTubes as tube (tube.number)}
+				<tr>
+					<td>{tube.number}</td>
+					<td>{tube.device.operationalStatus}</td>
+					<td data-testid={`torpedo-tube-${tube.number}-func`}>{tube.device.functionalStatus}</td>
+					<td>{tube.device.reliabilityFactor}</td>
+				</tr>
+			{/each}
+		</tbody>
+	</table>
 
 	<h3>Shields</h3>
 	<table>

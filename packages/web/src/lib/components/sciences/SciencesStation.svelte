@@ -13,6 +13,7 @@
 
 	let lifeSupport = $derived(store.state.lifeSupport);
 	let scan = $derived(store.state.lastScanResult);
+	let computer = $derived(store.state.engineering.devices.sciencesComputer!);
 
 	function handleSubmit(text: string) {
 		const parsed = parseSciencesCommand(text);
@@ -27,6 +28,14 @@
 
 <section aria-label="Sciences station">
 	<h2>Sciences</h2>
+
+	<h3>Sciences Computer</h3>
+	<dl>
+		<dt>OPERATIONAL STATUS</dt>
+		<dd data-testid="sciences-computer-opstat">{computer.operationalStatus}</dd>
+		<dt>FUNCTIONAL STATUS</dt>
+		<dd data-testid="sciences-computer-funcstat">{computer.functionalStatus}</dd>
+	</dl>
 
 	<h3>Life Support</h3>
 	<dl>
