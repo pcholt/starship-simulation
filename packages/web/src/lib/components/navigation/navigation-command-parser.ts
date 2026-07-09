@@ -2,6 +2,13 @@ import type { Command } from '@starship/engine';
 
 export type ParseResult = { ok: true; command: Command } | { ok: false; reason: string };
 
+/** Mirrors the book's Figure 3.8 "Navigation Commands" table, for display in the station's command reference. */
+export const NAVIGATION_COMMANDS = [
+	{ description: 'Set Direction', syntax: 'S D <xy angle> <xz angle>' },
+	{ description: 'Set Velocity', syntax: 'S V <warp speed>' },
+	{ description: 'Set Course to Coordinates', syntax: 'S C C <x> <y> <z>' }
+];
+
 function parseNumbers(tokens: string[], count: number): number[] | null {
 	if (tokens.length !== count) return null;
 	const numbers = tokens.map(Number);

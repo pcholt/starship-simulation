@@ -2,6 +2,13 @@ import type { Command } from '@starship/engine';
 
 export type ParseResult = { ok: true; command: Command } | { ok: false; reason: string };
 
+/** Mirrors the book's Figure 3.11 "Sciences Commands" table. */
+export const SCIENCES_COMMANDS = [
+	{ description: 'Scan Specified Object', syntax: 'S S O <object name>' },
+	{ description: 'Scan Area', syntax: 'S A <x> <y> <z>' },
+	{ description: 'Scan Randomly', syntax: 'S R' }
+];
+
 /**
  * Parses the Sciences station's terse command syntax (book Figure 3.11):
  *   S S O <object name>     — Scan Specified Object

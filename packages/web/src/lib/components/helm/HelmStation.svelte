@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import CommandBox from '../shared/CommandBox.svelte';
-	import { parseHelmCommand } from './helm-command-parser.js';
+	import CommandReference from '../shared/CommandReference.svelte';
+	import { parseHelmCommand, HELM_COMMANDS } from './helm-command-parser.js';
 
 	interface Props {
 		store: WorldStateStore;
@@ -76,4 +77,5 @@
 	</div>
 
 	<CommandBox onSubmit={handleSubmit} {errorMessage} />
+	<CommandReference commands={HELM_COMMANDS} />
 </section>

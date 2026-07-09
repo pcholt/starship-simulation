@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import CommandBox from '../shared/CommandBox.svelte';
-	import { parseEngineeringCommand } from './engineering-command-parser.js';
+	import CommandReference from '../shared/CommandReference.svelte';
+	import { parseEngineeringCommand, ENGINEERING_COMMANDS } from './engineering-command-parser.js';
 
 	interface Props {
 		store: WorldStateStore;
@@ -74,4 +75,5 @@
 	</div>
 
 	<CommandBox onSubmit={handleSubmit} {errorMessage} />
+	<CommandReference commands={ENGINEERING_COMMANDS} />
 </section>

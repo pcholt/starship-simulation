@@ -8,6 +8,18 @@ function parseDestination(text: string): ShipStation | null {
 	return station ?? null;
 }
 
+/** Mirrors the book's Figure 3.4 "Communications Commands" table. */
+export const COMMUNICATIONS_COMMANDS = [
+	{ description: 'Display next Message', syntax: 'D M' },
+	{ description: 'Send Distress message', syntax: 'S D' },
+	{ description: 'Request Personnel movement', syntax: 'R P <personnel name>, <ship station>' },
+	{ description: 'Request Cargo movement', syntax: 'R C <cargo type>, <ship station>' },
+	{ description: 'Request Aid', syntax: 'R A <federation craft name>' },
+	{ description: 'Send Peace Offer to enemy craft', syntax: 'S P O <craft name>' },
+	{ description: 'Accept Peace Offer from enemy craft', syntax: 'A P O <craft name>' },
+	{ description: 'Reject Peace Offer from enemy craft', syntax: 'R P O <craft name>' }
+];
+
 /**
  * Parses the Communications station's terse command syntax (book Figure 3.4):
  *   D M                              — Display next Message

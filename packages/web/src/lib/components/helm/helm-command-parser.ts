@@ -3,6 +3,15 @@ import { BANK_LOCATIONS } from '@starship/engine';
 
 export type ParseResult = { ok: true; command: Command } | { ok: false; reason: string };
 
+/** Mirrors the book's Figure 3.16 "Helm Commands" table. */
+export const HELM_COMMANDS = [
+	{ description: 'Fire Phaser at named Object', syntax: 'F P O <object name>' },
+	{ description: 'Fire Phaser at Coordinates', syntax: 'F P C <x> <y> <z>' },
+	{ description: 'Fire photon Torpedo at named Object', syntax: 'F T O <object name>' },
+	{ description: 'Fire photon Torpedo at Coordinates', syntax: 'F T C <x> <y> <z>' },
+	{ description: 'Set Deflector shield level', syntax: `S D <${BANK_LOCATIONS.join('|')}> <level>` }
+];
+
 function parseCoordinates(tokens: string[]): { x: number; y: number; z: number } | null {
 	if (tokens.length !== 3) return null;
 	const numbers = tokens.map(Number);

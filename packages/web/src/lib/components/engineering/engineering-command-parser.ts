@@ -10,6 +10,12 @@ const VALID_MISSIONS: ShuttlecraftMission[] = [
 	'seekEnterprise'
 ];
 
+/** Mirrors the book's Figure 3.13 "Engineering Commands" table. */
+export const ENGINEERING_COMMANDS = [
+	{ description: 'set Energy supply to Device', syntax: 'E D <device id> <amount>' },
+	{ description: 'Set Shuttlecraft mission', syntax: `S S <shuttlecraft id> <${VALID_MISSIONS.join('|')}>` }
+];
+
 /**
  * Parses the Engineering station's terse command syntax (book Figure 3.13,
  * adapted to a typed `Command`):
