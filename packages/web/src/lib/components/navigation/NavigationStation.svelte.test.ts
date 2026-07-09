@@ -25,7 +25,7 @@ describe('NavigationStation', () => {
 		const store = setup();
 		render(NavigationStation, { store });
 
-		await page.getByLabelText('Command input').fill('S V 7');
+		await page.getByLabelText('Command input').fill('SV 7');
 		await page.getByRole('button', { name: 'Enter' }).click();
 
 		await expect.element(page.getByTestId('nav-speed')).toHaveTextContent('7');
@@ -35,7 +35,7 @@ describe('NavigationStation', () => {
 		const store = setup();
 		render(NavigationStation, { store });
 
-		await page.getByLabelText('Command input').fill('S D 45 10');
+		await page.getByLabelText('Command input').fill('SD 45 10');
 		await page.getByRole('button', { name: 'Enter' }).click();
 
 		await expect.element(page.getByTestId('nav-xy-angle')).toHaveTextContent('45');
@@ -46,7 +46,7 @@ describe('NavigationStation', () => {
 		const store = setup();
 		render(NavigationStation, { store });
 
-		await page.getByLabelText('Command input').fill('S C C 4 5 6');
+		await page.getByLabelText('Command input').fill('SCC 4 5 6');
 		await page.getByRole('button', { name: 'Enter' }).click();
 
 		await expect.element(page.getByTestId('nav-destination')).toHaveTextContent('4, 5, 6');

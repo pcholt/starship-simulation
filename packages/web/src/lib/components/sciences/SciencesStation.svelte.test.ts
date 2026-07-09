@@ -40,7 +40,7 @@ describe('SciencesStation', () => {
 		});
 		render(SciencesStation, { store });
 
-		await page.getByLabelText('Command input').fill('S S O Rigel VII');
+		await page.getByLabelText('Command input').fill('SSO Rigel VII');
 		await page.getByRole('button', { name: 'Enter' }).click();
 
 		await expect.element(page.getByTestId('scan-identity')).toHaveTextContent('Rigel VII');
@@ -51,7 +51,7 @@ describe('SciencesStation', () => {
 		const store = setup();
 		render(SciencesStation, { store });
 
-		await page.getByLabelText('Command input').fill('S S O Nonexistent');
+		await page.getByLabelText('Command input').fill('SSO Nonexistent');
 		await page.getByRole('button', { name: 'Enter' }).click();
 
 		await expect.element(page.getByRole('alert')).toBeInTheDocument();

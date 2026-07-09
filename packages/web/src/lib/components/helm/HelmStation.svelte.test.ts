@@ -23,7 +23,7 @@ describe('HelmStation', () => {
 		const store = setup();
 		render(HelmStation, { store });
 
-		await page.getByLabelText('Command input').fill('S D fore 40');
+		await page.getByLabelText('Command input').fill('SD fore 40');
 		await page.getByRole('button', { name: 'Enter' }).click();
 
 		await expect.element(page.getByTestId('shield-fore-level')).toHaveTextContent('40');
@@ -40,7 +40,7 @@ describe('HelmStation', () => {
 		});
 		render(HelmStation, { store });
 
-		await page.getByLabelText('Command input').fill('F P O Klingon Bird of Prey');
+		await page.getByLabelText('Command input').fill('FPO Klingon Bird of Prey');
 		await page.getByRole('button', { name: 'Enter' }).click();
 
 		await expect.element(page.getByTestId('weapons-log')).toHaveTextContent('Klingon Bird of Prey');
@@ -50,7 +50,7 @@ describe('HelmStation', () => {
 		const store = setup();
 		render(HelmStation, { store });
 
-		await page.getByLabelText('Command input').fill('F P O Nobody');
+		await page.getByLabelText('Command input').fill('FPO Nobody');
 		await page.getByRole('button', { name: 'Enter' }).click();
 
 		await expect.element(page.getByRole('alert')).toBeInTheDocument();

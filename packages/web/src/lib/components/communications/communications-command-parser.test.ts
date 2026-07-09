@@ -2,22 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { parseCommunicationsCommand } from './communications-command-parser.js';
 
 describe('parseCommunicationsCommand', () => {
-	it('parses "D M" into a DisplayNextMessage command', () => {
-		expect(parseCommunicationsCommand('D M')).toEqual({
+	it('parses "DM" into a DisplayNextMessage command', () => {
+		expect(parseCommunicationsCommand('DM')).toEqual({
 			ok: true,
 			command: { module: 'communications', type: 'DisplayNextMessage' }
 		});
 	});
 
-	it('parses "S D" into a SendDistressMessage command', () => {
-		expect(parseCommunicationsCommand('S D')).toEqual({
+	it('parses "SD" into a SendDistressMessage command', () => {
+		expect(parseCommunicationsCommand('SD')).toEqual({
 			ok: true,
 			command: { module: 'communications', type: 'SendDistressMessage' }
 		});
 	});
 
-	it('parses "R P <name>, <ship station>" into a RequestPersonnelMovement command', () => {
-		expect(parseCommunicationsCommand('R P Ensign Kim, sciencesLab')).toEqual({
+	it('parses "RP <name>, <ship station>" into a RequestPersonnelMovement command', () => {
+		expect(parseCommunicationsCommand('RP Ensign Kim, sciencesLab')).toEqual({
 			ok: true,
 			command: {
 				module: 'communications',
@@ -28,8 +28,8 @@ describe('parseCommunicationsCommand', () => {
 		});
 	});
 
-	it('parses "R C <cargo type>, <ship station>" into a RequestCargoMovement command', () => {
-		expect(parseCommunicationsCommand('R C medical supplies, medicalResearchLab')).toEqual({
+	it('parses "RC <cargo type>, <ship station>" into a RequestCargoMovement command', () => {
+		expect(parseCommunicationsCommand('RC medical supplies, medicalResearchLab')).toEqual({
 			ok: true,
 			command: {
 				module: 'communications',
@@ -40,36 +40,41 @@ describe('parseCommunicationsCommand', () => {
 		});
 	});
 
-	it('parses "R A <federation craft name>" into a RequestAid command', () => {
-		expect(parseCommunicationsCommand('R A USS Excelsior')).toEqual({
+	it('parses "RA <federation craft name>" into a RequestAid command', () => {
+		expect(parseCommunicationsCommand('RA USS Excelsior')).toEqual({
 			ok: true,
 			command: { module: 'communications', type: 'RequestAid', federationCraftName: 'USS Excelsior' }
 		});
 	});
 
-	it('parses "S P O <craft name>" into a SendPeaceOffer command', () => {
-		expect(parseCommunicationsCommand('S P O Klingon Bird of Prey')).toEqual({
+	it('parses "SPO <craft name>" into a SendPeaceOffer command', () => {
+		expect(parseCommunicationsCommand('SPO Klingon Bird of Prey')).toEqual({
 			ok: true,
 			command: { module: 'communications', type: 'SendPeaceOffer', craftName: 'Klingon Bird of Prey' }
 		});
 	});
 
-	it('parses "A P O <craft name>" into an AcceptPeaceOffer command', () => {
-		expect(parseCommunicationsCommand('A P O Klingon Bird of Prey')).toEqual({
+	it('parses "APO <craft name>" into an AcceptPeaceOffer command', () => {
+		expect(parseCommunicationsCommand('APO Klingon Bird of Prey')).toEqual({
 			ok: true,
 			command: { module: 'communications', type: 'AcceptPeaceOffer', craftName: 'Klingon Bird of Prey' }
 		});
 	});
 
-	it('parses "R P O <craft name>" into a RejectPeaceOffer command', () => {
-		expect(parseCommunicationsCommand('R P O Klingon Bird of Prey')).toEqual({
+	it('parses "RPO <craft name>" into a RejectPeaceOffer command', () => {
+		expect(parseCommunicationsCommand('RPO Klingon Bird of Prey')).toEqual({
 			ok: true,
 			command: { module: 'communications', type: 'RejectPeaceOffer', craftName: 'Klingon Bird of Prey' }
 		});
 	});
 
+	it('does not confuse "RP" (personnel movement) with "RPO" (reject peace offer)', () => {
+		const result = parseCommunicationsCommand('RP Ensign Kim, sciencesLab');
+		expect(result.ok && result.command.type).toBe('RequestPersonnelMovement');
+	});
+
 	it('rejects a movement request with an unknown ship station', () => {
-		expect(parseCommunicationsCommand('R P Ensign Kim, warpCore').ok).toBe(false);
+		expect(parseCommunicationsCommand('RP Ensign Kim, warpCore').ok).toBe(false);
 	});
 
 	it('rejects an unrecognized command', () => {

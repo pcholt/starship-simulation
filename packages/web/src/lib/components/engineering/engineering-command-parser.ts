@@ -12,34 +12,34 @@ const VALID_MISSIONS: ShuttlecraftMission[] = [
 
 /** Mirrors the book's Figure 3.13 "Engineering Commands" table. */
 export const ENGINEERING_COMMANDS = [
-	{ description: 'set Energy supply to Device', syntax: 'E D <device id> <amount>' },
-	{ description: 'Set Shuttlecraft mission', syntax: `S S <shuttlecraft id> <${VALID_MISSIONS.join('|')}>` }
+	{ description: 'set Energy supply to Device', syntax: 'ED <device id> <amount>' },
+	{ description: 'Set Shuttlecraft mission', syntax: `SS <shuttlecraft id> <${VALID_MISSIONS.join('|')}>` }
 ];
 
 /**
  * Parses the Engineering station's terse command syntax (book Figure 3.13,
- * adapted to a typed `Command`):
- *   E D <device id> <amount>          — set Energy supply to Device
- *   S S <shuttlecraft id> <mission>   — Set Shuttlecraft mission
+ * adapted to a typed `Command`, with the command code as a single token
+ * rather than space-separated letters):
+ *   ED <device id> <amount>          — set Energy supply to Device
+ *   SS <shuttlecraft id> <mission>   — Set Shuttlecraft mission
  */
 export function parseEngineeringCommand(input: string): ParseResult {
-	const tokens = input.trim().split(/\s+/);
-	const [a, b, ...rest] = tokens;
+	const [code, ...rest] = input.trim().split(/\s+/);
 
-	if (a?.toUpperCase() === 'E' && b?.toUpperCase() === 'D') {
+	if (code?.toUpperCase() === 'ED') {
 		const [deviceId, amountText] = rest;
 		const amount = Number(amountText);
 		if (!deviceId || amountText === undefined || Number.isNaN(amount)) {
-			return { ok: false, reason: 'Usage: E D <device id> <amount>' };
+			return { ok: false, reason: 'Usage: ED <device id> <amount>' };
 		}
 		return { ok: true, command: { module: 'engineering', type: 'SetEnergyAllocation', deviceId, amount } };
 	}
 
-	if (a?.toUpperCase() === 'S' && b?.toUpperCase() === 'S') {
+	if (code?.toUpperCase() === 'SS') {
 		const [idText, missionText] = rest;
 		const shuttlecraftId = Number(idText);
 		if (!idText || Number.isNaN(shuttlecraftId)) {
-			return { ok: false, reason: 'Usage: S S <shuttlecraft id> <mission>' };
+			return { ok: false, reason: 'Usage: SS <shuttlecraft id> <mission>' };
 		}
 		const mission = VALID_MISSIONS.find((m) => m.toLowerCase() === missionText?.toLowerCase());
 		if (!mission) {

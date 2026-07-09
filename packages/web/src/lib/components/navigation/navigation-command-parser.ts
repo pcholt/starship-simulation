@@ -4,9 +4,9 @@ export type ParseResult = { ok: true; command: Command } | { ok: false; reason: 
 
 /** Mirrors the book's Figure 3.8 "Navigation Commands" table, for display in the station's command reference. */
 export const NAVIGATION_COMMANDS = [
-	{ description: 'Set Direction', syntax: 'S D <xy angle> <xz angle>' },
-	{ description: 'Set Velocity', syntax: 'S V <warp speed>' },
-	{ description: 'Set Course to Coordinates', syntax: 'S C C <x> <y> <z>' }
+	{ description: 'Set Direction', syntax: 'SD <xy angle> <xz angle>' },
+	{ description: 'Set Velocity', syntax: 'SV <warp speed>' },
+	{ description: 'Set Course to Coordinates', syntax: 'SCC <x> <y> <z>' }
 ];
 
 function parseNumbers(tokens: string[], count: number): number[] | null {
@@ -17,32 +17,32 @@ function parseNumbers(tokens: string[], count: number): number[] | null {
 
 /**
  * Parses the Navigation station's terse command syntax (per the book's
- * Figure 3.8, adapted to a typed `Command`):
- *   S D <xyAngleDeg> <xzAngleDeg>   — Set Direction
- *   S V <warpSpeed>                 — Set Velocity (speed only)
- *   S C C <x> <y> <z>               — Set Course to Coordinates
+ * Figure 3.8, adapted to a typed `Command`, with the command code as a
+ * single token rather than space-separated letters):
+ *   SD <xyAngleDeg> <xzAngleDeg>   — Set Direction
+ *   SV <warpSpeed>                 — Set Velocity (speed only)
+ *   SCC <x> <y> <z>                — Set Course to Coordinates
  */
 export function parseNavigationCommand(input: string): ParseResult {
-	const tokens = input.trim().toUpperCase().split(/\s+/);
-	const [a, b, ...rest] = tokens;
+	const [code, ...rest] = input.trim().toUpperCase().split(/\s+/);
 
-	if (a === 'S' && b === 'D') {
+	if (code === 'SD') {
 		const numbers = parseNumbers(rest, 2);
-		if (!numbers) return { ok: false, reason: 'Usage: S D <xy angle> <xz angle>' };
+		if (!numbers) return { ok: false, reason: 'Usage: SD <xy angle> <xz angle>' };
 		const [xyAngleDeg, xzAngleDeg] = numbers as [number, number];
 		return { ok: true, command: { module: 'navigation', type: 'SetDirection', xyAngleDeg, xzAngleDeg } };
 	}
 
-	if (a === 'S' && b === 'V') {
+	if (code === 'SV') {
 		const numbers = parseNumbers(rest, 1);
-		if (!numbers) return { ok: false, reason: 'Usage: S V <warp speed>' };
+		if (!numbers) return { ok: false, reason: 'Usage: SV <warp speed>' };
 		const [warpSpeed] = numbers as [number];
 		return { ok: true, command: { module: 'navigation', type: 'SetSpeed', warpSpeed } };
 	}
 
-	if (a === 'S' && b === 'C' && rest[0] === 'C') {
-		const numbers = parseNumbers(rest.slice(1), 3);
-		if (!numbers) return { ok: false, reason: 'Usage: S C C <x> <y> <z>' };
+	if (code === 'SCC') {
+		const numbers = parseNumbers(rest, 3);
+		if (!numbers) return { ok: false, reason: 'Usage: SCC <x> <y> <z>' };
 		const [x, y, z] = numbers as [number, number, number];
 		return { ok: true, command: { module: 'navigation', type: 'SetCourse', destination: { kind: 'coordinates', x, y, z } } };
 	}

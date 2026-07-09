@@ -2,22 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { parseNavigationCommand } from './navigation-command-parser.js';
 
 describe('parseNavigationCommand', () => {
-	it('parses "S D <xyAngle> <xzAngle>" into a SetDirection command', () => {
-		expect(parseNavigationCommand('S D 45 10')).toEqual({
+	it('parses "SD <xyAngle> <xzAngle>" into a SetDirection command', () => {
+		expect(parseNavigationCommand('SD 45 10')).toEqual({
 			ok: true,
 			command: { module: 'navigation', type: 'SetDirection', xyAngleDeg: 45, xzAngleDeg: 10 }
 		});
 	});
 
-	it('parses "S V <speed>" into a SetSpeed command', () => {
-		expect(parseNavigationCommand('S V 7')).toEqual({
+	it('parses "SV <speed>" into a SetSpeed command', () => {
+		expect(parseNavigationCommand('SV 7')).toEqual({
 			ok: true,
 			command: { module: 'navigation', type: 'SetSpeed', warpSpeed: 7 }
 		});
 	});
 
-	it('parses "S C C <x> <y> <z>" into a SetCourse command with coordinates', () => {
-		expect(parseNavigationCommand('S C C 1 2 3')).toEqual({
+	it('parses "SCC <x> <y> <z>" into a SetCourse command with coordinates', () => {
+		expect(parseNavigationCommand('SCC 1 2 3')).toEqual({
 			ok: true,
 			command: {
 				module: 'navigation',
@@ -28,19 +28,19 @@ describe('parseNavigationCommand', () => {
 	});
 
 	it('is case-insensitive and tolerates extra whitespace', () => {
-		expect(parseNavigationCommand('  s v   7  ')).toEqual({
+		expect(parseNavigationCommand('  sv   7  ')).toEqual({
 			ok: true,
 			command: { module: 'navigation', type: 'SetSpeed', warpSpeed: 7 }
 		});
 	});
 
 	it('rejects an unrecognized command with a helpful reason', () => {
-		const result = parseNavigationCommand('X Y Z');
+		const result = parseNavigationCommand('XYZ');
 		expect(result.ok).toBe(false);
 	});
 
 	it('rejects SetDirection/SetSpeed/SetCourse-coordinates commands with non-numeric arguments', () => {
-		expect(parseNavigationCommand('S V fast').ok).toBe(false);
-		expect(parseNavigationCommand('S D forty five').ok).toBe(false);
+		expect(parseNavigationCommand('SV fast').ok).toBe(false);
+		expect(parseNavigationCommand('SD forty five').ok).toBe(false);
 	});
 });

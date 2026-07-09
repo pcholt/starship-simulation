@@ -32,7 +32,7 @@ describe('EngineeringStation', () => {
 		const store = setup();
 		render(EngineeringStation, { store });
 
-		await page.getByLabelText('Command input').fill('E D phaser-fore 500');
+		await page.getByLabelText('Command input').fill('ED phaser-fore 500');
 		await page.getByRole('button', { name: 'Enter' }).click();
 
 		await expect.element(page.getByTestId('device-phaser-fore-energy')).toHaveTextContent('500');
@@ -42,7 +42,7 @@ describe('EngineeringStation', () => {
 		const store = setup();
 		render(EngineeringStation, { store });
 
-		await page.getByLabelText('Command input').fill('S S 1 seekSensorData');
+		await page.getByLabelText('Command input').fill('SS 1 seekSensorData');
 		await page.getByRole('button', { name: 'Enter' }).click();
 
 		await expect.element(page.getByTestId('shuttlecraft-1-mission')).toHaveTextContent('seekSensorData');

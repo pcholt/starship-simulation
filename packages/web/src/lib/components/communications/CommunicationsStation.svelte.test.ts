@@ -24,7 +24,7 @@ describe('CommunicationsStation', () => {
 		store.dispatch({ module: 'communications', type: 'ReceiveMessage', from: 'Starbase 12', text: 'Report status' });
 		render(CommunicationsStation, { store });
 
-		await page.getByLabelText('Command input').fill('D M');
+		await page.getByLabelText('Command input').fill('DM');
 		await page.getByRole('button', { name: 'Enter' }).click();
 
 		await expect.element(page.getByTestId('current-message')).toHaveTextContent('Starbase 12');
@@ -35,7 +35,7 @@ describe('CommunicationsStation', () => {
 		const store = setup();
 		render(CommunicationsStation, { store });
 
-		await page.getByLabelText('Command input').fill('S D');
+		await page.getByLabelText('Command input').fill('SD');
 		await page.getByRole('button', { name: 'Enter' }).click();
 
 		await expect.element(page.getByTestId('comms-log')).toHaveTextContent('Distress message sent');
@@ -45,7 +45,7 @@ describe('CommunicationsStation', () => {
 		const store = setup();
 		render(CommunicationsStation, { store });
 
-		await page.getByLabelText('Command input').fill('S P O Nobody');
+		await page.getByLabelText('Command input').fill('SPO Nobody');
 		await page.getByRole('button', { name: 'Enter' }).click();
 
 		await expect.element(page.getByRole('alert')).toBeInTheDocument();
