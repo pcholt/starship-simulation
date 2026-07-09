@@ -6,6 +6,7 @@
 	import EngineeringStation from '$lib/components/engineering/EngineeringStation.svelte';
 	import HelmStation from '$lib/components/helm/HelmStation.svelte';
 	import MedicalStation from '$lib/components/medical/MedicalStation.svelte';
+	import CommunicationsStation from '$lib/components/communications/CommunicationsStation.svelte';
 
 	let name = $derived(page.params.name);
 </script>
@@ -20,6 +21,8 @@
 	<HelmStation store={worldStateStore} />
 {:else if name === 'medical'}
 	<MedicalStation store={worldStateStore} />
+{:else if name === 'communications'}
+	<CommunicationsStation store={worldStateStore} />
 {:else}
 	<p>Unknown station: {name}</p>
 {/if}

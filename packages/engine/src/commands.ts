@@ -45,6 +45,15 @@ export type Command =
 	| { module: 'helm'; type: 'FirePhasers'; target: WeaponTarget }
 	| { module: 'helm'; type: 'FireTorpedo'; target: WeaponTarget }
 	| { module: 'helm'; type: 'SetShieldLevel'; location: BankLocation; level: number }
-	| { module: 'medical'; type: 'AdmitPatient'; personnelId: number; name: string; health: number };
+	| { module: 'medical'; type: 'AdmitPatient'; personnelId: number; name: string; health: number }
+	| { module: 'communications'; type: 'ReceiveMessage'; from: string; text: string }
+	| { module: 'communications'; type: 'DisplayNextMessage' }
+	| { module: 'communications'; type: 'SendDistressMessage' }
+	| { module: 'communications'; type: 'RequestPersonnelMovement'; personnelName: string; destination: Location }
+	| { module: 'communications'; type: 'RequestCargoMovement'; cargoType: string; destination: Location }
+	| { module: 'communications'; type: 'RequestAid'; federationCraftName: string }
+	| { module: 'communications'; type: 'SendPeaceOffer'; craftName: string }
+	| { module: 'communications'; type: 'AcceptPeaceOffer'; craftName: string }
+	| { module: 'communications'; type: 'RejectPeaceOffer'; craftName: string };
 
 export type CommandResult = { ok: true } | { ok: false; reason: string };

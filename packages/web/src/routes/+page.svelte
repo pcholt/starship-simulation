@@ -6,4 +6,5 @@
 	<li><a href="/station/engineering">Engineering</a></li>
 	<li><a href="/station/helm">Helm</a></li>
 	<li><a href="/station/medical">Medical</a></li>
+	<li><a href="/station/communications">Communications</a></li>
 </ul>

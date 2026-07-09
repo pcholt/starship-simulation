@@ -5,25 +5,28 @@
  * numeric ranges. The book's numeric codes are not reproduced here; they were
  * a BASIC-era serialization concern, not a domain concept.
  */
-export type ShipStation =
-	| 'bridge'
-	| 'sciencesLab'
-	| 'engineering'
-	| 'brig'
-	| 'security'
-	| 'navigationComputer'
-	| 'medicalResearchLab'
-	| 'medicalComputer'
-	| 'turboElevatorComputer'
-	| 'tractorBeam'
-	| 'foodProcessing'
-	| 'oxygenDistRecycling'
-	| 'waterDistRecycling'
-	| 'energySupply'
-	| 'intensiveCareUnit'
-	| 'sensorStations'
-	| 'crewQuarters'
-	| 'shuttleBay';
+export const SHIP_STATIONS = [
+	'bridge',
+	'sciencesLab',
+	'engineering',
+	'brig',
+	'security',
+	'navigationComputer',
+	'medicalResearchLab',
+	'medicalComputer',
+	'turboElevatorComputer',
+	'tractorBeam',
+	'foodProcessing',
+	'oxygenDistRecycling',
+	'waterDistRecycling',
+	'energySupply',
+	'intensiveCareUnit',
+	'sensorStations',
+	'crewQuarters',
+	'shuttleBay'
+] as const;
+
+export type ShipStation = (typeof SHIP_STATIONS)[number];
 
 export type CraftClass = 'enterprise' | 'enemy' | 'federation' | 'shuttlecraft';
 

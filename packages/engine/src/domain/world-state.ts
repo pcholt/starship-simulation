@@ -5,6 +5,7 @@ import { createNavigationState, type NavigationState } from './navigation.js';
 import { createLifeSupportState, type LifeSupportState, type ScanResult } from './sciences.js';
 import { createEngineeringState, type EngineeringState } from './engineering.js';
 import { createMedicalState, type MedicalState } from './medical.js';
+import { createCommunicationsState, type CommunicationsState } from './communications.js';
 import type { ScenarioRuntimeState } from '../scenario/scenario.js';
 
 /** The "common data area" from the book: the single shared state tree every module reads and writes. */
@@ -16,6 +17,7 @@ export interface WorldState {
 	lastScanResult: ScanResult | null;
 	engineering: EngineeringState;
 	medical: MedicalState;
+	communications: CommunicationsState;
 	celestialObjects: CelestialObject[];
 	enemyCraft: Craft[];
 	federationCraft: Craft[];
@@ -35,6 +37,7 @@ export function createInitialWorldState(): WorldState {
 		lastScanResult: null,
 		engineering: createEngineeringState(),
 		medical: createMedicalState(),
+		communications: createCommunicationsState(),
 		celestialObjects: [],
 		enemyCraft: [],
 		federationCraft: [],

@@ -7,6 +7,7 @@ import { scanCelestialObject, scanCraft, distanceBetween, scanQualityForDistance
 import { allocateEnergy } from './domain/engineering.js';
 import { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage } from './domain/combat.js';
 import { admitPatient, recoverPatient } from './domain/medical.js';
+import { enqueueMessage, displayNextMessage } from './domain/communications.js';
 import type { Craft } from './domain/craft.js';
 import type { Vector3 } from './domain/vector.js';
 import type { EngineEvent, Unsubscribe } from './events.js';
@@ -278,6 +279,80 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 					draft.medical = result.state;
 				});
 				emit({ type: 'StateChanged', paths: ['medical.icu'] });
+				return { ok: true };
+			}
+			case 'ReceiveMessage': {
+				state = produce(state, (draft) => {
+					draft.communications = enqueueMessage(draft.communications, command.from, command.text);
+				});
+				emit({ type: 'StateChanged', paths: ['communications.messageQueue'] });
+				return { ok: true };
+			}
+			case 'DisplayNextMessage': {
+				const { state: nextComms } = displayNextMessage(state.communications);
+				state = produce(state, (draft) => {
+					draft.communications = nextComms;
+				});
+				emit({ type: 'StateChanged', paths: ['communications'] });
+				return { ok: true };
+			}
+			case 'SendDistressMessage': {
+				state = produce(state, (draft) => {
+					draft.communications.log.push('Distress message sent');
+				});
+				emit({ type: 'AlertRaised', module: 'communications', severity: 'critical', message: 'Distress message sent' });
+				emit({ type: 'StateChanged', paths: ['communications.log'] });
+				return { ok: true };
+			}
+			case 'RequestPersonnelMovement': {
+				state = produce(state, (draft) => {
+					draft.communications.log.push(`Requested movement of ${command.personnelName} to ${command.destination.kind}`);
+				});
+				emit({ type: 'StateChanged', paths: ['communications.log'] });
+				return { ok: true };
+			}
+			case 'RequestCargoMovement': {
+				state = produce(state, (draft) => {
+					draft.communications.log.push(`Requested movement of ${command.cargoType} to ${command.destination.kind}`);
+				});
+				emit({ type: 'StateChanged', paths: ['communications.log'] });
+				return { ok: true };
+			}
+			case 'RequestAid': {
+				const craft = state.federationCraft.find((c) => c.name === command.federationCraftName);
+				if (!craft) return { ok: false, reason: `No Federation craft named "${command.federationCraftName}"` };
+				state = produce(state, (draft) => {
+					draft.communications.log.push(`Requested aid from ${command.federationCraftName}`);
+				});
+				emit({ type: 'StateChanged', paths: ['communications.log'] });
+				return { ok: true };
+			}
+			case 'SendPeaceOffer': {
+				const craft = state.enemyCraft.find((c) => c.name === command.craftName);
+				if (!craft) return { ok: false, reason: `No enemy craft named "${command.craftName}"` };
+				state = produce(state, (draft) => {
+					draft.communications.log.push(`Peace offer sent to ${command.craftName}`);
+				});
+				emit({ type: 'StateChanged', paths: ['communications.log'] });
+				return { ok: true };
+			}
+			case 'AcceptPeaceOffer': {
+				const craft = state.enemyCraft.find((c) => c.name === command.craftName);
+				if (!craft) return { ok: false, reason: `No enemy craft named "${command.craftName}"` };
+				state = produce(state, (draft) => {
+					draft.enemyCraft.find((c) => c.name === command.craftName)!.mission = 'peace';
+					draft.communications.log.push(`Peace offer from ${command.craftName} accepted`);
+				});
+				emit({ type: 'StateChanged', paths: ['enemyCraft', 'communications.log'] });
+				return { ok: true };
+			}
+			case 'RejectPeaceOffer': {
+				const craft = state.enemyCraft.find((c) => c.name === command.craftName);
+				if (!craft) return { ok: false, reason: `No enemy craft named "${command.craftName}"` };
+				state = produce(state, (draft) => {
+					draft.communications.log.push(`Peace offer from ${command.craftName} rejected`);
+				});
+				emit({ type: 'StateChanged', paths: ['communications.log'] });
 				return { ok: true };
 			}
 			case 'SetShuttlecraftMission': {
