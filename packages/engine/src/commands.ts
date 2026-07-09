@@ -44,6 +44,7 @@ export type Command =
 	  }
 	| { module: 'helm'; type: 'FirePhasers'; target: WeaponTarget }
 	| { module: 'helm'; type: 'FireTorpedo'; target: WeaponTarget }
-	| { module: 'helm'; type: 'SetShieldLevel'; location: BankLocation; level: number };
+	| { module: 'helm'; type: 'SetShieldLevel'; location: BankLocation; level: number }
+	| { module: 'medical'; type: 'AdmitPatient'; personnelId: number; name: string; health: number };
 
 export type CommandResult = { ok: true } | { ok: false; reason: string };

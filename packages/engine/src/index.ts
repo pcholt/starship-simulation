@@ -29,3 +29,5 @@ export type { EngineeringState, Shuttlecraft, ShuttlecraftMission, BankLocation 
 export { createEngineeringState, allocateEnergy, DEVICE_IDS, BANK_LOCATIONS } from './domain/engineering.js';
 export { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage } from './domain/combat.js';
 export type { WeaponTarget } from './commands.js';
+export type { Patient, MedicalState, AdmitResult, RecoveryOptions } from './domain/medical.js';
+export { createMedicalState, admitPatient, dischargePatient, recoverPatient, ICU_CAPACITY } from './domain/medical.js';

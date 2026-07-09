@@ -6,6 +6,7 @@ import { advancePosition } from './domain/navigation.js';
 import { scanCelestialObject, scanCraft, distanceBetween, scanQualityForDistance, type ScanResult } from './domain/sciences.js';
 import { allocateEnergy } from './domain/engineering.js';
 import { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage } from './domain/combat.js';
+import { admitPatient, recoverPatient } from './domain/medical.js';
 import type { Craft } from './domain/craft.js';
 import type { Vector3 } from './domain/vector.js';
 import type { EngineEvent, Unsubscribe } from './events.js';
@@ -266,6 +267,19 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				emit({ type: 'StateChanged', paths: [`engineering.devices.${deviceId}`] });
 				return { ok: true };
 			}
+			case 'AdmitPatient': {
+				const result = admitPatient(state.medical, {
+					personnelId: command.personnelId,
+					name: command.name,
+					health: command.health
+				});
+				if (!result.ok) return { ok: false, reason: result.reason };
+				state = produce(state, (draft) => {
+					draft.medical = result.state;
+				});
+				emit({ type: 'StateChanged', paths: ['medical.icu'] });
+				return { ok: true };
+			}
 			case 'SetShuttlecraftMission': {
 				const shuttle = state.engineering.shuttlecraft.find((s) => s.id === command.shuttlecraftId);
 				if (!shuttle) return { ok: false, reason: `No shuttlecraft numbered ${command.shuttlecraftId}` };
@@ -296,6 +310,14 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				draft.simulatedTimeMs += deltaMs;
 				if (draft.modules.navigation === 'running') {
 					draft.enterpriseNavigation.position = advancePosition(draft.enterpriseNavigation, deltaMs);
+				}
+				if (draft.modules.medical === 'running') {
+					const icuFunctionalStatus = draft.engineering.devices.intensiveCareUnit!.functionalStatus;
+					draft.medical.icu = draft.medical.icu.map((patient) => {
+						if (!patient) return null;
+						const recovered = recoverPatient(patient, { icuFunctionalStatus, deltaMs });
+						return recovered.health <= 0 || recovered.health >= 10 ? null : recovered;
+					});
 				}
 			});
 			if (!state.scenario) return;

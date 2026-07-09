@@ -18,6 +18,8 @@ export const DEVICE_IDS: readonly string[] = [
 	'navigationComputer',
 	'sciencesComputer',
 	'medicalComputer',
+	'intensiveCareUnit',
+	'medicalResearchLab',
 	'commsComputer',
 	'tractorBeam',
 	'oxygenDistribution',
