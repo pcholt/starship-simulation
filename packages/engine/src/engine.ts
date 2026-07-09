@@ -3,6 +3,8 @@ import type { Command, CommandResult } from './commands.js';
 import { ALL_MODULE_NAMES } from './domain/module.js';
 import { createInitialWorldState, type WorldState } from './domain/world-state.js';
 import { advancePosition } from './domain/navigation.js';
+import { scanCelestialObject, scanCraft, distanceBetween, type ScanResult } from './domain/sciences.js';
+import type { Vector3 } from './domain/vector.js';
 import type { EngineEvent, Unsubscribe } from './events.js';
 import { createScenarioRuntimeState, dueSteps, type ScenarioScript } from './scenario/scenario.js';
 
@@ -29,7 +31,22 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 	// state, keeping `getState()` snapshots honestly readonly at runtime, not just by type.
 	let state: WorldState = produce(deps.initialState ?? createInitialWorldState(), () => {});
 	let nextCraftId = 1;
+	const rng = deps.rng ?? Math.random;
 	const listeners = new Set<(event: EngineEvent) => void>();
+
+	function scannableEntries(): { name: string; scan: (fromPosition: Vector3) => ScanResult }[] {
+		return [
+			...state.celestialObjects.map((object) => ({
+				name: object.name,
+				scan: (fromPosition: Vector3) => scanCelestialObject(object, fromPosition)
+			})),
+			...state.enemyCraft.map((craft) => ({ name: craft.name, scan: (fromPosition: Vector3) => scanCraft(craft, fromPosition) })),
+			...state.federationCraft.map((craft) => ({
+				name: craft.name,
+				scan: (fromPosition: Vector3) => scanCraft(craft, fromPosition)
+			}))
+		];
+	}
 
 	function emit(event: EngineEvent): void {
 		for (const listener of listeners) listener(event);
@@ -114,6 +131,40 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 					draft.enterpriseNavigation.destination = command.destination;
 				});
 				emit({ type: 'StateChanged', paths: ['enterpriseNavigation.destination'] });
+				return { ok: true };
+			}
+			case 'ScanObject': {
+				const entry = scannableEntries().find((e) => e.name === command.name);
+				if (!entry) return { ok: false, reason: `No object or craft named "${command.name}"` };
+				const result = entry.scan(state.enterpriseNavigation.position);
+				state = produce(state, (draft) => {
+					draft.lastScanResult = result;
+				});
+				emit({ type: 'StateChanged', paths: ['lastScanResult'] });
+				return { ok: true };
+			}
+			case 'ScanArea': {
+				const entries = scannableEntries();
+				if (entries.length === 0) return { ok: false, reason: 'Nothing detected in this area' };
+				const nearest = entries
+					.map((e) => ({ entry: e, distance: distanceBetween(e.scan(command.position).position, command.position) }))
+					.sort((a, b) => a.distance - b.distance)[0]!.entry;
+				const result = nearest.scan(state.enterpriseNavigation.position);
+				state = produce(state, (draft) => {
+					draft.lastScanResult = result;
+				});
+				emit({ type: 'StateChanged', paths: ['lastScanResult'] });
+				return { ok: true };
+			}
+			case 'ScanRandom': {
+				const entries = scannableEntries();
+				if (entries.length === 0) return { ok: false, reason: 'Nothing detected in this area' };
+				const entry = entries[Math.floor(rng() * entries.length)]!;
+				const result = entry.scan(state.enterpriseNavigation.position);
+				state = produce(state, (draft) => {
+					draft.lastScanResult = result;
+				});
+				emit({ type: 'StateChanged', paths: ['lastScanResult'] });
 				return { ok: true };
 			}
 		}

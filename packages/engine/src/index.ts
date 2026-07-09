@@ -17,3 +17,11 @@ export type { CelestialObject } from './domain/celestial-object.js';
 export type { Craft } from './domain/craft.js';
 export type { NavigationState, Velocity } from './domain/navigation.js';
 export { createNavigationState, headingVector, advancePosition } from './domain/navigation.js';
+export type { LifeSupportState, ScanResult, ScanQuality } from './domain/sciences.js';
+export {
+	createLifeSupportState,
+	distanceBetween,
+	scanQualityForDistance,
+	scanCelestialObject,
+	scanCraft
+} from './domain/sciences.js';

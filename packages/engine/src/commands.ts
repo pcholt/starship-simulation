@@ -27,6 +27,9 @@ export type Command =
 	| { module: 'controller'; type: 'HaltScenario' }
 	| { module: 'navigation'; type: 'SetCourse'; destination: Location }
 	| { module: 'navigation'; type: 'SetDirection'; xyAngleDeg: number; xzAngleDeg: number }
-	| { module: 'navigation'; type: 'SetSpeed'; warpSpeed: number };
+	| { module: 'navigation'; type: 'SetSpeed'; warpSpeed: number }
+	| { module: 'sciences'; type: 'ScanObject'; name: string }
+	| { module: 'sciences'; type: 'ScanArea'; position: Vector3 }
+	| { module: 'sciences'; type: 'ScanRandom' };
 
 export type CommandResult = { ok: true } | { ok: false; reason: string };
