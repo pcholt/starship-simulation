@@ -3,7 +3,11 @@
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import CommandBox from '../shared/CommandBox.svelte';
 	import CommandReference from '../shared/CommandReference.svelte';
+	import AstrogatorPlot from './AstrogatorPlot.svelte';
 	import { parseNavigationCommand, NAVIGATION_COMMANDS } from './navigation-command-parser.js';
+
+	/** Plot radius in world distance-units — matches Sciences' partial-scan range, since both represent sensor reach. */
+	const PLOT_RANGE = 1000;
 
 	interface Props {
 		store: WorldStateStore;
@@ -43,17 +47,20 @@
 		return `${(distance / navigation.velocity.warpSpeed).toFixed(1)}s`;
 	});
 
-	// Text substitute for the book's graphical ASTROGATOR plot + symbol key (Figure 3.10).
-	let nearbyObjects = $derived.by(() => {
-		const entries = [
-			...store.state.celestialObjects.map((o) => ({ kind: 'celestial object', name: o.name, position: o.position })),
-			...store.state.enemyCraft.map((c) => ({ kind: 'enemy craft', name: c.name, position: c.position })),
-			...store.state.federationCraft.map((c) => ({ kind: 'federation craft', name: c.name, position: c.position }))
-		];
-		return entries
+	let plotEntities = $derived([
+		...store.state.celestialObjects.map((o) => ({ name: o.name, kind: 'celestialObject' as const, position: o.position })),
+		...store.state.enemyCraft.map((c) => ({ name: c.name, kind: 'enemyCraft' as const, position: c.position })),
+		...store.state.federationCraft.map((c) => ({ name: c.name, kind: 'federationCraft' as const, position: c.position }))
+	]);
+
+	// Supplementary detail table alongside the Astrogator plot — the same entities, but with exact distance and no range cutoff.
+	let nearbyObjects = $derived(
+		plotEntities
 			.map((e) => ({ ...e, distance: distanceBetween(navigation.position, e.position) }))
-			.sort((a, b) => a.distance - b.distance);
-	});
+			.sort((a, b) => a.distance - b.distance)
+	);
+
+	const KIND_LABELS = { celestialObject: 'celestial object', enemyCraft: 'enemy craft', federationCraft: 'federation craft' };
 
 	function handleSubmit(text: string) {
 		const result = parseNavigationCommand(text);
@@ -93,6 +100,8 @@
 		<dd data-testid="nav-chronometer">{store.state.simulatedTimeMs}</dd>
 	</dl>
 
+	<AstrogatorPlot center={navigation.position} entities={plotEntities} range={PLOT_RANGE} />
+
 	<h3>Nearby Objects</h3>
 	<table>
 		<thead>
@@ -106,7 +115,7 @@
 			{#each nearbyObjects as entry (entry.name)}
 				<tr>
 					<td>{entry.name}</td>
-					<td>{entry.kind}</td>
+					<td>{KIND_LABELS[entry.kind]}</td>
 					<td>{entry.distance.toFixed(1)}</td>
 				</tr>
 			{/each}
