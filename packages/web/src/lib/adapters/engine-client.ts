@@ -1,4 +1,4 @@
-import type { Command, CommandResult, Engine, EngineEvent, Unsubscribe, WorldState } from '@starship/engine';
+import type { Command, CommandResult, Engine, EngineEvent, ScenarioScript, Unsubscribe, WorldState } from '@starship/engine';
 
 /**
  * The boundary a Svelte store depends on instead of the engine directly.
@@ -10,6 +10,8 @@ export interface EngineClient {
 	dispatch(command: Command): CommandResult;
 	getState(): Readonly<WorldState>;
 	subscribe(listener: (event: EngineEvent) => void): Unsubscribe;
+	loadScenario(script: ScenarioScript): void;
+	tick(deltaMs: number): void;
 }
 
 export type { Engine };

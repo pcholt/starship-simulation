@@ -8,3 +8,17 @@ import { WorldStateStore } from './stores/world-state.svelte.js';
  * with a `createWsEngineClient(...)` here — no other file needs to change.
  */
 export const worldStateStore = new WorldStateStore(createLocalEngineClient());
+
+const TICK_INTERVAL_MS = 200;
+
+// Browser-only: advances the simulated clock in real time so running modules
+// (ship movement, medical recovery) and a running scenario actually progress.
+// Guarded so SvelteKit's SSR render of this module doesn't start a timer per request.
+if (typeof window !== 'undefined') {
+	let last = performance.now();
+	setInterval(() => {
+		const now = performance.now();
+		worldStateStore.tick(now - last);
+		last = now;
+	}, TICK_INTERVAL_MS);
+}

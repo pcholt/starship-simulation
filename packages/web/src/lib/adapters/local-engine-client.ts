@@ -7,6 +7,8 @@ export function createLocalEngineClient(deps?: EngineDeps): EngineClient {
 	return {
 		dispatch: (command) => engine.dispatch(command),
 		getState: () => engine.getState(),
-		subscribe: (listener) => engine.subscribe(listener)
+		subscribe: (listener) => engine.subscribe(listener),
+		loadScenario: (script) => engine.loadScenario(script),
+		tick: (deltaMs) => engine.tick(deltaMs)
 	};
 }

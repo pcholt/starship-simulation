@@ -1,4 +1,4 @@
-import type { Command, CommandResult, WorldState } from '@starship/engine';
+import type { Command, CommandResult, ScenarioScript, WorldState } from '@starship/engine';
 import type { EngineClient } from '../adapters/engine-client.js';
 
 /**
@@ -22,5 +22,15 @@ export class WorldStateStore {
 
 	dispatch(command: Command): CommandResult {
 		return this.#client.dispatch(command);
+	}
+
+	loadScenario(script: ScenarioScript): void {
+		this.#client.loadScenario(script);
+		this.state = this.#client.getState();
+	}
+
+	tick(deltaMs: number): void {
+		this.#client.tick(deltaMs);
+		this.state = this.#client.getState();
 	}
 }

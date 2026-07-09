@@ -7,11 +7,14 @@
 	import HelmStation from '$lib/components/helm/HelmStation.svelte';
 	import MedicalStation from '$lib/components/medical/MedicalStation.svelte';
 	import CommunicationsStation from '$lib/components/communications/CommunicationsStation.svelte';
+	import ControllerStation from '$lib/components/controller/ControllerStation.svelte';
 
 	let name = $derived(page.params.name);
 </script>
 
-{#if name === 'navigation'}
+{#if name === 'controller'}
+	<ControllerStation store={worldStateStore} />
+{:else if name === 'navigation'}
 	<NavigationStation store={worldStateStore} />
 {:else if name === 'sciences'}
 	<SciencesStation store={worldStateStore} />
