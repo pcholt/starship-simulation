@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import type { Vector3 } from '@starship/engine';
 	import { BANK_LOCATIONS, distanceBetween, FULL_SCAN_RANGE, PARTIAL_SCAN_RANGE, PHASER_RANGE_HALF_LIFE } from '@starship/engine';
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
@@ -90,18 +91,40 @@
 
 	/** How long the Sciences Scan Area flash stays visible before it's removed (the CSS fade spans the same duration). */
 	const SCAN_FLASH_DURATION_MS = 2000;
-	let scanFlash: { center: Vector3; radius: number; key: number } | null = $state(null);
+	let scanFlash: { center: Vector3; radius: number; key: number; initialOpacity: number; durationMs: number } | null =
+		$state(null);
 
 	// Watches for a *new* Scan Area event (by sequence number, not object identity — the latter
 	// would also change on every full-state broadcast in networked play) and shows a flash at the
 	// scanned point for a couple of seconds, so Navigation sees where Sciences just looked.
+	//
+	// The event carries `atMs` (simulated time of the scan), so a component that only just
+	// mounted — e.g. the player switched stations and back, or reloaded the page — can tell how
+	// much of the flash's 2 seconds has already elapsed elsewhere, instead of always restarting
+	// it from full brightness as if the scan had just happened.
 	$effect(() => {
 		const event = store.state.lastScanAreaEvent;
 		if (!event) return;
-		scanFlash = { center: event.position, radius: FULL_SCAN_RANGE, key: event.sequence };
+
+		// Read the clock without subscribing to it — simulatedTimeMs ticks continuously, and this
+		// effect must only re-run when a *new* scan event arrives, not on every tick in between.
+		const elapsedMs = untrack(() => store.state.simulatedTimeMs) - event.atMs;
+		const remainingMs = SCAN_FLASH_DURATION_MS - elapsedMs;
+		if (remainingMs <= 0) {
+			scanFlash = null;
+			return;
+		}
+
+		scanFlash = {
+			center: event.position,
+			radius: FULL_SCAN_RANGE,
+			key: event.sequence,
+			initialOpacity: 0.6 * (remainingMs / SCAN_FLASH_DURATION_MS),
+			durationMs: remainingMs
+		};
 		const timeout = setTimeout(() => {
 			scanFlash = null;
-		}, SCAN_FLASH_DURATION_MS);
+		}, remainingMs);
 		return () => clearTimeout(timeout);
 	});
 

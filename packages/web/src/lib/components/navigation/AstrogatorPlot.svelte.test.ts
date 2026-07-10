@@ -248,6 +248,19 @@ describe('AstrogatorPlot', () => {
 		expect(secondEl).not.toBe(firstEl);
 	});
 
+	it('lets a caller shorten the fade for an already-partly-elapsed scan flash, so a late-mounting view does not restart it from full brightness', async () => {
+		render(AstrogatorPlot, {
+			center: { x: 0, y: 0, z: 0 },
+			entities: [],
+			range: 1000,
+			scanFlash: { center: { x: 300, y: 0, z: 0 }, radius: 100, key: 1, initialOpacity: 0.2, durationMs: 500 }
+		});
+
+		const el = page.getByTestId('scan-flash-circle').element();
+		expect(el.style.getPropertyValue('--flash-start')).toBe('0.2');
+		expect(el.style.getPropertyValue('--flash-duration')).toBe('500ms');
+	});
+
 	it('calls onSelectPoint with a world-space position when the plot is clicked', async () => {
 		const onSelectPoint = vi.fn();
 		render(AstrogatorPlot, { center: { x: 0, y: 0, z: 0 }, entities: [], range: 1000, onSelectPoint });
