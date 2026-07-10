@@ -2,7 +2,7 @@
 	import type { Vector3 } from '@starship/engine';
 	import { sliderPosToZoomRange, zoomRangeToSliderPos } from './zoom-math.js';
 	import { plotPointToWorld } from './astrogator-math.js';
-	import { gridLineValues } from './astrogator-grid.js';
+	import { gridLineValues, universeGridLineValues } from './astrogator-grid.js';
 
 	type EntityKind = 'enemyCraft' | 'federationCraft' | 'celestialObject';
 
@@ -84,6 +84,17 @@
 	// Rings larger than the current zoom level would overflow the plot, so they're hidden rather
 	// than clipped — the same "beyond the current view" treatment as an out-of-range entity.
 	let visibleRangeCircles = $derived(rangeCircles.filter((c) => c.radius <= zoomRange));
+
+	// Universe (absolute) coordinate grid — anchored to fixed points in space, unlike the
+	// ship-relative grid above, so it visibly shifts under the Enterprise as the ship moves.
+	let universeXValues = $derived(universeGridLineValues(center.x, zoomRange, 5));
+	let universeYValues = $derived(universeGridLineValues(center.y, zoomRange, 5));
+	function universeXOffset(worldX: number) {
+		return ((worldX - center.x) / zoomRange) * PLOT_RADIUS_PCT;
+	}
+	function universeYOffset(worldY: number) {
+		return ((worldY - center.y) / zoomRange) * PLOT_RADIUS_PCT;
+	}
 </script>
 
 <div class="astrogator" aria-label="Astrogator">
@@ -112,6 +123,29 @@
 						>{value}</text
 					>
 					<text x={VIEW_SIZE / 2 + 0.8} y={VIEW_SIZE / 2 - offset} font-size="1.8" stroke="none" fill="currentColor">{value}</text>
+				{/each}
+			</g>
+
+			<g data-testid="astrogator-universe-grid" stroke="var(--universe-grid)" stroke-width="0.12" opacity="0.5">
+				{#each universeXValues as value (value)}
+					{@const offset = universeXOffset(value)}
+					<line x1={VIEW_SIZE / 2 + offset} y1="0" x2={VIEW_SIZE / 2 + offset} y2={VIEW_SIZE} />
+				{/each}
+				{#each universeYValues as value (value)}
+					{@const offset = universeYOffset(value)}
+					<line x1="0" y1={VIEW_SIZE / 2 - offset} x2={VIEW_SIZE} y2={VIEW_SIZE / 2 - offset} />
+				{/each}
+				{#each universeXValues as value (value)}
+					{@const offset = universeXOffset(value)}
+					<text x={VIEW_SIZE / 2 + offset} y={VIEW_SIZE - 1.2} font-size="1.8" stroke="none" fill="var(--universe-grid)" text-anchor="middle"
+						>{value}</text
+					>
+				{/each}
+				{#each universeYValues as value (value)}
+					{@const offset = universeYOffset(value)}
+					<text x={VIEW_SIZE - 12} y={VIEW_SIZE / 2 - offset - 0.6} font-size="1.8" stroke="none" fill="var(--universe-grid)"
+						>{value}</text
+					>
 				{/each}
 			</g>
 
@@ -193,6 +227,7 @@
 		<li>△ ENEMY CRAFT</li>
 		<li>▢ FEDERATION CRAFT</li>
 		<li>○ CELESTIAL OBJECT</li>
+		<li class="universe-grid-key">▦ UNIVERSE GRID</li>
 		{#each rangeCircles as circle (circle.label)}
 			<li>⊚ {circle.label.toUpperCase()} RANGE</li>
 		{/each}
@@ -204,6 +239,9 @@
 		display: flex;
 		gap: var(--space-6);
 		align-items: flex-start;
+		/* Distinct from --chrome-navigation, so the absolute universe grid reads as a separate
+		   layer from the ship-relative grid and the navigation station's own accent chrome. */
+		--universe-grid: #3b5bdb;
 	}
 
 	.plot-column {
@@ -241,5 +279,9 @@
 		font-size: 0.85rem;
 		color: var(--text-muted);
 		white-space: nowrap;
+	}
+
+	.universe-grid-key {
+		color: #3b5bdb;
 	}
 </style>

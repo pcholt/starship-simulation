@@ -26,3 +26,23 @@ export function gridLineValues(zoomRange: number, targetDivisions: number): numb
 	}
 	return values;
 }
+
+/**
+ * Absolute universe-coordinate values (multiples of the grid step) visible within
+ * `zoomRange` of `centerCoord`. Unlike `gridLineValues`, these are anchored to fixed
+ * points in universe space rather than to the ship's current position — as the ship
+ * moves, these lines stay put and the ship moves across them.
+ */
+export function universeGridLineValues(centerCoord: number, zoomRange: number, targetDivisions: number): number[] {
+	const step = niceGridStep(zoomRange, targetDivisions);
+	const min = centerCoord - zoomRange;
+	const max = centerCoord + zoomRange;
+	const start = Math.ceil(min / step) * step;
+	const end = Math.floor(max / step) * step;
+
+	const values: number[] = [];
+	for (let v = start; v <= end + step / 1e6; v += step) {
+		values.push(Math.round(v * 1e6) / 1e6);
+	}
+	return values;
+}

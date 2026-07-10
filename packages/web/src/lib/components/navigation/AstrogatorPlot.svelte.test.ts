@@ -125,6 +125,20 @@ describe('AstrogatorPlot', () => {
 		await expect.element(page.getByTestId('range-circle-Sensors')).not.toBeInTheDocument();
 	});
 
+	it('labels universe grid lines with absolute world coordinates, distinct from the ship-relative grid', async () => {
+		render(AstrogatorPlot, { center: { x: 500, y: 0, z: 0 }, entities: [], range: 1000 });
+
+		// Step is 200; the ship sits at x=500 (not a multiple of 200), so the universe grid's
+		// absolute lines (e.g. 600) differ from where a ship-relative grid would put them.
+		await expect.element(page.getByTestId('astrogator-universe-grid')).toHaveTextContent('600');
+	});
+
+	it('keeps the universe grid anchored to the origin when the ship is at the origin', async () => {
+		render(AstrogatorPlot, { center: { x: 0, y: 0, z: 0 }, entities: [], range: 1000 });
+
+		await expect.element(page.getByTestId('astrogator-universe-grid')).toHaveTextContent('1000');
+	});
+
 	it('calls onSelectPoint with a world-space position when the plot is clicked', async () => {
 		const onSelectPoint = vi.fn();
 		render(AstrogatorPlot, { center: { x: 0, y: 0, z: 0 }, entities: [], range: 1000, onSelectPoint });
