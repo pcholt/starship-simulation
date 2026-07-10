@@ -39,6 +39,8 @@
 	--chrome-helm: #e38c86;
 	--chrome-medical: #c9a0dc;
 	--chrome-communications: #7fb8e0;
+	/* Neutral chrome for cross-cutting panels (alerts, commands) not owned by one station */
+	--chrome-neutral: #5c6070;
 
 	/* Semantic status — separate from the accents above */
 	--status-ok: #5fd98a;

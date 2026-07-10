@@ -4,6 +4,7 @@
 	import CommandBox from '../shared/CommandBox.svelte';
 	import CommandReference from '../shared/CommandReference.svelte';
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
+	import Panel from '../shared/Panel.svelte';
 	import AstrogatorPlot from './AstrogatorPlot.svelte';
 	import { parseNavigationCommand, NAVIGATION_COMMANDS } from './navigation-command-parser.js';
 
@@ -78,56 +79,85 @@
 	<h2>Navigation</h2>
 	<StationStatusBar {store} moduleName="navigation" />
 
-	<dl>
-		<dt>X-COORDINATE</dt>
-		<dd data-testid="nav-position-x">{navigation.position.x}</dd>
-		<dt>Y-COORDINATE</dt>
-		<dd data-testid="nav-position-y">{navigation.position.y}</dd>
-		<dt>Z-COORDINATE</dt>
-		<dd data-testid="nav-position-z">{navigation.position.z}</dd>
+	<div class="grid">
+		<Panel title="Position & Heading" accentVar="chrome-navigation">
+			<dl>
+				<dt>X-COORDINATE</dt>
+				<dd data-testid="nav-position-x">{navigation.position.x}</dd>
+				<dt>Y-COORDINATE</dt>
+				<dd data-testid="nav-position-y">{navigation.position.y}</dd>
+				<dt>Z-COORDINATE</dt>
+				<dd data-testid="nav-position-z">{navigation.position.z}</dd>
 
-		<dt>X/Y DIRECTION</dt>
-		<dd data-testid="nav-xy-angle">{navigation.velocity.xyAngleDeg}</dd>
-		<dt>X/Z DIRECTION</dt>
-		<dd data-testid="nav-xz-angle">{navigation.velocity.xzAngleDeg}</dd>
-		<dt>SPEED</dt>
-		<dd data-testid="nav-speed">{navigation.velocity.warpSpeed}</dd>
+				<dt>X/Y DIRECTION</dt>
+				<dd data-testid="nav-xy-angle">{navigation.velocity.xyAngleDeg}</dd>
+				<dt>X/Z DIRECTION</dt>
+				<dd data-testid="nav-xz-angle">{navigation.velocity.xzAngleDeg}</dd>
+				<dt>SPEED</dt>
+				<dd data-testid="nav-speed">{navigation.velocity.warpSpeed}</dd>
+			</dl>
+		</Panel>
 
-		<dt>DESTINATION</dt>
-		<dd data-testid="nav-destination">{destinationLabel}</dd>
-		<dt>ETA</dt>
-		<dd data-testid="nav-eta">{eta}</dd>
+		<Panel title="Course" accentVar="chrome-navigation">
+			<dl>
+				<dt>DESTINATION</dt>
+				<dd data-testid="nav-destination">{destinationLabel}</dd>
+				<dt>ETA</dt>
+				<dd data-testid="nav-eta">{eta}</dd>
+				<dt>CHRONOMETER</dt>
+				<dd data-testid="nav-chronometer">{store.state.simulatedTimeMs}</dd>
+			</dl>
+		</Panel>
 
-		<dt>CHRONOMETER</dt>
-		<dd data-testid="nav-chronometer">{store.state.simulatedTimeMs}</dd>
-	</dl>
+		<div class="full-width">
+			<Panel title="Astrogator" accentVar="chrome-navigation">
+				<AstrogatorPlot center={navigation.position} entities={plotEntities} range={PLOT_RANGE} />
+			</Panel>
+		</div>
 
-	<AstrogatorPlot center={navigation.position} entities={plotEntities} range={PLOT_RANGE} />
+		<Panel title="Nearby Objects" accentVar="chrome-navigation">
+			<table>
+				<thead>
+					<tr>
+						<th>NAME</th>
+						<th>KIND</th>
+						<th>DISTANCE</th>
+					</tr>
+				</thead>
+				<tbody data-testid="nearby-objects">
+					{#each nearbyObjects as entry (entry.name)}
+						<tr>
+							<td>{entry.name}</td>
+							<td>{KIND_LABELS[entry.kind]}</td>
+							<td>{entry.distance.toFixed(1)}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</Panel>
 
-	<h3>Nearby Objects</h3>
-	<table>
-		<thead>
-			<tr>
-				<th>NAME</th>
-				<th>KIND</th>
-				<th>DISTANCE</th>
-			</tr>
-		</thead>
-		<tbody data-testid="nearby-objects">
-			{#each nearbyObjects as entry (entry.name)}
-				<tr>
-					<td>{entry.name}</td>
-					<td>{KIND_LABELS[entry.kind]}</td>
-					<td>{entry.distance.toFixed(1)}</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+		<Panel title="Alerts" accentVar="chrome-neutral">
+			<div aria-label="Alerts"></div>
+		</Panel>
 
-	<div aria-label="Alerts">
-		<h3>ALERTS</h3>
+		<div class="full-width">
+			<Panel title="Command" accentVar="chrome-navigation">
+				<CommandBox onSubmit={handleSubmit} {errorMessage} accentVar="chrome-navigation" />
+				<CommandReference commands={NAVIGATION_COMMANDS} />
+			</Panel>
+		</div>
 	</div>
-
-	<CommandBox onSubmit={handleSubmit} {errorMessage} />
-	<CommandReference commands={NAVIGATION_COMMANDS} />
 </section>
+
+<style>
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+		gap: var(--space-4);
+		align-items: start;
+	}
+
+	.full-width {
+		grid-column: 1 / -1;
+	}
+</style>

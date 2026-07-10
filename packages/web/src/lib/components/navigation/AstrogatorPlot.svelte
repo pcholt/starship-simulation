@@ -51,7 +51,6 @@
 </script>
 
 <div aria-label="Astrogator">
-	<h3>Astrogator</h3>
 	<svg viewBox="0 0 {VIEW_SIZE} {VIEW_SIZE}" role="img" aria-label="Tactical plot">
 		<line x1={VIEW_SIZE / 2} y1="0" x2={VIEW_SIZE / 2} y2={VIEW_SIZE} stroke="currentColor" stroke-width="0.2" opacity="0.4" />
 		<line x1="0" y1={VIEW_SIZE / 2} x2={VIEW_SIZE} y2={VIEW_SIZE / 2} stroke="currentColor" stroke-width="0.2" opacity="0.4" />
