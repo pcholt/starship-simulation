@@ -3,6 +3,7 @@
 A modern reimplementation of *The Complete STAR SHIP: A Simulation Project* (Roger Garrett, ~1980) — a book that taught structured programming by building a multi-station, Star-Trek-style bridge simulator. This project uses the book's stations and rules as a *starting point*, not a spec, and is expanding well beyond it.
 
 Seven stations, each with a point-and-click LCARS-style interface (plus the book's original typed command syntax as a fallback): **Simulation Controller**, **Navigation**, **Sciences**, **Engineering**, **Helm**, **Medical**, and **Communications**. State can run entirely in-browser for single-player, or be hosted by a small WebSocket server so multiple clients share one live simulation.
+<img width="800" alt="image" src="https://github.com/user-attachments/assets/9fe10865-ea6d-4f95-8cde-71e2e7a58ae9" />
 
 ## Packages
 
