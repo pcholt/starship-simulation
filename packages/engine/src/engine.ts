@@ -201,10 +201,12 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 					.map((e) => ({ entry: e, distance: distanceBetween(e.scan(command.position).position, command.position) }))
 					.sort((a, b) => a.distance - b.distance)[0]!.entry;
 				const result = nearest.scan(state.enterpriseNavigation.position);
+				const sequence = (state.lastScanAreaEvent?.sequence ?? 0) + 1;
 				state = produce(state, (draft) => {
 					draft.lastScanResult = result;
+					draft.lastScanAreaEvent = { position: command.position, sequence };
 				});
-				emit({ type: 'StateChanged', paths: ['lastScanResult'] });
+				emit({ type: 'StateChanged', paths: ['lastScanResult', 'lastScanAreaEvent'] });
 				return { ok: true };
 			}
 			case 'ScanRandom': {

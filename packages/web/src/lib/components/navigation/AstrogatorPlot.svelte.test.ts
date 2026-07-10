@@ -172,6 +172,82 @@ describe('AstrogatorPlot', () => {
 		expect(cxMoved).not.toBe(cxAtOrigin);
 	});
 
+	it('draws a shield sector per bank, faded by shield level, superimposed on the Enterprise', async () => {
+		render(AstrogatorPlot, {
+			center: { x: 0, y: 0, z: 0 },
+			entities: [],
+			range: 1000,
+			shieldOverlay: {
+				headingDeg: 0,
+				levels: [
+					{ location: 'fore', level: 100 },
+					{ location: 'aft', level: 0 },
+					{ location: 'port', level: 50 },
+					{ location: 'starboard', level: 25 }
+				]
+			}
+		});
+
+		await expect.element(page.getByTestId('shield-sector-fore')).toBeInTheDocument();
+		const foreOpacity = await page.getByTestId('shield-sector-fore').element().getAttribute('opacity');
+		const aftOpacity = await page.getByTestId('shield-sector-aft').element().getAttribute('opacity');
+		expect(Number(foreOpacity)).toBeCloseTo(0.5);
+		expect(Number(aftOpacity)).toBeCloseTo(0);
+	});
+
+	it('rotates the shield sectors as heading changes', async () => {
+		const { rerender } = render(AstrogatorPlot, {
+			center: { x: 0, y: 0, z: 0 },
+			entities: [],
+			range: 1000,
+			shieldOverlay: { headingDeg: 0, levels: [{ location: 'fore', level: 100 }] }
+		});
+
+		const pointsAtZero = await page.getByTestId('shield-sector-fore').element().getAttribute('points');
+
+		await rerender({
+			center: { x: 0, y: 0, z: 0 },
+			entities: [],
+			range: 1000,
+			shieldOverlay: { headingDeg: 90, levels: [{ location: 'fore', level: 100 }] }
+		});
+
+		const pointsAtNinety = await page.getByTestId('shield-sector-fore').element().getAttribute('points');
+		expect(pointsAtNinety).not.toBe(pointsAtZero);
+	});
+
+	it('shows a fading scan-flash circle at the given world point when scanFlash is set', async () => {
+		render(AstrogatorPlot, {
+			center: { x: 0, y: 0, z: 0 },
+			entities: [],
+			range: 1000,
+			scanFlash: { center: { x: 300, y: 0, z: 0 }, radius: 100, key: 1 }
+		});
+
+		await expect.element(page.getByTestId('scan-flash-circle')).toBeInTheDocument();
+	});
+
+	it('restarts the scan-flash animation when a new key arrives, even at the same position', async () => {
+		const { rerender } = render(AstrogatorPlot, {
+			center: { x: 0, y: 0, z: 0 },
+			entities: [],
+			range: 1000,
+			scanFlash: { center: { x: 300, y: 0, z: 0 }, radius: 100, key: 1 }
+		});
+
+		const firstEl = page.getByTestId('scan-flash-circle').element();
+
+		await rerender({
+			center: { x: 0, y: 0, z: 0 },
+			entities: [],
+			range: 1000,
+			scanFlash: { center: { x: 300, y: 0, z: 0 }, radius: 100, key: 2 }
+		});
+
+		const secondEl = page.getByTestId('scan-flash-circle').element();
+		expect(secondEl).not.toBe(firstEl);
+	});
+
 	it('calls onSelectPoint with a world-space position when the plot is clicked', async () => {
 		const onSelectPoint = vi.fn();
 		render(AstrogatorPlot, { center: { x: 0, y: 0, z: 0 }, entities: [], range: 1000, onSelectPoint });

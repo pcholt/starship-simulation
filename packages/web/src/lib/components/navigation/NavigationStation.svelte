@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { distanceBetween, FULL_SCAN_RANGE, PARTIAL_SCAN_RANGE, PHASER_RANGE_HALF_LIFE } from '@starship/engine';
+	import type { Vector3 } from '@starship/engine';
+	import { BANK_LOCATIONS, distanceBetween, FULL_SCAN_RANGE, PARTIAL_SCAN_RANGE, PHASER_RANGE_HALF_LIFE } from '@starship/engine';
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import CommandBox from '../shared/CommandBox.svelte';
 	import CommandReference from '../shared/CommandReference.svelte';
@@ -78,6 +79,31 @@
 	);
 
 	const KIND_LABELS = { celestialObject: 'celestial object', enemyCraft: 'enemy craft', federationCraft: 'federation craft' };
+
+	let shieldOverlay = $derived({
+		headingDeg: navigation.velocity.xyAngleDeg,
+		levels: BANK_LOCATIONS.map((location) => ({
+			location,
+			level: store.state.engineering.devices[`shield-${location}`]!.operationalStatus
+		}))
+	});
+
+	/** How long the Sciences Scan Area flash stays visible before it's removed (the CSS fade spans the same duration). */
+	const SCAN_FLASH_DURATION_MS = 2000;
+	let scanFlash: { center: Vector3; radius: number; key: number } | null = $state(null);
+
+	// Watches for a *new* Scan Area event (by sequence number, not object identity — the latter
+	// would also change on every full-state broadcast in networked play) and shows a flash at the
+	// scanned point for a couple of seconds, so Navigation sees where Sciences just looked.
+	$effect(() => {
+		const event = store.state.lastScanAreaEvent;
+		if (!event) return;
+		scanFlash = { center: event.position, radius: FULL_SCAN_RANGE, key: event.sequence };
+		const timeout = setTimeout(() => {
+			scanFlash = null;
+		}, SCAN_FLASH_DURATION_MS);
+		return () => clearTimeout(timeout);
+	});
 
 	async function handleSubmit(text: string) {
 		const parsed = parseNavigationCommand(text);
@@ -176,6 +202,8 @@
 					range={PLOT_RANGE}
 					onSelectPoint={handleSelectPoint}
 					rangeCircles={RANGE_CIRCLES}
+					{shieldOverlay}
+					{scanFlash}
 				/>
 			</Panel>
 

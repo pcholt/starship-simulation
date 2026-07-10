@@ -12,19 +12,21 @@ function setup() {
 }
 
 describe('HelmStation', () => {
-	it('lists all six shield locations at their starting level', async () => {
+	it('lists all four shield locations at their starting level', async () => {
 		const store = setup();
 		render(HelmStation, { store });
 
 		await expect.element(page.getByTestId('shield-fore-level')).toHaveTextContent('100');
 	});
 
-	it('lists all six phaser banks with their functional status (Figure 3.17 PHASERS table)', async () => {
+	it('lists all four phaser banks with their functional status (Figure 3.17 PHASERS table), with no top/bottom bank', async () => {
 		const store = setup();
 		render(HelmStation, { store });
 
 		await expect.element(page.getByTestId('phaser-fore-func')).toBeInTheDocument();
-		await expect.element(page.getByTestId('phaser-bottom-func')).toBeInTheDocument();
+		await expect.element(page.getByTestId('phaser-starboard-func')).toBeInTheDocument();
+		await expect.element(page.getByTestId('phaser-top-func')).not.toBeInTheDocument();
+		await expect.element(page.getByTestId('phaser-bottom-func')).not.toBeInTheDocument();
 	});
 
 	it('lists all six torpedo tubes with their functional status (Figure 3.17 TORPEDO table)', async () => {

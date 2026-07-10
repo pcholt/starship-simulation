@@ -2,8 +2,8 @@ import { createDeviceStatus, type DeviceStatus } from './device.js';
 import type { Location } from './location.js';
 
 const TORPEDO_TUBES = [1, 2, 3, 4, 5, 6];
-/** Per the book, phaser banks and deflector shields both come in six directional units that pair up. */
-export const BANK_LOCATIONS = ['fore', 'aft', 'port', 'starboard', 'top', 'bottom'] as const;
+/** Phaser banks and deflector shields both come in four directional units that pair up — the ship has no top/bottom banks. */
+export const BANK_LOCATIONS = ['fore', 'aft', 'port', 'starboard'] as const;
 export type BankLocation = (typeof BANK_LOCATIONS)[number];
 const WARP_ENGINES = [1, 2];
 const IMPULSE_ENGINES = [1, 2, 3, 4];

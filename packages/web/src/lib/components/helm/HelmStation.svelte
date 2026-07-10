@@ -16,7 +16,7 @@
 	let errorMessage: string | null = $state(null);
 	let weaponsLog: string[] = $state([]);
 
-	const LOCATIONS = ['fore', 'aft', 'port', 'starboard', 'top', 'bottom'] as const;
+	const LOCATIONS = ['fore', 'aft', 'port', 'starboard'] as const;
 
 	let shields = $derived(
 		LOCATIONS.map((location) => ({

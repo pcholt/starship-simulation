@@ -18,12 +18,8 @@ describe('bankLocationForRelativePosition', () => {
 		expect(bankLocationForRelativePosition({ x: 0, y: 0, z: 0 }, { x: 0, y: -10, z: 0 })).toBe('starboard');
 	});
 
-	it('is "top" when the target is along +z', () => {
-		expect(bankLocationForRelativePosition({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 10 })).toBe('top');
-	});
-
-	it('is "bottom" when the target is along -z', () => {
-		expect(bankLocationForRelativePosition({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: -10 })).toBe('bottom');
+	it('ignores z displacement, since there is no top/bottom bank', () => {
+		expect(bankLocationForRelativePosition({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 500 })).toBe('fore');
 	});
 });
 

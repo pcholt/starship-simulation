@@ -1,8 +1,9 @@
 <script lang="ts">
-	import type { Vector3 } from '@starship/engine';
+	import type { BankLocation, Vector3 } from '@starship/engine';
 	import { sliderPosToZoomRange, zoomRangeToSliderPos } from './zoom-math.js';
 	import { plotPointToWorld, worldToPlotPoint } from './astrogator-math.js';
 	import { gridLineValues, universeGridLineValues } from './astrogator-grid.js';
+	import { BANK_ANGLE_OFFSET_DEG, sectorPolygonPoints } from './shield-sector.js';
 
 	type EntityKind = 'enemyCraft' | 'federationCraft' | 'celestialObject';
 
@@ -24,6 +25,19 @@
 		radius: number;
 	}
 
+	interface ShieldOverlay {
+		/** The ship's current heading — shield sectors rotate with it, "fore" always facing this direction. */
+		headingDeg: number;
+		levels: { location: BankLocation; level: number }[];
+	}
+
+	interface ScanFlash {
+		center: Vector3;
+		radius: number;
+		/** Changing this (e.g. an event sequence number) restarts the fade-out animation, even if center/radius repeat. */
+		key: number | string;
+	}
+
 	interface Props {
 		center: Vector3;
 		entities: PlotEntity[];
@@ -35,9 +49,19 @@
 		rangeCircles?: RangeCircle[];
 		/** A single ring drawn at an arbitrary world point, e.g. a live scan-area preview that tracks a slider. */
 		previewCircle?: PreviewCircle;
+		/** Deflector shield strength per bank, drawn as heading-oriented pie sectors over the Enterprise. */
+		shieldOverlay?: ShieldOverlay;
+		/** A momentary ring at a scanned point that fades out over a couple of seconds, e.g. a Sciences Scan Area result. */
+		scanFlash?: ScanFlash | null;
 	}
 
-	let { center, entities, range, onSelectPoint, rangeCircles = [], previewCircle }: Props = $props();
+	let { center, entities, range, onSelectPoint, rangeCircles = [], previewCircle, shieldOverlay, scanFlash }: Props = $props();
+
+	/** Fixed visual size in viewBox units — shields aren't drawn to world scale, just large enough to read clearly next to the Enterprise mark. */
+	const SHIELD_SECTOR_RADIUS = 7;
+	const SHIELD_SECTOR_SPAN_DEG = 90;
+	/** Alpha at 100% shield strength, fading linearly to 0 at 0% strength. */
+	const SHIELD_MAX_OPACITY = 0.5;
 
 	const VIEW_SIZE = 100;
 	const PLOT_RADIUS_PCT = 45;
@@ -99,6 +123,12 @@
 		if (!previewCircle) return null;
 		const point = worldToPlotPoint(previewCircle.center, center, zoomRange, VIEW_SIZE, PLOT_RADIUS_PCT);
 		return { ...point, radius: (previewCircle.radius / zoomRange) * PLOT_RADIUS_PCT };
+	});
+
+	let scanFlashPlot = $derived.by(() => {
+		if (!scanFlash) return null;
+		const point = worldToPlotPoint(scanFlash.center, center, zoomRange, VIEW_SIZE, PLOT_RADIUS_PCT);
+		return { ...point, radius: (scanFlash.radius / zoomRange) * PLOT_RADIUS_PCT, key: scanFlash.key };
 	});
 
 	// Universe (absolute) coordinate grid — anchored to fixed points in space, unlike the
@@ -200,6 +230,21 @@
 				</circle>
 			{/each}
 
+			{#if shieldOverlay}
+				{#each shieldOverlay.levels as shield (shield.location)}
+					{@const centerAngle = shieldOverlay.headingDeg + BANK_ANGLE_OFFSET_DEG[shield.location]}
+					{@const wedge = sectorPolygonPoints(centerAngle, SHIELD_SECTOR_SPAN_DEG, SHIELD_SECTOR_RADIUS)}
+					<polygon
+						data-testid={`shield-sector-${shield.location}`}
+						points={wedge.map((p) => `${VIEW_SIZE / 2 + p.x},${VIEW_SIZE / 2 + p.y}`).join(' ')}
+						fill="var(--chrome-helm)"
+						opacity={(shield.level / 100) * SHIELD_MAX_OPACITY}
+					>
+						<title>{shield.location} shield — {shield.level}%</title>
+					</polygon>
+				{/each}
+			{/if}
+
 			<circle data-testid="plot-mark-enterprise" cx={VIEW_SIZE / 2} cy={VIEW_SIZE / 2} r="1.1" fill="currentColor">
 				<title>Enterprise</title>
 			</circle>
@@ -242,6 +287,19 @@
 				>
 					<title>Scan preview — {previewCircle?.radius} units</title>
 				</circle>
+			{/if}
+
+			{#if scanFlashPlot}
+				{#key scanFlashPlot.key}
+					<circle
+						data-testid="scan-flash-circle"
+						cx={scanFlashPlot.x}
+						cy={scanFlashPlot.y}
+						r={scanFlashPlot.radius}
+						fill="var(--chrome-sciences)"
+						class="scan-flash"
+					/>
+				{/key}
 			{/if}
 		</svg>
 
@@ -320,5 +378,18 @@
 
 	.preview-circle-key {
 		color: var(--chrome-sciences);
+	}
+
+	.scan-flash {
+		animation: scan-flash-fade 2s ease-out forwards;
+	}
+
+	@keyframes scan-flash-fade {
+		from {
+			opacity: 0.6;
+		}
+		to {
+			opacity: 0;
+		}
 	}
 </style>

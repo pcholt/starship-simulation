@@ -121,6 +121,33 @@ describe('NavigationStation', () => {
 		expect(x).toMatch(/^-?\d+\.\d$/);
 	});
 
+	it('shows shield sectors on the Astrogator plot reflecting current shield strength', async () => {
+		const store = setup();
+		render(NavigationStation, { store });
+
+		await expect.element(page.getByTestId('shield-sector-fore')).toBeInTheDocument();
+		const opacity = await page.getByTestId('shield-sector-fore').element().getAttribute('opacity');
+		expect(Number(opacity)).toBeCloseTo(0.5);
+	});
+
+	it('flashes a scan marker on the Astrogator plot for 2 seconds when Sciences triggers a Scan Area, then removes it', async () => {
+		const store = setup();
+		store.dispatch({
+			module: 'controller',
+			type: 'CreateCelestialObject',
+			name: 'Rigel VII',
+			position: { x: 200, y: 0, z: 0 },
+			radius: 6000,
+			mass: 5.9e24
+		});
+		store.dispatch({ module: 'sciences', type: 'ScanArea', position: { x: 200, y: 0, z: 0 } });
+		render(NavigationStation, { store });
+
+		await expect.element(page.getByTestId('scan-flash-circle')).toBeInTheDocument();
+		await new Promise((resolve) => setTimeout(resolve, 2200));
+		await expect.element(page.getByTestId('scan-flash-circle')).not.toBeInTheDocument();
+	}, 10_000);
+
 	it('sets speed via the speed slider (point-and-click, no typed command)', async () => {
 		const store = setup();
 		render(NavigationStation, { store });

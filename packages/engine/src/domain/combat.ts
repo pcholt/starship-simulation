@@ -2,23 +2,19 @@ import type { BankLocation } from './engineering.js';
 import type { Vector3 } from './vector.js';
 
 /**
- * Which of the six directional banks (matching the book's phaser/shield
- * pairing) a target falls into, based on the dominant axis of displacement
- * from the Enterprise. A simplification of the book's heading-relative
- * fore/aft/port/starboard/top/bottom check, expressed in world coordinates
- * rather than requiring a full local-frame transform.
+ * Which of the four directional banks (matching the book's phaser/shield
+ * pairing — there is no top/bottom bank) a target falls into, based on the
+ * dominant axis of displacement from the Enterprise in the x/y plane. A
+ * simplification of the book's heading-relative fore/aft/port/starboard
+ * check, expressed in world coordinates rather than requiring a full
+ * local-frame transform.
  */
 export function bankLocationForRelativePosition(from: Vector3, to: Vector3): BankLocation {
 	const dx = to.x - from.x;
 	const dy = to.y - from.y;
-	const dz = to.z - from.z;
-	const absX = Math.abs(dx);
-	const absY = Math.abs(dy);
-	const absZ = Math.abs(dz);
 
-	if (absX >= absY && absX >= absZ) return dx >= 0 ? 'fore' : 'aft';
-	if (absY >= absX && absY >= absZ) return dy >= 0 ? 'port' : 'starboard';
-	return dz >= 0 ? 'top' : 'bottom';
+	if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? 'fore' : 'aft';
+	return dy >= 0 ? 'port' : 'starboard';
 }
 
 const PHASER_BASE_DAMAGE = 100;

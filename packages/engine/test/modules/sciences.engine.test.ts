@@ -65,6 +65,41 @@ describe('sciences commands', () => {
 		expect(result.ok).toBe(false);
 	});
 
+	it('ScanArea records the scanned position as a lastScanAreaEvent, for other stations to react to', () => {
+		const engine = createEngine();
+		engine.dispatch({
+			module: 'controller',
+			type: 'CreateCelestialObject',
+			name: 'Near',
+			position: { x: 5, y: 0, z: 0 },
+			radius: 1,
+			mass: 1
+		});
+		engine.dispatch({ module: 'sciences', type: 'ScanArea', position: { x: 42, y: 7, z: 0 } });
+		expect(engine.getState().lastScanAreaEvent).toEqual({ position: { x: 42, y: 7, z: 0 }, sequence: 1 });
+	});
+
+	it('increments the lastScanAreaEvent sequence on each successive scan area, for reliable change detection', () => {
+		const engine = createEngine();
+		engine.dispatch({
+			module: 'controller',
+			type: 'CreateCelestialObject',
+			name: 'Near',
+			position: { x: 5, y: 0, z: 0 },
+			radius: 1,
+			mass: 1
+		});
+		engine.dispatch({ module: 'sciences', type: 'ScanArea', position: { x: 0, y: 0, z: 0 } });
+		engine.dispatch({ module: 'sciences', type: 'ScanArea', position: { x: 0, y: 0, z: 0 } });
+		expect(engine.getState().lastScanAreaEvent?.sequence).toBe(2);
+	});
+
+	it('does not record a lastScanAreaEvent when the scan area fails (nothing detected)', () => {
+		const engine = createEngine();
+		engine.dispatch({ module: 'sciences', type: 'ScanArea', position: { x: 0, y: 0, z: 0 } });
+		expect(engine.getState().lastScanAreaEvent).toBeNull();
+	});
+
 	it('ScanRandom picks a deterministic object when the engine is given a fixed rng', () => {
 		const engine = createEngine({ rng: () => 0 });
 		engine.dispatch({
