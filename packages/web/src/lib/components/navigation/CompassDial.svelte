@@ -19,7 +19,8 @@
 		const rect = svg.getBoundingClientRect();
 		const svgX = ((event.clientX - rect.left) / rect.width) * VIEW_SIZE;
 		const svgY = ((event.clientY - rect.top) / rect.height) * VIEW_SIZE;
-		onSelect(angleFromPointer(svgX - CENTER, svgY - CENTER));
+		// Headings are whole degrees, matching the book's SD command and the X/Z-angle slider's step of 1.
+		onSelect(Math.round(angleFromPointer(svgX - CENTER, svgY - CENTER)) % 360);
 	}
 
 	const KEYBOARD_STEP_DEG = 5;

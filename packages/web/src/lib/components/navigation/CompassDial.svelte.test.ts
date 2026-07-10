@@ -21,4 +21,14 @@ describe('CompassDial', () => {
 		expect(heading).toBeGreaterThanOrEqual(0);
 		expect(heading).toBeLessThan(360);
 	});
+
+	it('rounds a clicked heading to a whole degree', async () => {
+		const onSelect = vi.fn();
+		render(CompassDial, { headingDeg: 0, onSelect });
+
+		await page.getByTestId('compass-dial').click();
+
+		const [heading] = onSelect.mock.calls[0]!;
+		expect(Number.isInteger(heading)).toBe(true);
+	});
 });

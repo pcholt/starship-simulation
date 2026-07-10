@@ -122,9 +122,9 @@
 					<dd data-testid="nav-position-z">{formatCoordinate(navigation.position.z)}</dd>
 
 					<dt>X/Y DIRECTION</dt>
-					<dd data-testid="nav-xy-angle">{navigation.velocity.xyAngleDeg}</dd>
+					<dd data-testid="nav-xy-angle">{Math.round(navigation.velocity.xyAngleDeg)}</dd>
 					<dt>X/Z DIRECTION</dt>
-					<dd data-testid="nav-xz-angle">{navigation.velocity.xzAngleDeg}</dd>
+					<dd data-testid="nav-xz-angle">{Math.round(navigation.velocity.xzAngleDeg)}</dd>
 					<dt>SPEED</dt>
 					<dd data-testid="nav-speed">{navigation.velocity.warpSpeed}</dd>
 				</dl>
