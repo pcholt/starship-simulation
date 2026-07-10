@@ -34,14 +34,23 @@
 		...store.state.federationCraft.map((c) => ({ name: c.name, kind: 'federationCraft' as const, position: c.position }))
 	]);
 
+	// Offsets from the ship's current position, not absolute world coordinates — the science
+	// officer aims relative to where the Enterprise is now, matching how the Astrogator plot
+	// itself is always centered on the ship rather than on a fixed world point.
 	let scanAreaX = $state(0);
 	let scanAreaY = $state(0);
 	let scanAreaZ = $state(0);
 
+	let scanAreaWorldPosition = $derived({
+		x: store.state.enterpriseNavigation.position.x + scanAreaX,
+		y: store.state.enterpriseNavigation.position.y + scanAreaY,
+		z: store.state.enterpriseNavigation.position.z + scanAreaZ
+	});
+
 	// Tracks the sliders live (Slider fires onChange on every `oninput`, not just on release),
 	// so the preview ring on the plot below follows the science officer's finger in real time.
 	let scanAreaPreview = $derived({
-		center: { x: scanAreaX, y: scanAreaY, z: scanAreaZ },
+		center: scanAreaWorldPosition,
 		radius: FULL_SCAN_RANGE
 	});
 
@@ -69,7 +78,7 @@
 		const result = await store.dispatch({
 			module: 'sciences',
 			type: 'ScanArea',
-			position: { x: scanAreaX, y: scanAreaY, z: scanAreaZ }
+			position: scanAreaWorldPosition
 		});
 		errorMessage = result.ok ? null : result.reason;
 	}

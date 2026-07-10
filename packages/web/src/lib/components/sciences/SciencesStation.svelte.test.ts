@@ -130,4 +130,32 @@ describe('SciencesStation', () => {
 
 		await expect.element(page.getByTestId('scan-identity')).toHaveTextContent('Rigel VII');
 	});
+
+	it('treats the Scan Area sliders as an offset from the ship, not absolute world coordinates', async () => {
+		const store = setup();
+		// Move the ship away from the world origin first.
+		store.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg: 0, xzAngleDeg: 0 });
+		store.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 10 });
+		store.tick(5000);
+		const shipPosition = store.state.enterpriseNavigation.position;
+		expect(shipPosition.x).not.toBe(0);
+
+		// An object sitting 50 units ahead of the ship's *current* position, not at world (50,0,0).
+		store.dispatch({
+			module: 'controller',
+			type: 'CreateCelestialObject',
+			name: 'Relative Object',
+			position: { x: shipPosition.x + 50, y: shipPosition.y, z: shipPosition.z },
+			radius: 1,
+			mass: 1
+		});
+		render(SciencesStation, { store });
+
+		await page.getByLabelText('Scan Area X').fill('50');
+		await page.getByLabelText('Scan Area Y').fill('0');
+		await page.getByLabelText('Scan Area Z').fill('0');
+		await page.getByRole('button', { name: 'Scan Area' }).click();
+
+		await expect.element(page.getByTestId('scan-identity')).toHaveTextContent('Relative Object');
+	});
 });
