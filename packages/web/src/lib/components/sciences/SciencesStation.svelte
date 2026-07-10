@@ -1,11 +1,14 @@
 <script lang="ts">
-	import { PARTIAL_SCAN_RANGE } from '@starship/engine';
+	import { FULL_SCAN_RANGE, PARTIAL_SCAN_RANGE } from '@starship/engine';
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import CommandBox from '../shared/CommandBox.svelte';
 	import CommandReference from '../shared/CommandReference.svelte';
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import Panel from '../shared/Panel.svelte';
 	import Slider from '../shared/Slider.svelte';
+	// Reused from Navigation: a generic world-space plot, not navigation-specific — it draws the
+	// scan-area preview ring here rather than a course.
+	import AstrogatorPlot from '../navigation/AstrogatorPlot.svelte';
 	import { parseSciencesCommand, SCIENCES_COMMANDS } from './sciences-command-parser.js';
 
 	interface Props {
@@ -25,9 +28,22 @@
 		...store.state.federationCraft.map((c) => ({ name: c.name, kind: 'federation craft' }))
 	]);
 
+	let plotEntities = $derived([
+		...store.state.celestialObjects.map((o) => ({ name: o.name, kind: 'celestialObject' as const, position: o.position })),
+		...store.state.enemyCraft.map((c) => ({ name: c.name, kind: 'enemyCraft' as const, position: c.position })),
+		...store.state.federationCraft.map((c) => ({ name: c.name, kind: 'federationCraft' as const, position: c.position }))
+	]);
+
 	let scanAreaX = $state(0);
 	let scanAreaY = $state(0);
 	let scanAreaZ = $state(0);
+
+	// Tracks the sliders live (Slider fires onChange on every `oninput`, not just on release),
+	// so the preview ring on the plot below follows the science officer's finger in real time.
+	let scanAreaPreview = $derived({
+		center: { x: scanAreaX, y: scanAreaY, z: scanAreaZ },
+		radius: FULL_SCAN_RANGE
+	});
 
 	async function handleSubmit(text: string) {
 		const parsed = parseSciencesCommand(text);
@@ -124,6 +140,12 @@
 			</Panel>
 
 			<Panel title="Scan Area" accentVar="chrome-sciences">
+				<AstrogatorPlot
+					center={store.state.enterpriseNavigation.position}
+					entities={plotEntities}
+					range={PARTIAL_SCAN_RANGE}
+					previewCircle={scanAreaPreview}
+				/>
 				<div class="scan-area-controls">
 					<Slider
 						label="Scan Area X"

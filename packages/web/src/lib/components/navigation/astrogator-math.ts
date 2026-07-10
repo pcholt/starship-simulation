@@ -16,3 +16,19 @@ export function plotPointToWorld(
 	const dy = -((svgPoint.y - viewSize / 2) / plotRadiusPct) * zoomRange;
 	return { x: center.x + dx, y: center.y + dy, z: center.z };
 }
+
+/** The inverse of `plotPointToWorld`: projects a world-space point onto the plot's SVG viewBox coordinates. */
+export function worldToPlotPoint(
+	worldPoint: Vector3,
+	center: Vector3,
+	zoomRange: number,
+	viewSize: number,
+	plotRadiusPct: number
+): { x: number; y: number } {
+	const dx = worldPoint.x - center.x;
+	const dy = worldPoint.y - center.y;
+	return {
+		x: viewSize / 2 + (dx / zoomRange) * plotRadiusPct,
+		y: viewSize / 2 - (dy / zoomRange) * plotRadiusPct
+	};
+}

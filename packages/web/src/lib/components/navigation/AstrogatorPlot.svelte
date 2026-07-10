@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Vector3 } from '@starship/engine';
 	import { sliderPosToZoomRange, zoomRangeToSliderPos } from './zoom-math.js';
-	import { plotPointToWorld } from './astrogator-math.js';
+	import { plotPointToWorld, worldToPlotPoint } from './astrogator-math.js';
 	import { gridLineValues, universeGridLineValues } from './astrogator-grid.js';
 
 	type EntityKind = 'enemyCraft' | 'federationCraft' | 'celestialObject';
@@ -18,6 +18,12 @@
 		radius: number;
 	}
 
+	interface PreviewCircle {
+		/** World-space center — need not be the Enterprise's position, e.g. a scan target being aimed at. */
+		center: Vector3;
+		radius: number;
+	}
+
 	interface Props {
 		center: Vector3;
 		entities: PlotEntity[];
@@ -27,9 +33,11 @@
 		onSelectPoint?: (position: Vector3) => void;
 		/** Weapon/sensor reach rings drawn around the Enterprise, e.g. sensor and phaser range. */
 		rangeCircles?: RangeCircle[];
+		/** A single ring drawn at an arbitrary world point, e.g. a live scan-area preview that tracks a slider. */
+		previewCircle?: PreviewCircle;
 	}
 
-	let { center, entities, range, onSelectPoint, rangeCircles = [] }: Props = $props();
+	let { center, entities, range, onSelectPoint, rangeCircles = [], previewCircle }: Props = $props();
 
 	const VIEW_SIZE = 100;
 	const PLOT_RADIUS_PCT = 45;
@@ -84,6 +92,14 @@
 	// Rings larger than the current zoom level would overflow the plot, so they're hidden rather
 	// than clipped — the same "beyond the current view" treatment as an out-of-range entity.
 	let visibleRangeCircles = $derived(rangeCircles.filter((c) => c.radius <= zoomRange));
+
+	// Recomputes on every change to previewCircle.center, so dragging a slider that feeds this
+	// prop moves the ring in real time — the same reactivity that drives every other plot mark.
+	let previewCirclePlot = $derived.by(() => {
+		if (!previewCircle) return null;
+		const point = worldToPlotPoint(previewCircle.center, center, zoomRange, VIEW_SIZE, PLOT_RADIUS_PCT);
+		return { ...point, radius: (previewCircle.radius / zoomRange) * PLOT_RADIUS_PCT };
+	});
 
 	// Universe (absolute) coordinate grid — anchored to fixed points in space, unlike the
 	// ship-relative grid above, so it visibly shifts under the Enterprise as the ship moves.
@@ -213,6 +229,20 @@
 					{/if}
 				</g>
 			{/each}
+
+			{#if previewCirclePlot}
+				<circle
+					data-testid="scan-preview-circle"
+					cx={previewCirclePlot.x}
+					cy={previewCirclePlot.y}
+					r={previewCirclePlot.radius}
+					fill="none"
+					stroke="var(--chrome-sciences)"
+					stroke-width="0.3"
+				>
+					<title>Scan preview — {previewCircle?.radius} units</title>
+				</circle>
+			{/if}
 		</svg>
 
 		<label class="zoom-control">
@@ -231,6 +261,9 @@
 		{#each rangeCircles as circle (circle.label)}
 			<li>⊚ {circle.label.toUpperCase()} RANGE</li>
 		{/each}
+		{#if previewCircle}
+			<li class="preview-circle-key">⊚ SCAN PREVIEW</li>
+		{/if}
 	</ul>
 </div>
 
@@ -283,5 +316,9 @@
 
 	.universe-grid-key {
 		color: #3b5bdb;
+	}
+
+	.preview-circle-key {
+		color: var(--chrome-sciences);
 	}
 </style>

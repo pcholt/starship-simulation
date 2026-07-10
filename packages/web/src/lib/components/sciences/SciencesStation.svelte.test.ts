@@ -99,6 +99,18 @@ describe('SciencesStation', () => {
 		await expect.element(page.getByTestId('scan-identity')).not.toHaveTextContent('NONE');
 	});
 
+	it('shows a scan preview circle on the plot that tracks the Scan Area sliders live', async () => {
+		const store = setup();
+		render(SciencesStation, { store });
+
+		const before = await page.getByTestId('scan-preview-circle').element().getAttribute('cx');
+
+		await page.getByLabelText('Scan Area X').fill('300');
+
+		const after = await page.getByTestId('scan-preview-circle').element().getAttribute('cx');
+		expect(after).not.toBe(before);
+	});
+
 	it('scans an area via coordinate sliders and a Scan Area button (point-and-click, no typed command)', async () => {
 		const store = setup();
 		store.dispatch({

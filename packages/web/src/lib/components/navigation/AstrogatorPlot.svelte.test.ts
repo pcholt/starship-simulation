@@ -139,6 +139,39 @@ describe('AstrogatorPlot', () => {
 		await expect.element(page.getByTestId('astrogator-universe-grid')).toHaveTextContent('1000');
 	});
 
+	it('draws a preview circle at an arbitrary world point, not centered on the Enterprise', async () => {
+		render(AstrogatorPlot, {
+			center: { x: 0, y: 0, z: 0 },
+			entities: [],
+			range: 1000,
+			previewCircle: { center: { x: 400, y: 0, z: 0 }, radius: 100 }
+		});
+
+		await expect.element(page.getByTestId('scan-preview-circle')).toBeInTheDocument();
+	});
+
+	it('tracks a live-updated preview circle position as its center prop changes', async () => {
+		const { rerender } = render(AstrogatorPlot, {
+			center: { x: 0, y: 0, z: 0 },
+			entities: [],
+			range: 1000,
+			previewCircle: { center: { x: 0, y: 0, z: 0 }, radius: 100 }
+		});
+
+		const circleAtOrigin = page.getByTestId('scan-preview-circle');
+		const cxAtOrigin = await circleAtOrigin.element().getAttribute('cx');
+
+		await rerender({
+			center: { x: 0, y: 0, z: 0 },
+			entities: [],
+			range: 1000,
+			previewCircle: { center: { x: 500, y: 0, z: 0 }, radius: 100 }
+		});
+
+		const cxMoved = await page.getByTestId('scan-preview-circle').element().getAttribute('cx');
+		expect(cxMoved).not.toBe(cxAtOrigin);
+	});
+
 	it('calls onSelectPoint with a world-space position when the plot is clicked', async () => {
 		const onSelectPoint = vi.fn();
 		render(AstrogatorPlot, { center: { x: 0, y: 0, z: 0 }, entities: [], range: 1000, onSelectPoint });
