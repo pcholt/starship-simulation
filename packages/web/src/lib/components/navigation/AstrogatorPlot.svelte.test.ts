@@ -90,6 +90,13 @@ describe('AstrogatorPlot', () => {
 		await expect.element(page.getByTestId('plot-mark-celestialObject-Nearby Object')).not.toBeInTheDocument();
 	});
 
+	it('labels coordinate grid lines with world-distance values', async () => {
+		render(AstrogatorPlot, { center: { x: 0, y: 0, z: 0 }, entities: [], range: 1000 });
+
+		await expect.element(page.getByTestId('astrogator-grid')).toHaveTextContent('200');
+		await expect.element(page.getByTestId('astrogator-grid')).toHaveTextContent('1000');
+	});
+
 	it('calls onSelectPoint with a world-space position when the plot is clicked', async () => {
 		const onSelectPoint = vi.fn();
 		render(AstrogatorPlot, { center: { x: 0, y: 0, z: 0 }, entities: [], range: 1000, onSelectPoint });
