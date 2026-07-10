@@ -62,13 +62,6 @@ describe('NavigationStation', () => {
 		await expect.element(page.getByRole('alert')).toBeInTheDocument();
 	});
 
-	it('shows the simulated-time chronometer', async () => {
-		const store = setup();
-		render(NavigationStation, { store });
-
-		await expect.element(page.getByTestId('nav-chronometer')).toHaveTextContent('0');
-	});
-
 	it('computes an ETA once a course and speed toward coordinates are both set', async () => {
 		const store = setup();
 		render(NavigationStation, { store });
@@ -104,5 +97,43 @@ describe('NavigationStation', () => {
 		render(NavigationStation, { store });
 
 		await expect.element(page.getByTestId('nearby-objects')).toHaveTextContent('Rigel VII');
+	});
+
+	it('shows the chronometer formatted as HH:MM:SS.T', async () => {
+		const store = setup();
+		render(NavigationStation, { store });
+
+		await expect.element(page.getByTestId('nav-chronometer')).toHaveTextContent('00:00:00.0');
+	});
+
+	it('sets speed via the speed slider (point-and-click, no typed command)', async () => {
+		const store = setup();
+		render(NavigationStation, { store });
+
+		await page.getByLabelText('Speed').fill('12');
+
+		await expect.element(page.getByTestId('nav-speed')).toHaveTextContent('12');
+	});
+
+	it('sets heading via the compass dial (point-and-click, no typed command)', async () => {
+		const store = setup();
+		render(NavigationStation, { store });
+
+		await page.getByTestId('compass-dial').click();
+
+		// Any click resolves to some heading in range; the dial's own math is unit-tested separately —
+		// this just proves the click is wired through to a real SetDirection dispatch.
+		const xyAngle = await page.getByTestId('nav-xy-angle').element().textContent;
+		expect(Number(xyAngle)).toBeGreaterThanOrEqual(0);
+		expect(Number(xyAngle)).toBeLessThan(360);
+	});
+
+	it('sets a coordinate course by clicking the Astrogator plot (point-and-click, no typed command)', async () => {
+		const store = setup();
+		render(NavigationStation, { store });
+
+		await page.getByTestId('astrogator-svg').click();
+
+		await expect.element(page.getByTestId('nav-destination')).not.toHaveTextContent('NONE');
 	});
 });

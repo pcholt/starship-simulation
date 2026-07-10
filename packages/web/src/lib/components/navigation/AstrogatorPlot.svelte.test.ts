@@ -1,5 +1,5 @@
 import { page } from 'vitest/browser';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import AstrogatorPlot from './AstrogatorPlot.svelte';
 
@@ -53,13 +53,14 @@ describe('AstrogatorPlot', () => {
 		await expect.element(page.getByTestId('symbol-key')).toHaveTextContent('CELESTIAL OBJECT');
 	});
 
-	it('shows a zoom slider initialized to the given range', async () => {
+	it('shows a zoom slider initialized to display the given range', async () => {
 		render(AstrogatorPlot, { center: { x: 0, y: 0, z: 0 }, entities: [], range: 1000 });
 
-		await expect.element(page.getByLabelText('Zoom (plot range)')).toHaveValue('1000');
+		await expect.element(page.getByLabelText('Zoom (plot range)')).toBeInTheDocument();
+		await expect.element(page.getByTestId('zoom-range-display')).toHaveTextContent('1000 units');
 	});
 
-	it('zooming out reveals an entity previously beyond the plot range', async () => {
+	it('zooming all the way out (max slider position) reveals an entity beyond the initial range', async () => {
 		render(AstrogatorPlot, {
 			center: { x: 0, y: 0, z: 0 },
 			entities: [{ name: 'Far Object', kind: 'celestialObject', position: { x: 3000, y: 0, z: 0 } }],
@@ -68,12 +69,14 @@ describe('AstrogatorPlot', () => {
 
 		await expect.element(page.getByTestId('plot-mark-celestialObject-Far Object')).not.toBeInTheDocument();
 
-		await page.getByLabelText('Zoom (plot range)').fill('4000');
+		const slider = page.getByLabelText('Zoom (plot range)');
+		const max = await slider.element().getAttribute('max');
+		await slider.fill(max!);
 
 		await expect.element(page.getByTestId('plot-mark-celestialObject-Far Object')).toBeInTheDocument();
 	});
 
-	it('zooming in hides an entity previously within the plot range', async () => {
+	it('zooming all the way in (min slider position) hides an entity within the initial range', async () => {
 		render(AstrogatorPlot, {
 			center: { x: 0, y: 0, z: 0 },
 			entities: [{ name: 'Nearby Object', kind: 'celestialObject', position: { x: 800, y: 0, z: 0 } }],
@@ -82,8 +85,21 @@ describe('AstrogatorPlot', () => {
 
 		await expect.element(page.getByTestId('plot-mark-celestialObject-Nearby Object')).toBeInTheDocument();
 
-		await page.getByLabelText('Zoom (plot range)').fill('500');
+		await page.getByLabelText('Zoom (plot range)').fill('0');
 
 		await expect.element(page.getByTestId('plot-mark-celestialObject-Nearby Object')).not.toBeInTheDocument();
+	});
+
+	it('calls onSelectPoint with a world-space position when the plot is clicked', async () => {
+		const onSelectPoint = vi.fn();
+		render(AstrogatorPlot, { center: { x: 0, y: 0, z: 0 }, entities: [], range: 1000, onSelectPoint });
+
+		await page.getByTestId('astrogator-svg').click();
+
+		expect(onSelectPoint).toHaveBeenCalledTimes(1);
+		const [position] = onSelectPoint.mock.calls[0]!;
+		expect(position).toHaveProperty('x');
+		expect(position).toHaveProperty('y');
+		expect(position).toHaveProperty('z');
 	});
 });

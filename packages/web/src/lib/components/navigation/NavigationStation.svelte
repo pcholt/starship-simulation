@@ -5,11 +5,16 @@
 	import CommandReference from '../shared/CommandReference.svelte';
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import Panel from '../shared/Panel.svelte';
+	import Slider from '../shared/Slider.svelte';
+	import { formatChronometer } from '../../format.js';
 	import AstrogatorPlot from './AstrogatorPlot.svelte';
+	import CompassDial from './CompassDial.svelte';
 	import { parseNavigationCommand, NAVIGATION_COMMANDS } from './navigation-command-parser.js';
 
 	/** Plot radius in world distance-units — matches Sciences' partial-scan range, since both represent sensor reach. */
 	const PLOT_RANGE = 1000;
+	/** 0-20 warp, per the book's navigation data spec. */
+	const MAX_WARP_SPEED = 20;
 
 	interface Props {
 		store: WorldStateStore;
@@ -73,6 +78,22 @@
 		const result = await store.dispatch(parsed.command);
 		errorMessage = result.ok ? null : result.reason;
 	}
+
+	async function handleSpeedChange(warpSpeed: number) {
+		await store.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed });
+	}
+
+	async function handleHeadingChange(xyAngleDeg: number) {
+		await store.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg, xzAngleDeg: navigation.velocity.xzAngleDeg });
+	}
+
+	async function handlePitchChange(xzAngleDeg: number) {
+		await store.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg: navigation.velocity.xyAngleDeg, xzAngleDeg });
+	}
+
+	async function handleSelectPoint(position: { x: number; y: number; z: number }) {
+		await store.dispatch({ module: 'navigation', type: 'SetCourse', destination: { kind: 'coordinates', ...position } });
+	}
 </script>
 
 <section aria-label="Navigation station">
@@ -80,67 +101,95 @@
 	<StationStatusBar {store} moduleName="navigation" />
 
 	<div class="grid">
-		<Panel title="Position & Heading" accentVar="chrome-navigation">
-			<dl>
-				<dt>X-COORDINATE</dt>
-				<dd data-testid="nav-position-x">{navigation.position.x}</dd>
-				<dt>Y-COORDINATE</dt>
-				<dd data-testid="nav-position-y">{navigation.position.y}</dd>
-				<dt>Z-COORDINATE</dt>
-				<dd data-testid="nav-position-z">{navigation.position.z}</dd>
+		<div class="sidebar">
+			<Panel title="Position & Heading" accentVar="chrome-navigation">
+				<dl>
+					<dt>X-COORDINATE</dt>
+					<dd data-testid="nav-position-x">{navigation.position.x}</dd>
+					<dt>Y-COORDINATE</dt>
+					<dd data-testid="nav-position-y">{navigation.position.y}</dd>
+					<dt>Z-COORDINATE</dt>
+					<dd data-testid="nav-position-z">{navigation.position.z}</dd>
 
-				<dt>X/Y DIRECTION</dt>
-				<dd data-testid="nav-xy-angle">{navigation.velocity.xyAngleDeg}</dd>
-				<dt>X/Z DIRECTION</dt>
-				<dd data-testid="nav-xz-angle">{navigation.velocity.xzAngleDeg}</dd>
-				<dt>SPEED</dt>
-				<dd data-testid="nav-speed">{navigation.velocity.warpSpeed}</dd>
-			</dl>
-		</Panel>
+					<dt>X/Y DIRECTION</dt>
+					<dd data-testid="nav-xy-angle">{navigation.velocity.xyAngleDeg}</dd>
+					<dt>X/Z DIRECTION</dt>
+					<dd data-testid="nav-xz-angle">{navigation.velocity.xzAngleDeg}</dd>
+					<dt>SPEED</dt>
+					<dd data-testid="nav-speed">{navigation.velocity.warpSpeed}</dd>
+				</dl>
+			</Panel>
 
-		<Panel title="Course" accentVar="chrome-navigation">
-			<dl>
-				<dt>DESTINATION</dt>
-				<dd data-testid="nav-destination">{destinationLabel}</dd>
-				<dt>ETA</dt>
-				<dd data-testid="nav-eta">{eta}</dd>
-				<dt>CHRONOMETER</dt>
-				<dd data-testid="nav-chronometer">{store.state.simulatedTimeMs}</dd>
-			</dl>
-		</Panel>
+			<Panel title="Course" accentVar="chrome-navigation">
+				<dl>
+					<dt>DESTINATION</dt>
+					<dd data-testid="nav-destination">{destinationLabel}</dd>
+					<dt>ETA</dt>
+					<dd data-testid="nav-eta">{eta}</dd>
+					<dt>CHRONOMETER</dt>
+					<dd data-testid="nav-chronometer">{formatChronometer(store.state.simulatedTimeMs)}</dd>
+				</dl>
+			</Panel>
 
-		<div class="full-width">
-			<Panel title="Astrogator" accentVar="chrome-navigation">
-				<AstrogatorPlot center={navigation.position} entities={plotEntities} range={PLOT_RANGE} />
+			<Panel title="Helm Controls" accentVar="chrome-navigation">
+				<div class="helm-controls">
+					<Slider
+						label="Speed"
+						value={navigation.velocity.warpSpeed}
+						min={0}
+						max={MAX_WARP_SPEED}
+						step={1}
+						unit="warp"
+						accentVar="chrome-navigation"
+						onChange={handleSpeedChange}
+					/>
+					<Slider
+						label="X/Z Angle"
+						value={navigation.velocity.xzAngleDeg}
+						min={0}
+						max={359}
+						step={1}
+						unit="°"
+						accentVar="chrome-navigation"
+						onChange={handlePitchChange}
+					/>
+					<CompassDial headingDeg={navigation.velocity.xyAngleDeg} onSelect={handleHeadingChange} />
+				</div>
 			</Panel>
 		</div>
 
-		<Panel title="Nearby Objects" accentVar="chrome-navigation">
-			<table>
-				<thead>
-					<tr>
-						<th>NAME</th>
-						<th>KIND</th>
-						<th>DISTANCE</th>
-					</tr>
-				</thead>
-				<tbody data-testid="nearby-objects">
-					{#each nearbyObjects as entry (entry.name)}
-						<tr>
-							<td>{entry.name}</td>
-							<td>{KIND_LABELS[entry.kind]}</td>
-							<td>{entry.distance.toFixed(1)}</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</Panel>
+		<div class="main-column">
+			<Panel title="Astrogator" accentVar="chrome-navigation">
+				<AstrogatorPlot center={navigation.position} entities={plotEntities} range={PLOT_RANGE} onSelectPoint={handleSelectPoint} />
+			</Panel>
 
-		<Panel title="Alerts" accentVar="chrome-neutral">
-			<div aria-label="Alerts"></div>
-		</Panel>
+			<div class="lower-row">
+				<Panel title="Nearby Objects" accentVar="chrome-navigation">
+					<table>
+						<thead>
+							<tr>
+								<th>NAME</th>
+								<th>KIND</th>
+								<th>DISTANCE</th>
+							</tr>
+						</thead>
+						<tbody data-testid="nearby-objects">
+							{#each nearbyObjects as entry (entry.name)}
+								<tr>
+									<td>{entry.name}</td>
+									<td>{KIND_LABELS[entry.kind]}</td>
+									<td>{entry.distance.toFixed(1)}</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</Panel>
 
-		<div class="full-width">
+				<Panel title="Alerts" accentVar="chrome-neutral">
+					<div aria-label="Alerts"></div>
+				</Panel>
+			</div>
+
 			<Panel title="Command" accentVar="chrome-navigation">
 				<CommandBox onSubmit={handleSubmit} {errorMessage} accentVar="chrome-navigation" />
 				<CommandReference commands={NAVIGATION_COMMANDS} />
@@ -152,12 +201,39 @@
 <style>
 	.grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+		grid-template-columns: minmax(260px, 320px) 1fr;
 		gap: var(--space-4);
 		align-items: start;
 	}
 
-	.full-width {
-		grid-column: 1 / -1;
+	.sidebar {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+	}
+
+	.main-column {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+		min-width: 0;
+	}
+
+	.lower-row {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+		gap: var(--space-4);
+	}
+
+	.helm-controls {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+	}
+
+	@media (max-width: 800px) {
+		.grid {
+			grid-template-columns: 1fr;
+		}
 	}
 </style>
