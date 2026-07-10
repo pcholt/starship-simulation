@@ -1,0 +1,152 @@
+/* Fonts — self-hosted via @fontsource, not a CDN link. */
+@import '@fontsource/orbitron/500.css';
+@import '@fontsource/orbitron/700.css';
+@import '@fontsource/orbitron/900.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+@import '@fontsource/jetbrains-mono/700.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+
+/*
+ * LCARS-inspired design tokens. This is a deliberately single, committed
+ * dark visual world (the void of space / a bridge console at night) — LCARS
+ * has no canonical light mode, and faking one would dilute the identity, so
+ * there is no light-theme override here.
+ *
+ * Station accent colors are decorative chrome only. Semantic status colors
+ * (ok/warning/critical) are a completely separate palette so a station's
+ * theming never gets confused with its alert state.
+ */
+:root {
+	/* Ground */
+	--void: #000000;
+	--panel: #0a0c12;
+	--panel-alt: #12141c;
+	--panel-border: rgba(255, 156, 65, 0.28);
+
+	/* Text */
+	--text-primary: #e8e8f0;
+	--text-muted: #8a8da0;
+	--text-on-chrome: #05060a;
+
+	/* LCARS chrome accents — one assigned per station */
+	--chrome-controller: #ff9c41;
+	--chrome-navigation: #a6a6ff;
+	--chrome-sciences: #5fcfc0;
+	--chrome-engineering: #ffcc66;
+	--chrome-helm: #e38c86;
+	--chrome-medical: #c9a0dc;
+	--chrome-communications: #7fb8e0;
+
+	/* Semantic status — separate from the accents above */
+	--status-ok: #5fd98a;
+	--status-warning: #f2c14e;
+	--status-critical: #ff5c5c;
+
+	/* Type */
+	--font-display: 'Orbitron', sans-serif;
+	--font-body: 'Inter', system-ui, sans-serif;
+	--font-data: 'JetBrains Mono', ui-monospace, monospace;
+
+	/* Spacing scale */
+	--space-1: 0.25rem;
+	--space-2: 0.5rem;
+	--space-3: 0.75rem;
+	--space-4: 1rem;
+	--space-6: 1.5rem;
+	--space-8: 2rem;
+
+	/* Signature LCARS half-rounded capsule */
+	--radius-capsule: 1.5rem;
+	--radius-sm: 0.375rem;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+	background: var(--void);
+	color: var(--text-primary);
+	font-family: var(--font-body);
+	font-size: 15px;
+	line-height: 1.5;
+}
+
+h1,
+h2,
+h3,
+h4 {
+	font-family: var(--font-display);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	text-wrap: balance;
+	margin: 0 0 var(--space-4);
+}
+
+table {
+	border-collapse: collapse;
+	width: 100%;
+}
+
+th,
+td {
+	text-align: left;
+	padding: var(--space-2) var(--space-3);
+	font-family: var(--font-data);
+	font-variant-numeric: tabular-nums;
+}
+
+th {
+	font-family: var(--font-body);
+	font-weight: 600;
+	text-transform: uppercase;
+	font-size: 0.75rem;
+	letter-spacing: 0.06em;
+	color: var(--text-muted);
+	border-bottom: 1px solid var(--panel-border);
+}
+
+dt {
+	font-family: var(--font-body);
+	font-weight: 500;
+	text-transform: uppercase;
+	font-size: 0.75rem;
+	letter-spacing: 0.06em;
+	color: var(--text-muted);
+	margin-top: var(--space-2);
+}
+
+dd {
+	font-family: var(--font-data);
+	font-variant-numeric: tabular-nums;
+	margin: 0 0 var(--space-1);
+	font-size: 1rem;
+}
+
+button {
+	font-family: var(--font-body);
+	font-weight: 600;
+	cursor: pointer;
+}
+
+a {
+	color: inherit;
+}
+
+:focus-visible {
+	outline: 2px solid var(--chrome-navigation);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	* {
+		animation-duration: 0.01ms !important;
+		transition-duration: 0.01ms !important;
+	}
+}

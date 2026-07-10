@@ -16,6 +16,9 @@
 		"format": "prettier --write ."
 	},
 	"dependencies": {
+		"@fontsource/inter": "^5.2.8",
+		"@fontsource/jetbrains-mono": "^5.2.8",
+		"@fontsource/orbitron": "^5.2.8",
 		"@starship/engine": "*"
 	},
 	"devDependencies": {
