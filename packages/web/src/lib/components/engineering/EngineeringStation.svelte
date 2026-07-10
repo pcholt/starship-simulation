@@ -3,7 +3,9 @@
 	import CommandBox from '../shared/CommandBox.svelte';
 	import CommandReference from '../shared/CommandReference.svelte';
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
-	import { parseEngineeringCommand, ENGINEERING_COMMANDS } from './engineering-command-parser.js';
+	import Panel from '../shared/Panel.svelte';
+	import Slider from '../shared/Slider.svelte';
+	import { parseEngineeringCommand, ENGINEERING_COMMANDS, VALID_MISSIONS } from './engineering-command-parser.js';
 
 	interface Props {
 		store: WorldStateStore;
@@ -14,6 +16,7 @@
 
 	let devices = $derived(Object.entries(store.state.engineering.devices));
 	let shuttlecraft = $derived(store.state.engineering.shuttlecraft);
+	let totalEnergy = $derived(store.state.engineering.totalEnergy);
 
 	async function handleSubmit(text: string) {
 		const parsed = parseEngineeringCommand(text);
@@ -24,58 +27,139 @@
 		const result = await store.dispatch(parsed.command);
 		errorMessage = result.ok ? null : result.reason;
 	}
+
+	async function handleSetEnergy(deviceId: string, amount: number) {
+		const result = await store.dispatch({ module: 'engineering', type: 'SetEnergyAllocation', deviceId, amount });
+		errorMessage = result.ok ? null : result.reason;
+	}
+
+	async function handleSetMission(shuttlecraftId: number, mission: string) {
+		const result = await store.dispatch({
+			module: 'engineering',
+			type: 'SetShuttlecraftMission',
+			shuttlecraftId,
+			mission: mission as (typeof VALID_MISSIONS)[number]
+		});
+		errorMessage = result.ok ? null : result.reason;
+	}
 </script>
 
 <section aria-label="Engineering station">
 	<h2>Engineering</h2>
 	<StationStatusBar {store} moduleName="engineering" />
 
-	<h3>Devices</h3>
-	<table>
-		<thead>
-			<tr>
-				<th>DEVICE</th>
-				<th>FUNC</th>
-				<th>OPER</th>
-				<th>REL</th>
-				<th>ENERGY</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each devices as [id, device] (id)}
-				<tr>
-					<td>{id}</td>
-					<td>{device.functionalStatus}</td>
-					<td>{device.operationalStatus}</td>
-					<td>{device.reliabilityFactor}</td>
-					<td data-testid={`device-${id}-energy`}>{device.energyAssigned.toFixed(0)}</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+	<div class="grid">
+		<Panel title="Energy Allocation" accentVar="chrome-engineering">
+			<div class="device-controls">
+				{#each devices as [id, device] (id)}
+					<div class="device-row">
+						<Slider
+							label={`${id} Energy`}
+							value={Math.round(device.energyAssigned)}
+							min={0}
+							max={totalEnergy}
+							step={10}
+							unit="EU"
+							accentVar="chrome-engineering"
+							testId={`device-${id}-energy`}
+							onChange={(v) => handleSetEnergy(id, v)}
+						/>
+						<span class="device-stats">FUNC {device.functionalStatus} · OPER {device.operationalStatus} · REL {device.reliabilityFactor}</span>
+					</div>
+				{/each}
+			</div>
+		</Panel>
 
-	<h3>Shuttlecraft</h3>
-	<table>
-		<thead>
-			<tr>
-				<th>NBR</th>
-				<th>MISSION</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each shuttlecraft as shuttle (shuttle.id)}
-				<tr>
-					<td>{shuttle.id}</td>
-					<td data-testid={`shuttlecraft-${shuttle.id}-mission`}>{shuttle.mission}</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+		<Panel title="Shuttlecraft" accentVar="chrome-engineering">
+			<table>
+				<thead>
+					<tr>
+						<th>NBR</th>
+						<th>MISSION</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each shuttlecraft as shuttle (shuttle.id)}
+						<tr>
+							<td>{shuttle.id}</td>
+							<td>
+								<select
+									class="mission-select"
+									aria-label={`Shuttlecraft ${shuttle.id} Mission`}
+									value={shuttle.mission}
+									onchange={(e) => handleSetMission(shuttle.id, (e.currentTarget as HTMLSelectElement).value)}
+								>
+									{#each VALID_MISSIONS as mission (mission)}
+										<option value={mission}>{mission}</option>
+									{/each}
+								</select>
+								<!-- Mirrors the select's selected value as plain text: a <select>'s own textContent
+								     always includes every option, so tests can't assert the selection from it alone. -->
+								<span data-testid={`shuttlecraft-${shuttle.id}-mission`} class="sr-only">{shuttle.mission}</span>
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</Panel>
 
-	<div aria-label="Alerts">
-		<h3>ALERTS</h3>
+		<Panel title="Alerts" accentVar="chrome-neutral">
+			<div aria-label="Alerts"></div>
+		</Panel>
+
+		<Panel title="Command" accentVar="chrome-engineering">
+			<CommandBox onSubmit={handleSubmit} {errorMessage} accentVar="chrome-engineering" />
+			<CommandReference commands={ENGINEERING_COMMANDS} />
+		</Panel>
 	</div>
-
-	<CommandBox onSubmit={handleSubmit} {errorMessage} />
-	<CommandReference commands={ENGINEERING_COMMANDS} />
 </section>
+
+<style>
+	.grid {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+	}
+
+	.device-controls {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+		max-height: 32rem;
+		overflow-y: auto;
+	}
+
+	.device-row {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+	}
+
+	.device-stats {
+		font-family: var(--font-data);
+		font-size: 0.75rem;
+		color: var(--text-muted);
+		padding-left: calc(5rem + var(--space-3));
+	}
+
+	.mission-select {
+		background: var(--panel-alt);
+		border: 1px solid var(--panel-border);
+		border-radius: var(--radius-sm);
+		color: var(--text-primary);
+		padding: var(--space-1) var(--space-2);
+		font-family: var(--font-body);
+	}
+
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+</style>

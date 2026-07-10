@@ -18,4 +18,10 @@ describe('Slider', () => {
 
 		expect(onChange).toHaveBeenCalledWith(12);
 	});
+
+	it('uses a caller-supplied testId for the value readout, for pages with many sliders', async () => {
+		render(Slider, { label: 'Shield Fore', value: 40, min: 0, max: 100, step: 1, testId: 'shield-fore-level', onChange: () => {} });
+
+		await expect.element(page.getByTestId('shield-fore-level')).toHaveTextContent('40');
+	});
 });

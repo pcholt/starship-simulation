@@ -7,10 +7,12 @@
 		step: number;
 		unit?: string;
 		accentVar?: string;
+		/** Overrides the value readout's data-testid — useful on a page with many sliders where `slider-value` alone wouldn't be unique. */
+		testId?: string;
 		onChange: (value: number) => void;
 	}
 
-	let { label, value, min, max, step, unit = '', accentVar = 'chrome-neutral', onChange }: Props = $props();
+	let { label, value, min, max, step, unit = '', accentVar = 'chrome-neutral', testId = 'slider-value', onChange }: Props = $props();
 
 	function handleInput(event: Event) {
 		onChange(Number((event.currentTarget as HTMLInputElement).value));
@@ -20,7 +22,7 @@
 <label class="slider" style:--accent="var(--{accentVar})">
 	<span class="slider__label">{label}</span>
 	<input type="range" aria-label={label} {min} {max} {step} {value} oninput={handleInput} />
-	<span data-testid="slider-value" class="slider__value">{value}{unit ? ` ${unit}` : ''}</span>
+	<span data-testid={testId} class="slider__value">{value}{unit ? ` ${unit}` : ''}</span>
 </label>
 
 <style>

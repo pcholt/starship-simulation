@@ -1,8 +1,11 @@
 <script lang="ts">
+	import { PARTIAL_SCAN_RANGE } from '@starship/engine';
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import CommandBox from '../shared/CommandBox.svelte';
 	import CommandReference from '../shared/CommandReference.svelte';
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
+	import Panel from '../shared/Panel.svelte';
+	import Slider from '../shared/Slider.svelte';
 	import { parseSciencesCommand, SCIENCES_COMMANDS } from './sciences-command-parser.js';
 
 	interface Props {
@@ -16,6 +19,16 @@
 	let scan = $derived(store.state.lastScanResult);
 	let computer = $derived(store.state.engineering.devices.sciencesComputer!);
 
+	let scanTargets = $derived([
+		...store.state.celestialObjects.map((o) => ({ name: o.name, kind: 'celestial object' })),
+		...store.state.enemyCraft.map((c) => ({ name: c.name, kind: 'enemy craft' })),
+		...store.state.federationCraft.map((c) => ({ name: c.name, kind: 'federation craft' }))
+	]);
+
+	let scanAreaX = $state(0);
+	let scanAreaY = $state(0);
+	let scanAreaZ = $state(0);
+
 	async function handleSubmit(text: string) {
 		const parsed = parseSciencesCommand(text);
 		if (!parsed.ok) {
@@ -25,56 +38,190 @@
 		const result = await store.dispatch(parsed.command);
 		errorMessage = result.ok ? null : result.reason;
 	}
+
+	async function handleScanObject(name: string) {
+		const result = await store.dispatch({ module: 'sciences', type: 'ScanObject', name });
+		errorMessage = result.ok ? null : result.reason;
+	}
+
+	async function handleScanRandom() {
+		const result = await store.dispatch({ module: 'sciences', type: 'ScanRandom' });
+		errorMessage = result.ok ? null : result.reason;
+	}
+
+	async function handleScanArea() {
+		const result = await store.dispatch({
+			module: 'sciences',
+			type: 'ScanArea',
+			position: { x: scanAreaX, y: scanAreaY, z: scanAreaZ }
+		});
+		errorMessage = result.ok ? null : result.reason;
+	}
 </script>
 
 <section aria-label="Sciences station">
 	<h2>Sciences</h2>
 	<StationStatusBar {store} moduleName="sciences" />
 
-	<h3>Sciences Computer</h3>
-	<dl>
-		<dt>OPERATIONAL STATUS</dt>
-		<dd data-testid="sciences-computer-opstat">{computer.operationalStatus}</dd>
-		<dt>FUNCTIONAL STATUS</dt>
-		<dd data-testid="sciences-computer-funcstat">{computer.functionalStatus}</dd>
-	</dl>
+	<div class="grid">
+		<div class="sidebar">
+			<Panel title="Sciences Computer" accentVar="chrome-sciences">
+				<dl>
+					<dt>OPERATIONAL STATUS</dt>
+					<dd data-testid="sciences-computer-opstat">{computer.operationalStatus}</dd>
+					<dt>FUNCTIONAL STATUS</dt>
+					<dd data-testid="sciences-computer-funcstat">{computer.functionalStatus}</dd>
+				</dl>
+			</Panel>
 
-	<h3>Life Support</h3>
-	<dl>
-		<dt>AIR</dt>
-		<dd data-testid="life-support-air">{lifeSupport.air}</dd>
-		<dt>WATER</dt>
-		<dd data-testid="life-support-water">{lifeSupport.water}</dd>
-		<dt>FOOD</dt>
-		<dd data-testid="life-support-food">{lifeSupport.food}</dd>
-	</dl>
+			<Panel title="Life Support" accentVar="chrome-sciences">
+				<dl>
+					<dt>AIR</dt>
+					<dd data-testid="life-support-air">{lifeSupport.air}</dd>
+					<dt>WATER</dt>
+					<dd data-testid="life-support-water">{lifeSupport.water}</dd>
+					<dt>FOOD</dt>
+					<dd data-testid="life-support-food">{lifeSupport.food}</dd>
+				</dl>
+			</Panel>
 
-	<h3>Scan Result</h3>
-	<dl>
-		<dt>IDENTITY</dt>
-		<dd data-testid="scan-identity">{scan?.identity ?? 'NONE'}</dd>
-		<dt>QUALITY</dt>
-		<dd data-testid="scan-quality">{scan?.quality ?? 'NONE'}</dd>
-		<dt>DISTANCE</dt>
-		<dd data-testid="scan-distance">{scan ? scan.distance.toFixed(1) : 'NONE'}</dd>
-		{#if scan?.radius !== undefined}
-			<dt>RADIUS</dt>
-			<dd data-testid="scan-radius">{scan.radius}</dd>
-		{/if}
-		{#if scan?.mass !== undefined}
-			<dt>MASS</dt>
-			<dd data-testid="scan-mass">{scan.mass}</dd>
-		{/if}
-		{#if scan?.mission !== undefined}
-			<dt>MISSION</dt>
-			<dd data-testid="scan-mission">{scan.mission}</dd>
-		{/if}
-	</dl>
+			<Panel title="Scan Result" accentVar="chrome-sciences">
+				<dl>
+					<dt>IDENTITY</dt>
+					<dd data-testid="scan-identity">{scan?.identity ?? 'NONE'}</dd>
+					<dt>QUALITY</dt>
+					<dd data-testid="scan-quality">{scan?.quality ?? 'NONE'}</dd>
+					<dt>DISTANCE</dt>
+					<dd data-testid="scan-distance">{scan ? scan.distance.toFixed(1) : 'NONE'}</dd>
+					{#if scan?.radius !== undefined}
+						<dt>RADIUS</dt>
+						<dd data-testid="scan-radius">{scan.radius}</dd>
+					{/if}
+					{#if scan?.mass !== undefined}
+						<dt>MASS</dt>
+						<dd data-testid="scan-mass">{scan.mass}</dd>
+					{/if}
+					{#if scan?.mission !== undefined}
+						<dt>MISSION</dt>
+						<dd data-testid="scan-mission">{scan.mission}</dd>
+					{/if}
+				</dl>
+			</Panel>
+		</div>
 
-	<div aria-label="Alerts">
-		<h3>ALERTS</h3>
+		<div class="main-column">
+			<Panel title="Scan Targets" accentVar="chrome-sciences">
+				<ul class="target-list" data-testid="scan-targets">
+					{#each scanTargets as target (target.name)}
+						<li>
+							<button data-testid={`scan-target-${target.name}`} onclick={() => handleScanObject(target.name)}>
+								{target.name} <span class="kind">({target.kind})</span>
+							</button>
+						</li>
+					{/each}
+				</ul>
+				<button onclick={handleScanRandom}>Scan Randomly</button>
+			</Panel>
+
+			<Panel title="Scan Area" accentVar="chrome-sciences">
+				<div class="scan-area-controls">
+					<Slider
+						label="Scan Area X"
+						value={scanAreaX}
+						min={-PARTIAL_SCAN_RANGE}
+						max={PARTIAL_SCAN_RANGE}
+						step={10}
+						accentVar="chrome-sciences"
+						onChange={(v) => (scanAreaX = v)}
+					/>
+					<Slider
+						label="Scan Area Y"
+						value={scanAreaY}
+						min={-PARTIAL_SCAN_RANGE}
+						max={PARTIAL_SCAN_RANGE}
+						step={10}
+						accentVar="chrome-sciences"
+						onChange={(v) => (scanAreaY = v)}
+					/>
+					<Slider
+						label="Scan Area Z"
+						value={scanAreaZ}
+						min={-PARTIAL_SCAN_RANGE}
+						max={PARTIAL_SCAN_RANGE}
+						step={10}
+						accentVar="chrome-sciences"
+						onChange={(v) => (scanAreaZ = v)}
+					/>
+					<button onclick={handleScanArea}>Scan Area</button>
+				</div>
+			</Panel>
+
+			<Panel title="Alerts" accentVar="chrome-neutral">
+				<div aria-label="Alerts"></div>
+			</Panel>
+
+			<Panel title="Command" accentVar="chrome-sciences">
+				<CommandBox onSubmit={handleSubmit} {errorMessage} accentVar="chrome-sciences" />
+				<CommandReference commands={SCIENCES_COMMANDS} />
+			</Panel>
+		</div>
 	</div>
-
-	<CommandBox onSubmit={handleSubmit} {errorMessage} />
-	<CommandReference commands={SCIENCES_COMMANDS} />
 </section>
+
+<style>
+	.grid {
+		display: grid;
+		grid-template-columns: minmax(260px, 320px) 1fr;
+		gap: var(--space-4);
+		align-items: start;
+	}
+
+	.sidebar {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+	}
+
+	.main-column {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+		min-width: 0;
+	}
+
+	.target-list {
+		list-style: none;
+		margin: 0 0 var(--space-3);
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+
+	.target-list button {
+		width: 100%;
+		text-align: left;
+		background: var(--panel-alt);
+		border: 1px solid var(--panel-border);
+		border-radius: var(--radius-sm);
+		color: var(--text-primary);
+		padding: var(--space-2) var(--space-3);
+	}
+
+	.kind {
+		color: var(--text-muted);
+		font-size: 0.85rem;
+	}
+
+	.scan-area-controls {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+	}
+
+	@media (max-width: 800px) {
+		.grid {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

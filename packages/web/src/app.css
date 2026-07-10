@@ -146,6 +146,36 @@ button {
 	font-family: var(--font-body);
 	font-weight: 600;
 	cursor: pointer;
+	background: var(--panel-alt);
+	color: var(--text-primary);
+	border: 1px solid var(--panel-border);
+	border-radius: var(--radius-sm);
+	padding: var(--space-2) var(--space-3);
+	font-size: 0.8rem;
+}
+
+button:hover {
+	border-color: var(--chrome-neutral);
+	filter: brightness(1.15);
+}
+
+select {
+	font-family: var(--font-body);
+	background: var(--panel-alt);
+	color: var(--text-primary);
+	border: 1px solid var(--panel-border);
+	border-radius: var(--radius-sm);
+	padding: var(--space-1) var(--space-2);
+}
+
+input[type='text'],
+textarea {
+	font-family: var(--font-data);
+	background: var(--panel-alt);
+	color: var(--text-primary);
+	border: 1px solid var(--panel-border);
+	border-radius: var(--radius-sm);
+	padding: var(--space-2) var(--space-3);
 }
 
 a {

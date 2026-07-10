@@ -96,6 +96,17 @@ describe('ControllerStation', () => {
 		await expect.element(page.getByTestId('preset-scenarios')).toHaveTextContent('Derelict Encounter');
 	});
 
+	it('halts and executes a module by clicking its buttons (point-and-click, no typed command)', async () => {
+		const store = setup();
+		render(ControllerStation, { store });
+
+		await page.getByTestId('module-halt-navigation').click();
+		await expect.element(page.getByTestId('module-status-navigation')).toHaveTextContent('halted');
+
+		await page.getByTestId('module-execute-navigation').click();
+		await expect.element(page.getByTestId('module-status-navigation')).toHaveTextContent('running');
+	});
+
 	it('loads and runs a preset scenario in a single click', async () => {
 		const store = setup();
 		render(ControllerStation, { store });

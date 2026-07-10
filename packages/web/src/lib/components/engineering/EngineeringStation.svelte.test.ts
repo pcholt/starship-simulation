@@ -57,4 +57,22 @@ describe('EngineeringStation', () => {
 
 		await expect.element(page.getByRole('alert')).toBeInTheDocument();
 	});
+
+	it('sets a device energy allocation via its slider (point-and-click, no typed command)', async () => {
+		const store = setup();
+		render(EngineeringStation, { store });
+
+		await page.getByLabelText('phaser-fore Energy').fill('500');
+
+		await expect.element(page.getByTestId('device-phaser-fore-energy')).toHaveTextContent('500');
+	});
+
+	it('sets a shuttlecraft mission via its dropdown (point-and-click, no typed command)', async () => {
+		const store = setup();
+		render(EngineeringStation, { store });
+
+		await page.getByLabelText('Shuttlecraft 1 Mission').selectOptions('seekSensorData');
+
+		await expect.element(page.getByTestId('shuttlecraft-1-mission')).toHaveTextContent('seekSensorData');
+	});
 });

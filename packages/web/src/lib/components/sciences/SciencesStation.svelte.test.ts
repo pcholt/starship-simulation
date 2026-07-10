@@ -64,4 +64,58 @@ describe('SciencesStation', () => {
 
 		await expect.element(page.getByRole('alert')).toBeInTheDocument();
 	});
+
+	it('scans a listed object by clicking its Scan button (point-and-click, no typed command)', async () => {
+		const store = setup();
+		store.dispatch({
+			module: 'controller',
+			type: 'CreateCelestialObject',
+			name: 'Rigel VII',
+			position: { x: 10, y: 0, z: 0 },
+			radius: 6000,
+			mass: 5.9e24
+		});
+		render(SciencesStation, { store });
+
+		await page.getByTestId('scan-target-Rigel VII').click();
+
+		await expect.element(page.getByTestId('scan-identity')).toHaveTextContent('Rigel VII');
+	});
+
+	it('scans randomly via a button (point-and-click, no typed command)', async () => {
+		const store = setup();
+		store.dispatch({
+			module: 'controller',
+			type: 'CreateCelestialObject',
+			name: 'Rigel VII',
+			position: { x: 10, y: 0, z: 0 },
+			radius: 6000,
+			mass: 5.9e24
+		});
+		render(SciencesStation, { store });
+
+		await page.getByRole('button', { name: 'Scan Randomly' }).click();
+
+		await expect.element(page.getByTestId('scan-identity')).not.toHaveTextContent('NONE');
+	});
+
+	it('scans an area via coordinate sliders and a Scan Area button (point-and-click, no typed command)', async () => {
+		const store = setup();
+		store.dispatch({
+			module: 'controller',
+			type: 'CreateCelestialObject',
+			name: 'Rigel VII',
+			position: { x: 0, y: 0, z: 0 },
+			radius: 6000,
+			mass: 5.9e24
+		});
+		render(SciencesStation, { store });
+
+		await page.getByLabelText('Scan Area X').fill('0');
+		await page.getByLabelText('Scan Area Y').fill('0');
+		await page.getByLabelText('Scan Area Z').fill('0');
+		await page.getByRole('button', { name: 'Scan Area' }).click();
+
+		await expect.element(page.getByTestId('scan-identity')).toHaveTextContent('Rigel VII');
+	});
 });

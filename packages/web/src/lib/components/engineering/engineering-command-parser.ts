@@ -2,7 +2,7 @@ import type { Command, ShuttlecraftMission } from '@starship/engine';
 
 export type ParseResult = { ok: true; command: Command } | { ok: false; reason: string };
 
-const VALID_MISSIONS: ShuttlecraftMission[] = [
+export const VALID_MISSIONS: ShuttlecraftMission[] = [
 	'none',
 	'deliverCargo',
 	'seekSensorData',
