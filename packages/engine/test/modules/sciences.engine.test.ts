@@ -76,7 +76,22 @@ describe('sciences commands', () => {
 			mass: 1
 		});
 		engine.dispatch({ module: 'sciences', type: 'ScanArea', position: { x: 42, y: 7, z: 0 } });
-		expect(engine.getState().lastScanAreaEvent).toEqual({ position: { x: 42, y: 7, z: 0 }, sequence: 1 });
+		expect(engine.getState().lastScanAreaEvent).toEqual({ position: { x: 42, y: 7, z: 0 }, sequence: 1, atMs: 0 });
+	});
+
+	it('records the simulated time the scan happened at, so a late-mounting UI can tell how stale the event is', () => {
+		const engine = createEngine();
+		engine.dispatch({
+			module: 'controller',
+			type: 'CreateCelestialObject',
+			name: 'Near',
+			position: { x: 5, y: 0, z: 0 },
+			radius: 1,
+			mass: 1
+		});
+		engine.tick(1500);
+		engine.dispatch({ module: 'sciences', type: 'ScanArea', position: { x: 0, y: 0, z: 0 } });
+		expect(engine.getState().lastScanAreaEvent?.atMs).toBe(1500);
 	});
 
 	it('increments the lastScanAreaEvent sequence on each successive scan area, for reliable change detection', () => {

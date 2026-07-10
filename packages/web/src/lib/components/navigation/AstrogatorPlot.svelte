@@ -36,6 +36,10 @@
 		radius: number;
 		/** Changing this (e.g. an event sequence number) restarts the fade-out animation, even if center/radius repeat. */
 		key: number | string;
+		/** Starting opacity (0-1). Lets a caller resume a flash partway through its fade — e.g. a view that mounted after the scan already happened — rather than always popping back to full brightness. Defaults to 0.6. */
+		initialOpacity?: number;
+		/** How long the fade takes, in milliseconds. Should match however much of the flash's lifetime is left. Defaults to 2000. */
+		durationMs?: number;
 	}
 
 	interface Props {
@@ -128,7 +132,13 @@
 	let scanFlashPlot = $derived.by(() => {
 		if (!scanFlash) return null;
 		const point = worldToPlotPoint(scanFlash.center, center, zoomRange, VIEW_SIZE, PLOT_RADIUS_PCT);
-		return { ...point, radius: (scanFlash.radius / zoomRange) * PLOT_RADIUS_PCT, key: scanFlash.key };
+		return {
+			...point,
+			radius: (scanFlash.radius / zoomRange) * PLOT_RADIUS_PCT,
+			key: scanFlash.key,
+			initialOpacity: scanFlash.initialOpacity ?? 0.6,
+			durationMs: scanFlash.durationMs ?? 2000
+		};
 	});
 
 	// Universe (absolute) coordinate grid — anchored to fixed points in space, unlike the
@@ -298,6 +308,7 @@
 						r={scanFlashPlot.radius}
 						fill="var(--chrome-sciences)"
 						class="scan-flash"
+						style={`--flash-start: ${scanFlashPlot.initialOpacity}; --flash-duration: ${scanFlashPlot.durationMs}ms`}
 					/>
 				{/key}
 			{/if}
@@ -381,12 +392,13 @@
 	}
 
 	.scan-flash {
-		animation: scan-flash-fade 2s ease-out forwards;
+		opacity: var(--flash-start, 0.6);
+		animation: scan-flash-fade var(--flash-duration, 2000ms) linear forwards;
 	}
 
 	@keyframes scan-flash-fade {
 		from {
-			opacity: 0.6;
+			opacity: var(--flash-start, 0.6);
 		}
 		to {
 			opacity: 0;

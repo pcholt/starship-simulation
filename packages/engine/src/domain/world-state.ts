@@ -18,6 +18,8 @@ import type { Vector3 } from './vector.js';
 export interface ScanAreaEvent {
 	position: Vector3;
 	sequence: number;
+	/** `simulatedTimeMs` at the moment of the scan, so a UI that mounts later can tell how stale this event already is. */
+	atMs: number;
 }
 
 /** The "common data area" from the book: the single shared state tree every module reads and writes. */

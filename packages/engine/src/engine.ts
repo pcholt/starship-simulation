@@ -204,7 +204,7 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				const sequence = (state.lastScanAreaEvent?.sequence ?? 0) + 1;
 				state = produce(state, (draft) => {
 					draft.lastScanResult = result;
-					draft.lastScanAreaEvent = { position: command.position, sequence };
+					draft.lastScanAreaEvent = { position: command.position, sequence, atMs: state.simulatedTimeMs };
 				});
 				emit({ type: 'StateChanged', paths: ['lastScanResult', 'lastScanAreaEvent'] });
 				return { ok: true };

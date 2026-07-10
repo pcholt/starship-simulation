@@ -148,6 +148,48 @@ describe('NavigationStation', () => {
 		await expect.element(page.getByTestId('scan-flash-circle')).not.toBeInTheDocument();
 	}, 10_000);
 
+	it('does not show a scan flash for an already-stale event when the station mounts late (reload/navigate-back)', async () => {
+		const store = setup();
+		store.dispatch({
+			module: 'controller',
+			type: 'CreateCelestialObject',
+			name: 'Rigel VII',
+			position: { x: 200, y: 0, z: 0 },
+			radius: 6000,
+			mass: 5.9e24
+		});
+		store.dispatch({ module: 'sciences', type: 'ScanArea', position: { x: 200, y: 0, z: 0 } });
+		// The scan happened, then well over 2s of simulated time passed — e.g. the player was on
+		// another station, or reloaded the page — before Navigation ever mounted.
+		store.tick(2500);
+
+		render(NavigationStation, { store });
+
+		await expect.element(page.getByTestId('nav-position-x')).toBeInTheDocument();
+		await expect.element(page.getByTestId('scan-flash-circle')).not.toBeInTheDocument();
+	});
+
+	it('resumes a partially-elapsed scan flash at reduced brightness/duration rather than restarting it from full', async () => {
+		const store = setup();
+		store.dispatch({
+			module: 'controller',
+			type: 'CreateCelestialObject',
+			name: 'Rigel VII',
+			position: { x: 200, y: 0, z: 0 },
+			radius: 6000,
+			mass: 5.9e24
+		});
+		store.dispatch({ module: 'sciences', type: 'ScanArea', position: { x: 200, y: 0, z: 0 } });
+		// 1.8s of the 2s flash window already elapsed before this station mounted.
+		store.tick(1800);
+
+		render(NavigationStation, { store });
+
+		await expect.element(page.getByTestId('scan-flash-circle')).toBeInTheDocument();
+		await new Promise((resolve) => setTimeout(resolve, 400));
+		await expect.element(page.getByTestId('scan-flash-circle')).not.toBeInTheDocument();
+	});
+
 	it('sets speed via the speed slider (point-and-click, no typed command)', async () => {
 		const store = setup();
 		render(NavigationStation, { store });
