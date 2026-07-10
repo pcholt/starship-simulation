@@ -17,7 +17,7 @@ describe('NavigationStation', () => {
 		render(NavigationStation, { store });
 
 		await expect.element(page.getByText('X-COORDINATE')).toBeInTheDocument();
-		await expect.element(page.getByTestId('nav-position-x')).toHaveTextContent('0');
+		await expect.element(page.getByTestId('nav-position-x')).toHaveTextContent('0.0');
 		await expect.element(page.getByTestId('nav-speed')).toHaveTextContent('0');
 	});
 
@@ -49,7 +49,7 @@ describe('NavigationStation', () => {
 		await page.getByLabelText('Command input').fill('SCC 4 5 6');
 		await page.getByRole('button', { name: 'Enter' }).click();
 
-		await expect.element(page.getByTestId('nav-destination')).toHaveTextContent('4, 5, 6');
+		await expect.element(page.getByTestId('nav-destination')).toHaveTextContent('4.0, 5.0, 6.0');
 	});
 
 	it('shows an error message for an unrecognized command without dispatching anything', async () => {
@@ -104,6 +104,21 @@ describe('NavigationStation', () => {
 		render(NavigationStation, { store });
 
 		await expect.element(page.getByTestId('nav-chronometer')).toHaveTextContent('00:00:00.0');
+	});
+
+	it('shows position coordinates rounded to one decimal place', async () => {
+		const store = setup();
+		render(NavigationStation, { store });
+
+		await page.getByTestId('astrogator-svg').click();
+		await page.getByLabelText('Speed').fill('20');
+
+		// Give the engine a moment to advance position along a fractional trajectory.
+		await new Promise((resolve) => setTimeout(resolve, 50));
+		store.tick(50);
+
+		const x = await page.getByTestId('nav-position-x').element().textContent;
+		expect(x).toMatch(/^-?\d+\.\d$/);
 	});
 
 	it('sets speed via the speed slider (point-and-click, no typed command)', async () => {

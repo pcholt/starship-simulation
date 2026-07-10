@@ -6,7 +6,7 @@
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import Panel from '../shared/Panel.svelte';
 	import Slider from '../shared/Slider.svelte';
-	import { formatChronometer } from '../../format.js';
+	import { formatChronometer, formatCoordinate } from '../../format.js';
 	import AstrogatorPlot from './AstrogatorPlot.svelte';
 	import CompassDial from './CompassDial.svelte';
 	import { parseNavigationCommand, NAVIGATION_COMMANDS } from './navigation-command-parser.js';
@@ -36,7 +36,8 @@
 	let destinationLabel = $derived.by(() => {
 		const destination = navigation.destination;
 		if (!destination) return 'NONE';
-		if (destination.kind === 'coordinates') return `${destination.x}, ${destination.y}, ${destination.z}`;
+		if (destination.kind === 'coordinates')
+			return `${formatCoordinate(destination.x)}, ${formatCoordinate(destination.y)}, ${formatCoordinate(destination.z)}`;
 		if (destination.kind === 'celestialObject') return `Celestial Object #${destination.id}`;
 		if (destination.kind === 'craft') return `${destination.craftClass} #${destination.id}`;
 		return destination.kind;
@@ -114,11 +115,11 @@
 			<Panel title="Position & Heading" accentVar="chrome-navigation">
 				<dl>
 					<dt>X-COORDINATE</dt>
-					<dd data-testid="nav-position-x">{navigation.position.x}</dd>
+					<dd data-testid="nav-position-x">{formatCoordinate(navigation.position.x)}</dd>
 					<dt>Y-COORDINATE</dt>
-					<dd data-testid="nav-position-y">{navigation.position.y}</dd>
+					<dd data-testid="nav-position-y">{formatCoordinate(navigation.position.y)}</dd>
 					<dt>Z-COORDINATE</dt>
-					<dd data-testid="nav-position-z">{navigation.position.z}</dd>
+					<dd data-testid="nav-position-z">{formatCoordinate(navigation.position.z)}</dd>
 
 					<dt>X/Y DIRECTION</dt>
 					<dd data-testid="nav-xy-angle">{navigation.velocity.xyAngleDeg}</dd>

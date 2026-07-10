@@ -11,3 +11,8 @@ export function formatChronometer(simulatedTimeMs: number): string {
 	const pad2 = (n: number) => String(n).padStart(2, '0');
 	return `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}.${tenths}`;
 }
+
+/** Formats a world coordinate to one decimal place, per the book's Astrogator readouts. */
+export function formatCoordinate(value: number): string {
+	return value.toFixed(1);
+}
