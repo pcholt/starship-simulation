@@ -97,6 +97,34 @@ describe('AstrogatorPlot', () => {
 		await expect.element(page.getByTestId('astrogator-grid')).toHaveTextContent('1000');
 	});
 
+	it('draws a labeled range circle for each entry in rangeCircles', async () => {
+		render(AstrogatorPlot, {
+			center: { x: 0, y: 0, z: 0 },
+			entities: [],
+			range: 1000,
+			rangeCircles: [
+				{ label: 'Sensors', radius: 1000 },
+				{ label: 'Phasers', radius: 300 }
+			]
+		});
+
+		await expect.element(page.getByTestId('range-circle-Sensors')).toBeInTheDocument();
+		await expect.element(page.getByTestId('range-circle-Phasers')).toBeInTheDocument();
+		await expect.element(page.getByTestId('symbol-key')).toHaveTextContent('SENSORS');
+		await expect.element(page.getByTestId('symbol-key')).toHaveTextContent('PHASERS');
+	});
+
+	it('omits range circles outside the current zoom level', async () => {
+		render(AstrogatorPlot, {
+			center: { x: 0, y: 0, z: 0 },
+			entities: [],
+			range: 100,
+			rangeCircles: [{ label: 'Sensors', radius: 1000 }]
+		});
+
+		await expect.element(page.getByTestId('range-circle-Sensors')).not.toBeInTheDocument();
+	});
+
 	it('calls onSelectPoint with a world-space position when the plot is clicked', async () => {
 		const onSelectPoint = vi.fn();
 		render(AstrogatorPlot, { center: { x: 0, y: 0, z: 0 }, entities: [], range: 1000, onSelectPoint });

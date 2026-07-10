@@ -19,8 +19,8 @@ export function distanceBetween(a: Vector3, b: Vector3): number {
 export type ScanQuality = 'full' | 'partial' | 'none';
 
 /** Sensor range thresholds, in universe distance-units (1 unit = 100m per the book). */
-const FULL_SCAN_RANGE = 100;
-const PARTIAL_SCAN_RANGE = 1000;
+export const FULL_SCAN_RANGE = 100;
+export const PARTIAL_SCAN_RANGE = 1000;
 
 export function scanQualityForDistance(distance: number): ScanQuality {
 	if (distance <= FULL_SCAN_RANGE) return 'full';

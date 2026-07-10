@@ -25,11 +25,18 @@ export {
 	distanceBetween,
 	scanQualityForDistance,
 	scanCelestialObject,
-	scanCraft
+	scanCraft,
+	FULL_SCAN_RANGE,
+	PARTIAL_SCAN_RANGE
 } from './domain/sciences.js';
 export type { EngineeringState, Shuttlecraft, ShuttlecraftMission, BankLocation } from './domain/engineering.js';
 export { createEngineeringState, allocateEnergy, DEVICE_IDS, BANK_LOCATIONS } from './domain/engineering.js';
-export { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage } from './domain/combat.js';
+export {
+	bankLocationForRelativePosition,
+	computePhaserDamage,
+	computeTorpedoDamage,
+	PHASER_RANGE_HALF_LIFE
+} from './domain/combat.js';
 export type { WeaponTarget } from './commands.js';
 export type { Patient, MedicalState, AdmitResult, RecoveryOptions } from './domain/medical.js';
 export { createMedicalState, admitPatient, dischargePatient, recoverPatient, ICU_CAPACITY } from './domain/medical.js';

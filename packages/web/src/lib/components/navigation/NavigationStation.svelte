@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { distanceBetween } from '@starship/engine';
+	import { distanceBetween, FULL_SCAN_RANGE, PARTIAL_SCAN_RANGE, PHASER_RANGE_HALF_LIFE } from '@starship/engine';
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import CommandBox from '../shared/CommandBox.svelte';
 	import CommandReference from '../shared/CommandReference.svelte';
@@ -15,6 +15,15 @@
 	const PLOT_RANGE = 1000;
 	/** 0-20 warp, per the book's navigation data spec. */
 	const MAX_WARP_SPEED = 20;
+
+	// Torpedoes have no hard range cutoff in this engine (they home in regardless of distance),
+	// so only sensors and phasers get a ring — phasers use their damage half-life as the
+	// "effective range" since damage merely decays with distance rather than cutting off sharply.
+	const RANGE_CIRCLES = [
+		{ label: 'Full Sensors', radius: FULL_SCAN_RANGE },
+		{ label: 'Sensors', radius: PARTIAL_SCAN_RANGE },
+		{ label: 'Phasers', radius: PHASER_RANGE_HALF_LIFE }
+	];
 
 	interface Props {
 		store: WorldStateStore;
@@ -160,7 +169,13 @@
 
 		<div class="main-column">
 			<Panel title="Astrogator" accentVar="chrome-navigation">
-				<AstrogatorPlot center={navigation.position} entities={plotEntities} range={PLOT_RANGE} onSelectPoint={handleSelectPoint} />
+				<AstrogatorPlot
+					center={navigation.position}
+					entities={plotEntities}
+					range={PLOT_RANGE}
+					onSelectPoint={handleSelectPoint}
+					rangeCircles={RANGE_CIRCLES}
+				/>
 			</Panel>
 
 			<div class="lower-row">

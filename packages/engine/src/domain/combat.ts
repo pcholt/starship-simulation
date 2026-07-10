@@ -23,7 +23,7 @@ export function bankLocationForRelativePosition(from: Vector3, to: Vector3): Ban
 
 const PHASER_BASE_DAMAGE = 100;
 /** Distance (universe units) at which phaser damage falls to roughly half strength. */
-const PHASER_RANGE_HALF_LIFE = 300;
+export const PHASER_RANGE_HALF_LIFE = 300;
 
 /** Phaser damage falls off with distance and is reduced by the target's shield functional status (0-100). */
 export function computePhaserDamage(distance: number, targetShieldFunctional: number): number {
