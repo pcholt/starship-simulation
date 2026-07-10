@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { ModuleName } from '@starship/engine';
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
+	import StatusChip from './StatusChip.svelte';
+	import { runStateToStatus } from './status-chip.js';
 
 	interface Props {
 		store: WorldStateStore;
@@ -10,15 +12,24 @@
 	let { store, moduleName }: Props = $props();
 
 	let moduleRunState = $derived(store.state.modules[moduleName]);
-	let scenarioRunning = $derived(store.state.scenario?.runState === 'running');
+	let scenarioRunState = $derived(store.state.scenario?.runState ?? 'halted');
 </script>
 
-<div class="station-status" data-halted={moduleRunState === 'halted'}>
-	<span>
-		MODULE: <strong data-testid="module-run-state">{moduleRunState.toUpperCase()}</strong>
+<div class="station-status">
+	<span class="field">
+		MODULE
+		<span data-testid="module-run-state">
+			<StatusChip label={moduleRunState.toUpperCase()} status={runStateToStatus(moduleRunState)} />
+		</span>
 	</span>
-	<span>
-		SCENARIO: <strong data-testid="scenario-run-state">{scenarioRunning ? 'RUNNING' : 'NOT RUNNING'}</strong>
+	<span class="field">
+		SCENARIO
+		<span data-testid="scenario-run-state">
+			<StatusChip
+				label={scenarioRunState === 'running' ? 'RUNNING' : 'NOT RUNNING'}
+				status={runStateToStatus(scenarioRunState)}
+			/>
+		</span>
 	</span>
 	{#if moduleRunState === 'halted'}
 		<p role="alert">This station is halted — commands will have no effect until the Simulation Controller executes it again.</p>
@@ -28,11 +39,25 @@
 <style>
 	.station-status {
 		display: flex;
-		gap: 1.5rem;
-		align-items: baseline;
+		gap: var(--space-6);
+		align-items: center;
 		flex-wrap: wrap;
+		margin-bottom: var(--space-4);
 	}
-	.station-status[data-halted='true'] {
-		color: #b00020;
+	.field {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-family: var(--font-body);
+		font-weight: 600;
+		font-size: 0.75rem;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	[role='alert'] {
+		color: var(--status-warning);
+		font-size: 0.85rem;
+		margin: 0;
 	}
 </style>
