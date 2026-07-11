@@ -287,4 +287,47 @@ describe('AstrogatorPlot', () => {
 		expect(position).toHaveProperty('y');
 		expect(position).toHaveProperty('z');
 	});
+
+	it('rotates the ship icon to face the given heading', async () => {
+		const { rerender } = render(AstrogatorPlot, {
+			center: { x: 0, y: 0, z: 0 },
+			entities: [],
+			range: 1000,
+			shipHeadingDeg: 0
+		});
+
+		const pointsAtZero = await page.getByTestId('plot-mark-enterprise').element().getAttribute('points');
+
+		await rerender({ center: { x: 0, y: 0, z: 0 }, entities: [], range: 1000, shipHeadingDeg: 90 });
+
+		const pointsAtNinety = await page.getByTestId('plot-mark-enterprise').element().getAttribute('points');
+		expect(pointsAtNinety).not.toBe(pointsAtZero);
+	});
+
+	it('falls back to a plain mark for the Enterprise when no heading is given', async () => {
+		render(AstrogatorPlot, { center: { x: 0, y: 0, z: 0 }, entities: [], range: 1000 });
+
+		await expect.element(page.getByTestId('plot-mark-enterprise')).toBeInTheDocument();
+	});
+
+	it('draws the projected future path as a line when given one', async () => {
+		render(AstrogatorPlot, {
+			center: { x: 0, y: 0, z: 0 },
+			entities: [],
+			range: 1000,
+			projectedPath: [
+				{ x: 0, y: 0, z: 0 },
+				{ x: 100, y: 0, z: 0 },
+				{ x: 200, y: 50, z: 0 }
+			]
+		});
+
+		await expect.element(page.getByTestId('projected-path')).toBeInTheDocument();
+	});
+
+	it('omits the projected path line when none is given', async () => {
+		render(AstrogatorPlot, { center: { x: 0, y: 0, z: 0 }, entities: [], range: 1000 });
+
+		await expect.element(page.getByTestId('projected-path')).not.toBeInTheDocument();
+	});
 });

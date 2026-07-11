@@ -4,6 +4,7 @@
 	import { plotPointToWorld, worldToPlotPoint } from './astrogator-math.js';
 	import { gridLineValues, universeGridLineValues } from './astrogator-grid.js';
 	import { BANK_ANGLE_OFFSET_DEG, sectorPolygonPoints } from './shield-sector.js';
+	import { pointerFromAngle } from './compass-math.js';
 
 	type EntityKind = 'enemyCraft' | 'federationCraft' | 'celestialObject';
 
@@ -59,9 +60,29 @@
 		shieldOverlay?: ShieldOverlay;
 		/** A momentary ring at a scanned point that fades out over a couple of seconds, e.g. a Sciences Scan Area result. */
 		scanFlash?: ScanFlash | null;
+		/** The ship's current (actual) heading — when given, the Enterprise mark becomes a directional icon pointing this way instead of a plain dot. */
+		shipHeadingDeg?: number;
+		/** World-space points tracing the ship's predicted future track, e.g. from projected-path.ts — drawn as a dashed line when moving. */
+		projectedPath?: Vector3[];
 	}
 
-	let { center, entities, range, onSelectPoint, rangeCircles = [], previewCircle, shieldOverlay, scanFlash }: Props = $props();
+	let {
+		center,
+		entities,
+		range,
+		onSelectPoint,
+		rangeCircles = [],
+		previewCircle,
+		shieldOverlay,
+		scanFlash,
+		shipHeadingDeg,
+		projectedPath
+	}: Props = $props();
+
+	/** Fixed visual size in viewBox units for the directional ship icon. */
+	const SHIP_ICON_LENGTH = 2.4;
+	const SHIP_ICON_REAR_SPREAD_DEG = 145;
+	const SHIP_ICON_REAR_RADIUS = 1.5;
 
 	/** Fixed visual size in viewBox units — shields aren't drawn to world scale, just large enough to read clearly next to the Enterprise mark. */
 	const SHIELD_SECTOR_RADIUS = 7;
@@ -153,6 +174,28 @@
 	function universeYOffset(worldY: number) {
 		return ((worldY - center.y) / zoomRange) * PLOT_RADIUS_PCT;
 	}
+
+	// A small dart shape pointing in shipHeadingDeg: an apex forward, two points swept back on
+	// either side — the same pointerFromAngle convention the compass dial and shield sectors use.
+	let shipIconPoints = $derived.by(() => {
+		if (shipHeadingDeg === undefined) return null;
+		const tip = pointerFromAngle(shipHeadingDeg, SHIP_ICON_LENGTH);
+		const left = pointerFromAngle(shipHeadingDeg + SHIP_ICON_REAR_SPREAD_DEG, SHIP_ICON_REAR_RADIUS);
+		const right = pointerFromAngle(shipHeadingDeg - SHIP_ICON_REAR_SPREAD_DEG, SHIP_ICON_REAR_RADIUS);
+		return [tip, left, right]
+			.map((p) => `${VIEW_SIZE / 2 + p.x},${VIEW_SIZE / 2 + p.y}`)
+			.join(' ');
+	});
+
+	let projectedPathPlotPoints = $derived.by(() => {
+		if (!projectedPath || projectedPath.length === 0) return null;
+		return projectedPath
+			.map((worldPoint) => {
+				const p = worldToPlotPoint(worldPoint, center, zoomRange, VIEW_SIZE, PLOT_RADIUS_PCT);
+				return `${p.x},${p.y}`;
+			})
+			.join(' ');
+	});
 </script>
 
 <div class="astrogator" aria-label="Astrogator">
@@ -257,9 +300,27 @@
 				{/each}
 			{/if}
 
-			<circle data-testid="plot-mark-enterprise" cx={VIEW_SIZE / 2} cy={VIEW_SIZE / 2} r="1.1" fill="currentColor">
-				<title>Enterprise</title>
-			</circle>
+			{#if projectedPathPlotPoints}
+				<polyline
+					data-testid="projected-path"
+					points={projectedPathPlotPoints}
+					fill="none"
+					stroke="var(--chrome-navigation)"
+					stroke-width="0.25"
+					stroke-dasharray="1.2 0.8"
+					opacity="0.7"
+				/>
+			{/if}
+
+			{#if shipIconPoints}
+				<polygon data-testid="plot-mark-enterprise" points={shipIconPoints} fill="currentColor">
+					<title>Enterprise</title>
+				</polygon>
+			{:else}
+				<circle data-testid="plot-mark-enterprise" cx={VIEW_SIZE / 2} cy={VIEW_SIZE / 2} r="1.1" fill="currentColor">
+					<title>Enterprise</title>
+				</circle>
+			{/if}
 
 			{#each plotted as entity (entity.kind + entity.id)}
 				<g data-testid={`plot-mark-${entity.kind}-${entity.name}`}>

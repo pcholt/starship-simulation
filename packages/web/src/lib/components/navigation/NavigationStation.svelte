@@ -12,6 +12,11 @@
 	import AstrogatorPlot from './AstrogatorPlot.svelte';
 	import CompassDial from './CompassDial.svelte';
 	import { parseNavigationCommand, NAVIGATION_COMMANDS } from './navigation-command-parser.js';
+	import { projectedPath } from './projected-path.js';
+
+	/** How far ahead (and at what resolution) to project the ship's future track on the Astrogator. */
+	const PROJECTED_PATH_SECONDS = 20;
+	const PROJECTED_PATH_STEP_SECONDS = 1;
 
 	/** Plot radius in world distance-units — matches Sciences' partial-scan range, since both represent sensor reach. */
 	const PLOT_RANGE = 1000;
@@ -81,6 +86,8 @@
 
 	const KIND_LABELS = { celestialObject: 'celestial object', enemyCraft: 'enemy craft', federationCraft: 'federation craft' };
 
+	let shipProjectedPath = $derived(projectedPath(navigation, PROJECTED_PATH_SECONDS, PROJECTED_PATH_STEP_SECONDS));
+
 	let shieldOverlay = $derived({
 		headingDeg: navigation.velocity.xyAngleDeg,
 		levels: BANK_LOCATIONS.map((location) => ({
@@ -142,12 +149,15 @@
 		await store.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed });
 	}
 
+	// Preserves the *intended* value of the other axis, not the (possibly still turning) actual
+	// value — otherwise nudging one axis while a turn on the other axis is still in progress would
+	// silently cancel that in-progress turn back to wherever the ship currently happens to be facing.
 	async function handleHeadingChange(xyAngleDeg: number) {
-		await store.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg, xzAngleDeg: navigation.velocity.xzAngleDeg });
+		await store.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg, xzAngleDeg: navigation.intendedDirection.xzAngleDeg });
 	}
 
 	async function handlePitchChange(xzAngleDeg: number) {
-		await store.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg: navigation.velocity.xyAngleDeg, xzAngleDeg });
+		await store.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg: navigation.intendedDirection.xyAngleDeg, xzAngleDeg });
 	}
 
 	async function handleSelectPoint(position: { x: number; y: number; z: number }) {
@@ -192,6 +202,18 @@
 
 			<Panel title="Helm Controls" accentVar="chrome-navigation">
 				<div class="helm-controls">
+					<dl class="heading-readout">
+						<dt>CURRENT X/Y, X/Z</dt>
+						<dd>
+							<span data-testid="nav-xy-angle-current">{Math.round(navigation.velocity.xyAngleDeg)}°</span>,
+							<span data-testid="nav-xz-angle-current">{Math.round(navigation.velocity.xzAngleDeg)}°</span>
+						</dd>
+						<dt>INTENDED X/Y, X/Z</dt>
+						<dd>
+							<span data-testid="nav-xy-angle-intended">{Math.round(navigation.intendedDirection.xyAngleDeg)}°</span>,
+							<span data-testid="nav-xz-angle-intended">{Math.round(navigation.intendedDirection.xzAngleDeg)}°</span>
+						</dd>
+					</dl>
 					<Slider
 						label="Speed"
 						value={navigation.velocity.warpSpeed}
@@ -204,7 +226,7 @@
 					/>
 					<Slider
 						label="X/Z Angle"
-						value={navigation.velocity.xzAngleDeg}
+						value={navigation.intendedDirection.xzAngleDeg}
 						min={0}
 						max={359}
 						step={1}
@@ -212,7 +234,11 @@
 						accentVar="chrome-navigation"
 						onChange={handlePitchChange}
 					/>
-					<CompassDial headingDeg={navigation.velocity.xyAngleDeg} onSelect={handleHeadingChange} />
+					<CompassDial
+						headingDeg={navigation.velocity.xyAngleDeg}
+						intendedHeadingDeg={navigation.intendedDirection.xyAngleDeg}
+						onSelect={handleHeadingChange}
+					/>
 				</div>
 			</Panel>
 		</div>
@@ -227,6 +253,8 @@
 					rangeCircles={RANGE_CIRCLES}
 					{shieldOverlay}
 					{scanFlash}
+					shipHeadingDeg={navigation.velocity.xyAngleDeg}
+					projectedPath={shipProjectedPath}
 				/>
 			</Panel>
 
@@ -296,6 +324,11 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);
+	}
+
+	.heading-readout dd {
+		display: flex;
+		gap: var(--space-1);
 	}
 
 	@media (max-width: 800px) {

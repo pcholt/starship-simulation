@@ -3,16 +3,19 @@
 
 	interface Props {
 		headingDeg: number;
+		/** Where the ship is steering toward, if different from the current heading — drawn as a fainter secondary marker. */
+		intendedHeadingDeg?: number;
 		onSelect: (headingDeg: number) => void;
 	}
 
-	let { headingDeg, onSelect }: Props = $props();
+	let { headingDeg, intendedHeadingDeg, onSelect }: Props = $props();
 
 	const VIEW_SIZE = 100;
 	const CENTER = VIEW_SIZE / 2;
 	const RADIUS = 42;
 
 	let needle = $derived(pointerFromAngle(headingDeg, RADIUS));
+	let intendedMarker = $derived(intendedHeadingDeg === undefined ? null : pointerFromAngle(intendedHeadingDeg, RADIUS));
 
 	function handleClick(event: MouseEvent) {
 		const svg = event.currentTarget as SVGSVGElement;
@@ -57,6 +60,19 @@
 			{@const p2 = pointerFromAngle(tick, RADIUS - 4)}
 			<line x1={CENTER + p1.x} y1={CENTER + p1.y} x2={CENTER + p2.x} y2={CENTER + p2.y} stroke="currentColor" stroke-width="0.5" />
 		{/each}
+		{#if intendedMarker}
+			<line
+				data-testid="compass-intended-marker"
+				x1={CENTER}
+				y1={CENTER}
+				x2={CENTER + intendedMarker.x}
+				y2={CENTER + intendedMarker.y}
+				stroke="var(--chrome-navigation)"
+				stroke-width="1"
+				stroke-dasharray="3 2"
+				opacity="0.6"
+			/>
+		{/if}
 		<line x1={CENTER} y1={CENTER} x2={CENTER + needle.x} y2={CENTER + needle.y} stroke="var(--chrome-navigation)" stroke-width="2" />
 		<circle cx={CENTER} cy={CENTER} r="2" fill="var(--chrome-navigation)" />
 	</svg>

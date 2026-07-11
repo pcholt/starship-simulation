@@ -2,7 +2,8 @@ import { produce } from 'immer';
 import type { Command, CommandResult, WeaponTarget } from './commands.js';
 import { ALL_MODULE_NAMES } from './domain/module.js';
 import { createInitialWorldState, type WorldState } from './domain/world-state.js';
-import { advancePosition } from './domain/navigation.js';
+import { advancePosition, advanceHeading, bearingTo } from './domain/navigation.js';
+import type { Location } from './domain/location.js';
 import { scanCelestialObject, scanCraft, distanceBetween, scanQualityForDistance, type ScanResult } from './domain/sciences.js';
 import { allocateEnergy } from './domain/engineering.js';
 import { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage } from './domain/combat.js';
@@ -63,6 +64,19 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 		const federation = state.federationCraft.find((c) => c.name === name);
 		if (federation) return { craft: federation, fleet: 'federationCraft' };
 		return undefined;
+	}
+
+	/** Resolves a `Location` to a concrete point, when it names something with a position — used so SetCourse can steer toward it. */
+	function resolveDestinationPosition(destination: Location): Vector3 | null {
+		if (destination.kind === 'coordinates') return { x: destination.x, y: destination.y, z: destination.z };
+		if (destination.kind === 'celestialObject') {
+			return state.celestialObjects.find((o) => o.id === destination.id)?.position ?? null;
+		}
+		if (destination.kind === 'craft') {
+			const fleet = destination.craftClass === 'enemy' ? state.enemyCraft : destination.craftClass === 'federation' ? state.federationCraft : null;
+			return fleet?.find((c) => c.id === destination.id)?.position ?? null;
+		}
+		return null;
 	}
 
 	const WEAPON_HIT_RADIUS = 5;
@@ -163,11 +177,12 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				return { ok: true };
 			}
 			case 'SetDirection': {
+				// Sets the *intended* heading only — velocity's actual angles turn toward it over
+				// time in tick(), at a rate that depends on speed, rather than snapping instantly.
 				state = produce(state, (draft) => {
-					draft.enterpriseNavigation.velocity.xyAngleDeg = command.xyAngleDeg;
-					draft.enterpriseNavigation.velocity.xzAngleDeg = command.xzAngleDeg;
+					draft.enterpriseNavigation.intendedDirection = { xyAngleDeg: command.xyAngleDeg, xzAngleDeg: command.xzAngleDeg };
 				});
-				emit({ type: 'StateChanged', paths: ['enterpriseNavigation.velocity'] });
+				emit({ type: 'StateChanged', paths: ['enterpriseNavigation.intendedDirection'] });
 				return { ok: true };
 			}
 			case 'SetSpeed': {
@@ -178,10 +193,16 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				return { ok: true };
 			}
 			case 'SetCourse': {
+				// Setting a course also turns the ship toward it — resolved once, at dispatch time,
+				// rather than continuously re-aiming at a moving target on every tick.
+				const targetPosition = resolveDestinationPosition(command.destination);
 				state = produce(state, (draft) => {
 					draft.enterpriseNavigation.destination = command.destination;
+					if (targetPosition) {
+						draft.enterpriseNavigation.intendedDirection = bearingTo(draft.enterpriseNavigation.position, targetPosition);
+					}
 				});
-				emit({ type: 'StateChanged', paths: ['enterpriseNavigation.destination'] });
+				emit({ type: 'StateChanged', paths: ['enterpriseNavigation.destination', 'enterpriseNavigation.intendedDirection'] });
 				return { ok: true };
 			}
 			case 'ScanObject': {
@@ -386,6 +407,7 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 			state = produce(state, (draft) => {
 				draft.simulatedTimeMs += deltaMs;
 				if (draft.modules.navigation === 'running') {
+					draft.enterpriseNavigation.velocity = advanceHeading(draft.enterpriseNavigation, deltaMs);
 					draft.enterpriseNavigation.position = advancePosition(draft.enterpriseNavigation, deltaMs);
 				}
 				if (draft.modules.medical === 'running') {

@@ -31,4 +31,16 @@ describe('CompassDial', () => {
 		const [heading] = onSelect.mock.calls[0]!;
 		expect(Number.isInteger(heading)).toBe(true);
 	});
+
+	it('shows a distinct intended-heading marker when it differs from the current heading', async () => {
+		render(CompassDial, { headingDeg: 0, intendedHeadingDeg: 90, onSelect: () => {} });
+
+		await expect.element(page.getByTestId('compass-intended-marker')).toBeInTheDocument();
+	});
+
+	it('omits the intended-heading marker when no intended heading is given', async () => {
+		render(CompassDial, { headingDeg: 0, onSelect: () => {} });
+
+		await expect.element(page.getByTestId('compass-intended-marker')).not.toBeInTheDocument();
+	});
 });
