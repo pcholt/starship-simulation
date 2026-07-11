@@ -5,16 +5,7 @@
 	import { gridLineValues, universeGridLineValues } from './astrogator-grid.js';
 	import { BANK_ANGLE_OFFSET_DEG, sectorPolygonPoints } from './shield-sector.js';
 	import { pointerFromAngle } from './compass-math.js';
-
-	type EntityKind = 'enemyCraft' | 'federationCraft' | 'celestialObject';
-
-	interface PlotEntity {
-		/** Unique across all entities (celestial objects and craft share one id sequence in the engine) — used as the keyed-each key, since display names are not guaranteed unique (e.g. a scenario preset loaded twice). */
-		id: number;
-		name: string;
-		kind: EntityKind;
-		position: Vector3;
-	}
+	import type { PlotEntity } from './plot-entities.js';
 
 	interface RangeCircle {
 		label: string;

@@ -9,6 +9,7 @@
 	// Reused from Navigation: a generic world-space plot, not navigation-specific — it draws the
 	// scan-area preview ring here rather than a course.
 	import AstrogatorPlot from '../navigation/AstrogatorPlot.svelte';
+	import { toPlotEntities } from '../navigation/plot-entities.js';
 	import { parseSciencesCommand, SCIENCES_COMMANDS } from './sciences-command-parser.js';
 
 	interface Props {
@@ -28,11 +29,7 @@
 		...store.state.federationCraft.map((c) => ({ id: c.id, name: c.name, kind: 'federation craft' }))
 	]);
 
-	let plotEntities = $derived([
-		...store.state.celestialObjects.map((o) => ({ id: o.id, name: o.name, kind: 'celestialObject' as const, position: o.position })),
-		...store.state.enemyCraft.map((c) => ({ id: c.id, name: c.name, kind: 'enemyCraft' as const, position: c.position })),
-		...store.state.federationCraft.map((c) => ({ id: c.id, name: c.name, kind: 'federationCraft' as const, position: c.position }))
-	]);
+	let plotEntities = $derived(toPlotEntities(store.state));
 
 	// Offsets from the ship's current position, not absolute world coordinates — the science
 	// officer aims relative to where the Enterprise is now, matching how the Astrogator plot

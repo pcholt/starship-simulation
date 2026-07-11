@@ -13,6 +13,7 @@
 	import CompassDial from './CompassDial.svelte';
 	import { parseNavigationCommand, NAVIGATION_COMMANDS } from './navigation-command-parser.js';
 	import { projectedPath } from './projected-path.js';
+	import { toPlotEntities } from './plot-entities.js';
 
 	/** How far ahead (and at what resolution) to project the ship's future track on the Astrogator. */
 	const PROJECTED_PATH_SECONDS = 20;
@@ -71,11 +72,7 @@
 		return `${(distance / navigation.velocity.warpSpeed).toFixed(1)}s`;
 	});
 
-	let plotEntities = $derived([
-		...store.state.celestialObjects.map((o) => ({ id: o.id, name: o.name, kind: 'celestialObject' as const, position: o.position })),
-		...store.state.enemyCraft.map((c) => ({ id: c.id, name: c.name, kind: 'enemyCraft' as const, position: c.position })),
-		...store.state.federationCraft.map((c) => ({ id: c.id, name: c.name, kind: 'federationCraft' as const, position: c.position }))
-	]);
+	let plotEntities = $derived(toPlotEntities(store.state));
 
 	// Supplementary detail table alongside the Astrogator plot — the same entities, but with exact distance and no range cutoff.
 	let nearbyObjects = $derived(
