@@ -2,10 +2,12 @@
 	import type { BankLocation, Vector3 } from '@starship/engine';
 	import { sliderPosToZoomRange, zoomRangeToSliderPos } from './zoom-math.js';
 	import { plotPointToWorld, worldToPlotPoint } from './astrogator-math.js';
-	import { gridLineValues, universeGridLineValues } from './astrogator-grid.js';
-	import { BANK_ANGLE_OFFSET_DEG, sectorPolygonPoints } from './shield-sector.js';
 	import { pointerFromAngle } from './compass-math.js';
 	import type { PlotEntity } from './plot-entities.js';
+	import PlotGrids from './PlotGrids.svelte';
+	import ShieldSectorsOverlay from './ShieldSectorsOverlay.svelte';
+	import RangeCirclesOverlay from './RangeCirclesOverlay.svelte';
+	import EntityMarks from './EntityMarks.svelte';
 
 	interface RangeCircle {
 		label: string;
@@ -75,12 +77,6 @@
 	const SHIP_ICON_REAR_SPREAD_DEG = 145;
 	const SHIP_ICON_REAR_RADIUS = 1.5;
 
-	/** Fixed visual size in viewBox units — shields aren't drawn to world scale, just large enough to read clearly next to the Enterprise mark. */
-	const SHIELD_SECTOR_RADIUS = 7;
-	const SHIELD_SECTOR_SPAN_DEG = 90;
-	/** Alpha at 100% shield strength, fading linearly to 0 at 0% strength. */
-	const SHIELD_MAX_OPACITY = 0.5;
-
 	const VIEW_SIZE = 100;
 	const PLOT_RADIUS_PCT = 45;
 	const ZOOM_STEPS = 200;
@@ -124,17 +120,6 @@
 		onSelectPoint(plotPointToWorld(svgPoint, center, zoomRange, VIEW_SIZE, PLOT_RADIUS_PCT));
 	}
 
-	// World-coordinate grid, labeled in the same distance-units as the zoom display, so the plot
-	// reads as a real coordinate grid (per the book's Astrogator) rather than unlabeled tick marks.
-	let gridValues = $derived(gridLineValues(zoomRange, 5));
-	function gridOffset(value: number) {
-		return (value / zoomRange) * PLOT_RADIUS_PCT;
-	}
-
-	// Rings larger than the current zoom level would overflow the plot, so they're hidden rather
-	// than clipped — the same "beyond the current view" treatment as an out-of-range entity.
-	let visibleRangeCircles = $derived(rangeCircles.filter((c) => c.radius <= zoomRange));
-
 	// Recomputes on every change to previewCircle.center, so dragging a slider that feeds this
 	// prop moves the ring in real time — the same reactivity that drives every other plot mark.
 	let previewCirclePlot = $derived.by(() => {
@@ -154,17 +139,6 @@
 			durationMs: scanFlash.durationMs ?? 2000
 		};
 	});
-
-	// Universe (absolute) coordinate grid — anchored to fixed points in space, unlike the
-	// ship-relative grid above, so it visibly shifts under the Enterprise as the ship moves.
-	let universeXValues = $derived(universeGridLineValues(center.x, zoomRange, 5));
-	let universeYValues = $derived(universeGridLineValues(center.y, zoomRange, 5));
-	function universeXOffset(worldX: number) {
-		return ((worldX - center.x) / zoomRange) * PLOT_RADIUS_PCT;
-	}
-	function universeYOffset(worldY: number) {
-		return ((worldY - center.y) / zoomRange) * PLOT_RADIUS_PCT;
-	}
 
 	// A small dart shape pointing in shipHeadingDeg: an apex forward, two points swept back on
 	// either side — the same pointerFromAngle convention the compass dial and shield sectors use.
@@ -201,94 +175,12 @@
 			aria-label="Tactical plot — click to set course"
 			onclick={handlePlotClick}
 		>
-			<g data-testid="astrogator-grid" stroke="currentColor" stroke-width="0.12" opacity="0.35">
-				{#each gridValues as value (value)}
-					{@const offset = gridOffset(value)}
-					<line x1={VIEW_SIZE / 2 + offset} y1="0" x2={VIEW_SIZE / 2 + offset} y2={VIEW_SIZE} />
-					<line x1={VIEW_SIZE / 2 - offset} y1="0" x2={VIEW_SIZE / 2 - offset} y2={VIEW_SIZE} />
-					<line x1="0" y1={VIEW_SIZE / 2 + offset} x2={VIEW_SIZE} y2={VIEW_SIZE / 2 + offset} />
-					<line x1="0" y1={VIEW_SIZE / 2 - offset} x2={VIEW_SIZE} y2={VIEW_SIZE / 2 - offset} />
-				{/each}
-				{#each gridValues as value (value)}
-					{@const offset = gridOffset(value)}
-					<text x={VIEW_SIZE / 2 + offset} y={VIEW_SIZE / 2 - 0.6} font-size="1.8" stroke="none" fill="currentColor" text-anchor="middle"
-						>{value}</text
-					>
-					<text x={VIEW_SIZE / 2 + 0.8} y={VIEW_SIZE / 2 - offset} font-size="1.8" stroke="none" fill="currentColor">{value}</text>
-				{/each}
-			</g>
+			<PlotGrids {center} {zoomRange} viewSize={VIEW_SIZE} plotRadiusPct={PLOT_RADIUS_PCT} />
 
-			<g data-testid="astrogator-universe-grid" stroke="var(--universe-grid)" stroke-width="0.12" opacity="0.5">
-				{#each universeXValues as value (value)}
-					{@const offset = universeXOffset(value)}
-					<line x1={VIEW_SIZE / 2 + offset} y1="0" x2={VIEW_SIZE / 2 + offset} y2={VIEW_SIZE} />
-				{/each}
-				{#each universeYValues as value (value)}
-					{@const offset = universeYOffset(value)}
-					<line x1="0" y1={VIEW_SIZE / 2 - offset} x2={VIEW_SIZE} y2={VIEW_SIZE / 2 - offset} />
-				{/each}
-				{#each universeXValues as value (value)}
-					{@const offset = universeXOffset(value)}
-					<text x={VIEW_SIZE / 2 + offset} y={VIEW_SIZE - 1.2} font-size="1.8" stroke="none" fill="var(--universe-grid)" text-anchor="middle"
-						>{value}</text
-					>
-				{/each}
-				{#each universeYValues as value (value)}
-					{@const offset = universeYOffset(value)}
-					<text x={VIEW_SIZE - 12} y={VIEW_SIZE / 2 - offset - 0.6} font-size="1.8" stroke="none" fill="var(--universe-grid)"
-						>{value}</text
-					>
-				{/each}
-			</g>
-
-			<line
-				x1={VIEW_SIZE / 2}
-				y1="0"
-				x2={VIEW_SIZE / 2}
-				y2={VIEW_SIZE}
-				stroke="currentColor"
-				stroke-width="0.12"
-				opacity="0.6"
-			/>
-			<line
-				x1="0"
-				y1={VIEW_SIZE / 2}
-				x2={VIEW_SIZE}
-				y2={VIEW_SIZE / 2}
-				stroke="currentColor"
-				stroke-width="0.12"
-				opacity="0.6"
-			/>
-
-			{#each visibleRangeCircles as circle (circle.label)}
-				<circle
-					data-testid={`range-circle-${circle.label}`}
-					cx={VIEW_SIZE / 2}
-					cy={VIEW_SIZE / 2}
-					r={gridOffset(circle.radius)}
-					fill="none"
-					stroke="var(--chrome-navigation)"
-					stroke-width="0.15"
-					stroke-dasharray="0.8 0.6"
-					opacity="0.55"
-				>
-					<title>{circle.label} range — {circle.radius} units</title>
-				</circle>
-			{/each}
+			<RangeCirclesOverlay circles={rangeCircles} {zoomRange} viewSize={VIEW_SIZE} plotRadiusPct={PLOT_RADIUS_PCT} />
 
 			{#if shieldOverlay}
-				{#each shieldOverlay.levels as shield (shield.location)}
-					{@const centerAngle = shieldOverlay.headingDeg + BANK_ANGLE_OFFSET_DEG[shield.location]}
-					{@const wedge = sectorPolygonPoints(centerAngle, SHIELD_SECTOR_SPAN_DEG, SHIELD_SECTOR_RADIUS)}
-					<polygon
-						data-testid={`shield-sector-${shield.location}`}
-						points={wedge.map((p) => `${VIEW_SIZE / 2 + p.x},${VIEW_SIZE / 2 + p.y}`).join(' ')}
-						fill="var(--chrome-helm)"
-						opacity={(shield.level / 100) * SHIELD_MAX_OPACITY}
-					>
-						<title>{shield.location} shield — {shield.level}%</title>
-					</polygon>
-				{/each}
+				<ShieldSectorsOverlay {shieldOverlay} viewSize={VIEW_SIZE} />
 			{/if}
 
 			{#if projectedPathPlotPoints}
@@ -313,31 +205,7 @@
 				</circle>
 			{/if}
 
-			{#each plotted as entity (entity.kind + entity.id)}
-				<g data-testid={`plot-mark-${entity.kind}-${entity.name}`}>
-					<title>{entity.name}</title>
-					{#if entity.kind === 'celestialObject'}
-						<circle cx={entity.plotX} cy={entity.plotY} r="0.9" fill="none" stroke="currentColor" stroke-width="0.3" />
-					{:else if entity.kind === 'enemyCraft'}
-						<polygon
-							points="{entity.plotX},{entity.plotY - 1} {entity.plotX - 1},{entity.plotY + 1} {entity.plotX + 1},{entity.plotY + 1}"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="0.3"
-						/>
-					{:else}
-						<rect
-							x={entity.plotX - 0.9}
-							y={entity.plotY - 0.9}
-							width="1.8"
-							height="1.8"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="0.3"
-						/>
-					{/if}
-				</g>
-			{/each}
+			<EntityMarks entities={plotted} />
 
 			{#if previewCirclePlot}
 				<circle
