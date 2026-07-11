@@ -8,6 +8,8 @@
 	type EntityKind = 'enemyCraft' | 'federationCraft' | 'celestialObject';
 
 	interface PlotEntity {
+		/** Unique across all entities (celestial objects and craft share one id sequence in the engine) — used as the keyed-each key, since display names are not guaranteed unique (e.g. a scenario preset loaded twice). */
+		id: number;
 		name: string;
 		kind: EntityKind;
 		position: Vector3;
@@ -259,7 +261,7 @@
 				<title>Enterprise</title>
 			</circle>
 
-			{#each plotted as entity (entity.kind + entity.name)}
+			{#each plotted as entity (entity.kind + entity.id)}
 				<g data-testid={`plot-mark-${entity.kind}-${entity.name}`}>
 					<title>{entity.name}</title>
 					{#if entity.kind === 'celestialObject'}

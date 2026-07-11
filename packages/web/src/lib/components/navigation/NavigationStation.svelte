@@ -67,9 +67,9 @@
 	});
 
 	let plotEntities = $derived([
-		...store.state.celestialObjects.map((o) => ({ name: o.name, kind: 'celestialObject' as const, position: o.position })),
-		...store.state.enemyCraft.map((c) => ({ name: c.name, kind: 'enemyCraft' as const, position: c.position })),
-		...store.state.federationCraft.map((c) => ({ name: c.name, kind: 'federationCraft' as const, position: c.position }))
+		...store.state.celestialObjects.map((o) => ({ id: o.id, name: o.name, kind: 'celestialObject' as const, position: o.position })),
+		...store.state.enemyCraft.map((c) => ({ id: c.id, name: c.name, kind: 'enemyCraft' as const, position: c.position })),
+		...store.state.federationCraft.map((c) => ({ id: c.id, name: c.name, kind: 'federationCraft' as const, position: c.position }))
 	]);
 
 	// Supplementary detail table alongside the Astrogator plot — the same entities, but with exact distance and no range cutoff.
@@ -241,7 +241,7 @@
 							</tr>
 						</thead>
 						<tbody data-testid="nearby-objects">
-							{#each nearbyObjects as entry (entry.name)}
+							{#each nearbyObjects as entry (entry.kind + entry.id)}
 								<tr>
 									<td>{entry.name}</td>
 									<td>{KIND_LABELS[entry.kind]}</td>

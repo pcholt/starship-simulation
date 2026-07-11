@@ -13,7 +13,7 @@ describe('AstrogatorPlot', () => {
 	it('plots a celestial object within range', async () => {
 		render(AstrogatorPlot, {
 			center: { x: 0, y: 0, z: 0 },
-			entities: [{ name: 'Rigel VII', kind: 'celestialObject', position: { x: 100, y: 0, z: 0 } }],
+			entities: [{ id: 1, name: 'Rigel VII', kind: 'celestialObject', position: { x: 100, y: 0, z: 0 } }],
 			range: 1000
 		});
 
@@ -24,8 +24,8 @@ describe('AstrogatorPlot', () => {
 		render(AstrogatorPlot, {
 			center: { x: 0, y: 0, z: 0 },
 			entities: [
-				{ name: 'Klingon Bird of Prey', kind: 'enemyCraft', position: { x: 50, y: 50, z: 0 } },
-				{ name: 'USS Excelsior', kind: 'federationCraft', position: { x: -50, y: -50, z: 0 } }
+				{ id: 1, name: 'Klingon Bird of Prey', kind: 'enemyCraft', position: { x: 50, y: 50, z: 0 } },
+				{ id: 2, name: 'USS Excelsior', kind: 'federationCraft', position: { x: -50, y: -50, z: 0 } }
 			],
 			range: 1000
 		});
@@ -37,11 +37,25 @@ describe('AstrogatorPlot', () => {
 	it('excludes entities beyond the plot range', async () => {
 		render(AstrogatorPlot, {
 			center: { x: 0, y: 0, z: 0 },
-			entities: [{ name: 'Far Away', kind: 'celestialObject', position: { x: 100000, y: 0, z: 0 } }],
+			entities: [{ id: 1, name: 'Far Away', kind: 'celestialObject', position: { x: 100000, y: 0, z: 0 } }],
 			range: 1000
 		});
 
 		await expect.element(page.getByTestId('plot-mark-celestialObject-Far Away')).not.toBeInTheDocument();
+	});
+
+	it('renders two entities that share a name without crashing (e.g. a scenario preset loaded twice)', async () => {
+		render(AstrogatorPlot, {
+			center: { x: 0, y: 0, z: 0 },
+			entities: [
+				{ id: 5, name: 'Klingon Bird of Prey', kind: 'enemyCraft', position: { x: 10, y: 0, z: 0 } },
+				{ id: 9, name: 'Klingon Bird of Prey', kind: 'enemyCraft', position: { x: -10, y: 0, z: 0 } }
+			],
+			range: 1000
+		});
+
+		const marks = await page.getByTestId('plot-mark-enemyCraft-Klingon Bird of Prey').all();
+		expect(marks).toHaveLength(2);
 	});
 
 	it('renders a symbol key for the entity kinds the engine actually models', async () => {
@@ -63,7 +77,7 @@ describe('AstrogatorPlot', () => {
 	it('zooming all the way out (max slider position) reveals an entity beyond the initial range', async () => {
 		render(AstrogatorPlot, {
 			center: { x: 0, y: 0, z: 0 },
-			entities: [{ name: 'Far Object', kind: 'celestialObject', position: { x: 3000, y: 0, z: 0 } }],
+			entities: [{ id: 1, name: 'Far Object', kind: 'celestialObject', position: { x: 3000, y: 0, z: 0 } }],
 			range: 1000
 		});
 
@@ -79,7 +93,7 @@ describe('AstrogatorPlot', () => {
 	it('zooming all the way in (min slider position) hides an entity within the initial range', async () => {
 		render(AstrogatorPlot, {
 			center: { x: 0, y: 0, z: 0 },
-			entities: [{ name: 'Nearby Object', kind: 'celestialObject', position: { x: 800, y: 0, z: 0 } }],
+			entities: [{ id: 1, name: 'Nearby Object', kind: 'celestialObject', position: { x: 800, y: 0, z: 0 } }],
 			range: 1000
 		});
 

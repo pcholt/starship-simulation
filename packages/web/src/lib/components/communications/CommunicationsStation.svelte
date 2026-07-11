@@ -121,7 +121,7 @@
 		<div class="main-column">
 			<Panel title="Federation Craft — Request Aid" accentVar="chrome-communications">
 				<ul class="target-list">
-					{#each federationCraft as craft (craft.name)}
+					{#each federationCraft as craft (craft.id)}
 						<li>
 							<span class="target-name">{craft.name}</span>
 							<button data-testid={`request-aid-${craft.name}`} onclick={() => handleRequestAid(craft.name)}>Request Aid</button>
@@ -132,7 +132,7 @@
 
 			<Panel title="Enemy Craft — Peace Offers" accentVar="chrome-communications">
 				<ul class="target-list">
-					{#each enemyCraft as craft (craft.name)}
+					{#each enemyCraft as craft (craft.id)}
 						<li>
 							<span class="target-name">{craft.name}</span>
 							<button data-testid={`send-peace-offer-${craft.name}`} onclick={() => handleSendPeaceOffer(craft.name)}

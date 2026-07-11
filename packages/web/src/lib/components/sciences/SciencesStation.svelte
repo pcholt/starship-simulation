@@ -23,15 +23,15 @@
 	let computer = $derived(store.state.engineering.devices.sciencesComputer!);
 
 	let scanTargets = $derived([
-		...store.state.celestialObjects.map((o) => ({ name: o.name, kind: 'celestial object' })),
-		...store.state.enemyCraft.map((c) => ({ name: c.name, kind: 'enemy craft' })),
-		...store.state.federationCraft.map((c) => ({ name: c.name, kind: 'federation craft' }))
+		...store.state.celestialObjects.map((o) => ({ id: o.id, name: o.name, kind: 'celestial object' })),
+		...store.state.enemyCraft.map((c) => ({ id: c.id, name: c.name, kind: 'enemy craft' })),
+		...store.state.federationCraft.map((c) => ({ id: c.id, name: c.name, kind: 'federation craft' }))
 	]);
 
 	let plotEntities = $derived([
-		...store.state.celestialObjects.map((o) => ({ name: o.name, kind: 'celestialObject' as const, position: o.position })),
-		...store.state.enemyCraft.map((c) => ({ name: c.name, kind: 'enemyCraft' as const, position: c.position })),
-		...store.state.federationCraft.map((c) => ({ name: c.name, kind: 'federationCraft' as const, position: c.position }))
+		...store.state.celestialObjects.map((o) => ({ id: o.id, name: o.name, kind: 'celestialObject' as const, position: o.position })),
+		...store.state.enemyCraft.map((c) => ({ id: c.id, name: c.name, kind: 'enemyCraft' as const, position: c.position })),
+		...store.state.federationCraft.map((c) => ({ id: c.id, name: c.name, kind: 'federationCraft' as const, position: c.position }))
 	]);
 
 	// Offsets from the ship's current position, not absolute world coordinates — the science
@@ -137,7 +137,7 @@
 		<div class="main-column">
 			<Panel title="Scan Targets" accentVar="chrome-sciences">
 				<ul class="target-list" data-testid="scan-targets">
-					{#each scanTargets as target (target.name)}
+					{#each scanTargets as target (target.kind + target.id)}
 						<li>
 							<button data-testid={`scan-target-${target.name}`} onclick={() => handleScanObject(target.name)}>
 								{target.name} <span class="kind">({target.kind})</span>

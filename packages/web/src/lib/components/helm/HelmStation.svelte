@@ -35,8 +35,8 @@
 	);
 
 	let targets = $derived([
-		...store.state.enemyCraft.map((c) => ({ name: c.name, kind: 'enemy craft' })),
-		...store.state.federationCraft.map((c) => ({ name: c.name, kind: 'federation craft' }))
+		...store.state.enemyCraft.map((c) => ({ id: c.id, name: c.name, kind: 'enemy craft' })),
+		...store.state.federationCraft.map((c) => ({ id: c.id, name: c.name, kind: 'federation craft' }))
 	]);
 
 	function describeTarget(command: { type: 'FirePhasers' | 'FireTorpedo'; target: { kind: string; name?: string } }): string {
@@ -157,7 +157,7 @@
 		<div class="main-column">
 			<Panel title="Weapons Targeting" accentVar="chrome-helm">
 				<ul class="target-list" data-testid="targets">
-					{#each targets as target (target.name)}
+					{#each targets as target (target.kind + target.id)}
 						<li>
 							<span class="target-name">{target.name} <span class="kind">({target.kind})</span></span>
 							<button data-testid={`fire-phasers-${target.name}`} onclick={() => handleFirePhasers(target.name)}>Fire Phasers</button>
