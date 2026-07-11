@@ -1,8 +1,6 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
-	import type { Vector3 } from '@starship/engine';
-	import { BANK_LOCATIONS, distanceBetween, FULL_SCAN_RANGE, PARTIAL_SCAN_RANGE, PHASER_RANGE_HALF_LIFE } from '@starship/engine';
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
+	import { BANK_LOCATIONS, distanceBetween, FULL_SCAN_RANGE, PARTIAL_SCAN_RANGE, PHASER_RANGE_HALF_LIFE } from '@starship/engine';
 	import CommandBox from '../shared/CommandBox.svelte';
 	import CommandReference from '../shared/CommandReference.svelte';
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
@@ -12,8 +10,8 @@
 	import AstrogatorPlot from './AstrogatorPlot.svelte';
 	import CompassDial from './CompassDial.svelte';
 	import { parseNavigationCommand, NAVIGATION_COMMANDS } from './navigation-command-parser.js';
-	import { projectedPath } from './projected-path.js';
 	import { toPlotEntities } from './plot-entities.js';
+	import { createAstrogatorOverlayState } from './astrogator-overlay-state.svelte.js';
 
 	/** How far ahead (and at what resolution) to project the ship's future track on the Astrogator. */
 	const PROJECTED_PATH_SECONDS = 20;
@@ -83,8 +81,6 @@
 
 	const KIND_LABELS = { celestialObject: 'celestial object', enemyCraft: 'enemy craft', federationCraft: 'federation craft' };
 
-	let shipProjectedPath = $derived(projectedPath(navigation, PROJECTED_PATH_SECONDS, PROJECTED_PATH_STEP_SECONDS));
-
 	let shieldOverlay = $derived({
 		headingDeg: navigation.velocity.xyAngleDeg,
 		levels: BANK_LOCATIONS.map((location) => ({
@@ -93,44 +89,16 @@
 		}))
 	});
 
-	/** How long the Sciences Scan Area flash stays visible before it's removed (the CSS fade spans the same duration). */
-	const SCAN_FLASH_DURATION_MS = 2000;
-	let scanFlash: { center: Vector3; radius: number; key: number; initialOpacity: number; durationMs: number } | null =
-		$state(null);
-
-	// Watches for a *new* Scan Area event (by sequence number, not object identity — the latter
-	// would also change on every full-state broadcast in networked play) and shows a flash at the
-	// scanned point for a couple of seconds, so Navigation sees where Sciences just looked.
-	//
-	// The event carries `atMs` (simulated time of the scan), so a component that only just
-	// mounted — e.g. the player switched stations and back, or reloaded the page — can tell how
-	// much of the flash's 2 seconds has already elapsed elsewhere, instead of always restarting
-	// it from full brightness as if the scan had just happened.
-	$effect(() => {
-		const event = store.state.lastScanAreaEvent;
-		if (!event) return;
-
-		// Read the clock without subscribing to it — simulatedTimeMs ticks continuously, and this
-		// effect must only re-run when a *new* scan event arrives, not on every tick in between.
-		const elapsedMs = untrack(() => store.state.simulatedTimeMs) - event.atMs;
-		const remainingMs = SCAN_FLASH_DURATION_MS - elapsedMs;
-		if (remainingMs <= 0) {
-			scanFlash = null;
-			return;
-		}
-
-		scanFlash = {
-			center: event.position,
-			radius: FULL_SCAN_RANGE,
-			key: event.sequence,
-			initialOpacity: 0.6 * (remainingMs / SCAN_FLASH_DURATION_MS),
-			durationMs: remainingMs
-		};
-		const timeout = setTimeout(() => {
-			scanFlash = null;
-		}, remainingMs);
-		return () => clearTimeout(timeout);
+	// The composable takes the store instance once and reads store.state reactively from inside its
+	// own $effect from then on — `store` itself (the object reference) is never reassigned by the
+	// parent, only its `.state` field, so capturing it here is safe despite the linter's caution.
+	// svelte-ignore state_referenced_locally
+	const astrogatorOverlay = createAstrogatorOverlayState(store, {
+		scanFlashRadius: FULL_SCAN_RANGE,
+		projectedPathSeconds: PROJECTED_PATH_SECONDS,
+		projectedPathStepSeconds: PROJECTED_PATH_STEP_SECONDS
 	});
+	let shipProjectedPath = $derived(astrogatorOverlay.projectedPath(navigation));
 
 	async function handleSubmit(text: string) {
 		const parsed = parseNavigationCommand(text);
@@ -249,7 +217,7 @@
 					onSelectPoint={handleSelectPoint}
 					rangeCircles={RANGE_CIRCLES}
 					{shieldOverlay}
-					{scanFlash}
+					scanFlash={astrogatorOverlay.scanFlash}
 					shipHeadingDeg={navigation.velocity.xyAngleDeg}
 					projectedPath={shipProjectedPath}
 				/>
