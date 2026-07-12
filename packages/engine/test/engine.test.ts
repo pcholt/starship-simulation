@@ -68,7 +68,8 @@ describe('engine.dispatch — creating craft and celestial objects', () => {
 				name: 'Klingon Bird of Prey',
 				mission: 'unconditionalAttack',
 				position: { x: 1, y: 2, z: 3 },
-				hullIntegrity: 100
+				hullIntegrity: 100,
+				speed: 0
 			}
 		]);
 	});

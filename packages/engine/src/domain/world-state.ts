@@ -8,6 +8,7 @@ import { createMedicalState, type MedicalState } from './medical.js';
 import { createCommunicationsState, type CommunicationsState } from './communications.js';
 import type { ScenarioRuntimeState } from '../scenario/scenario.js';
 import type { Vector3 } from './vector.js';
+import type { Torpedo } from './torpedo.js';
 
 /**
  * Records the last successful Scan Area, for a purely presentational purpose: letting other
@@ -22,6 +23,22 @@ export interface ScanAreaEvent {
 	atMs: number;
 }
 
+/** Presentational event for a phaser/torpedo firing, so the Astrogator plot can flash a beam line — same `sequence`/`atMs` pattern as `ScanAreaEvent`. */
+export interface WeaponFireEvent {
+	weapon: 'phaser' | 'torpedo';
+	from: Vector3;
+	to: Vector3;
+	sequence: number;
+	atMs: number;
+}
+
+/** Presentational event for a torpedo detonating (hit or fuel-out), so the Astrogator plot can flash an impact marker. */
+export interface TorpedoExplosionEvent {
+	position: Vector3;
+	sequence: number;
+	atMs: number;
+}
+
 /** The "common data area" from the book: the single shared state tree every module reads and writes. */
 export interface WorldState {
 	simulatedTimeMs: number;
@@ -30,12 +47,15 @@ export interface WorldState {
 	lifeSupport: LifeSupportState;
 	lastScanResult: ScanResult | null;
 	lastScanAreaEvent: ScanAreaEvent | null;
+	lastWeaponFireEvent: WeaponFireEvent | null;
+	lastTorpedoExplosionEvent: TorpedoExplosionEvent | null;
 	engineering: EngineeringState;
 	medical: MedicalState;
 	communications: CommunicationsState;
 	celestialObjects: CelestialObject[];
 	enemyCraft: Craft[];
 	federationCraft: Craft[];
+	torpedoes: Torpedo[];
 	scenario: ScenarioRuntimeState | null;
 }
 
@@ -53,12 +73,15 @@ export function createInitialWorldState(): WorldState {
 		lifeSupport: createLifeSupportState(),
 		lastScanResult: null,
 		lastScanAreaEvent: null,
+		lastWeaponFireEvent: null,
+		lastTorpedoExplosionEvent: null,
 		engineering: createEngineeringState(),
 		medical: createMedicalState(),
 		communications: createCommunicationsState(),
 		celestialObjects: [],
 		enemyCraft: [],
 		federationCraft: [],
+		torpedoes: [],
 		scenario: null
 	};
 }

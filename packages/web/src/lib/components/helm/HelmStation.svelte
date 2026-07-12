@@ -35,8 +35,8 @@
 	);
 
 	let targets = $derived([
-		...store.state.enemyCraft.map((c) => ({ id: c.id, name: c.name, kind: 'enemy craft' })),
-		...store.state.federationCraft.map((c) => ({ id: c.id, name: c.name, kind: 'federation craft' }))
+		...store.state.enemyCraft.map((c) => ({ id: c.id, name: c.name, kind: 'enemy craft', hullIntegrity: c.hullIntegrity })),
+		...store.state.federationCraft.map((c) => ({ id: c.id, name: c.name, kind: 'federation craft', hullIntegrity: c.hullIntegrity }))
 	]);
 
 	function describeTarget(command: { type: 'FirePhasers' | 'FireTorpedo'; target: { kind: string; name?: string } }): string {
@@ -160,6 +160,10 @@
 					{#each targets as target (target.kind + target.id)}
 						<li>
 							<span class="target-name">{target.name} <span class="kind">({target.kind})</span></span>
+							<span class="hull-readout">
+								<span class="hull-bar"><span class="hull-bar-fill" style={`width: ${target.hullIntegrity}%`}></span></span>
+								<span data-testid={`target-hull-${target.name}`}>{target.hullIntegrity}%</span>
+							</span>
 							<button data-testid={`fire-phasers-${target.name}`} onclick={() => handleFirePhasers(target.name)}>Fire Phasers</button>
 							<button data-testid={`fire-torpedo-${target.name}`} onclick={() => handleFireTorpedo(target.name)}>Fire Torpedo</button>
 						</li>
@@ -235,6 +239,28 @@
 
 	.target-name {
 		flex: 1;
+	}
+
+	.hull-readout {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.hull-bar {
+		display: inline-block;
+		width: 4rem;
+		height: 0.5rem;
+		background: var(--panel-border);
+		border-radius: var(--radius-sm);
+		overflow: hidden;
+	}
+
+	.hull-bar-fill {
+		display: block;
+		height: 100%;
+		background: var(--chrome-helm);
 	}
 
 	.kind {

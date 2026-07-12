@@ -12,6 +12,7 @@
 	import { parseNavigationCommand, NAVIGATION_COMMANDS } from './navigation-command-parser.js';
 	import { toPlotEntities } from './plot-entities.js';
 	import { createAstrogatorOverlayState } from './astrogator-overlay-state.svelte.js';
+	import { createWeaponFireOverlayState } from './weapon-fire-overlay-state.svelte.js';
 
 	/** How far ahead (and at what resolution) to project the ship's future track on the Astrogator. */
 	const PROJECTED_PATH_SECONDS = 20;
@@ -22,9 +23,9 @@
 	/** 0-20 warp, per the book's navigation data spec. */
 	const MAX_WARP_SPEED = 20;
 
-	// Torpedoes have no hard range cutoff in this engine (they home in regardless of distance),
-	// so only sensors and phasers get a ring — phasers use their damage half-life as the
-	// "effective range" since damage merely decays with distance rather than cutting off sharply.
+	// Torpedoes have no fixed range ring (their reach depends on fuel and target speed, not a
+	// simple radius), so only sensors and phasers get one — phasers use their damage half-life as
+	// the "effective range" since damage merely decays with distance rather than cutting off sharply.
 	const RANGE_CIRCLES = [
 		{ label: 'Full Sensors', radius: FULL_SCAN_RANGE },
 		{ label: 'Sensors', radius: PARTIAL_SCAN_RANGE },
@@ -79,7 +80,12 @@
 			.sort((a, b) => a.distance - b.distance)
 	);
 
-	const KIND_LABELS = { celestialObject: 'celestial object', enemyCraft: 'enemy craft', federationCraft: 'federation craft' };
+	const KIND_LABELS = {
+		celestialObject: 'celestial object',
+		enemyCraft: 'enemy craft',
+		federationCraft: 'federation craft',
+		torpedo: 'torpedo'
+	};
 
 	let shieldOverlay = $derived({
 		headingDeg: navigation.velocity.xyAngleDeg,
@@ -99,6 +105,8 @@
 		projectedPathStepSeconds: PROJECTED_PATH_STEP_SECONDS
 	});
 	let shipProjectedPath = $derived(astrogatorOverlay.projectedPath(navigation));
+	// svelte-ignore state_referenced_locally
+	const weaponFireOverlay = createWeaponFireOverlayState(store);
 
 	async function handleSubmit(text: string) {
 		const parsed = parseNavigationCommand(text);
@@ -220,6 +228,8 @@
 					scanFlash={astrogatorOverlay.scanFlash}
 					shipHeadingDeg={navigation.velocity.xyAngleDeg}
 					projectedPath={shipProjectedPath}
+					fireFlash={weaponFireOverlay.fireFlash}
+					explosionFlash={weaponFireOverlay.explosionFlash}
 				/>
 			</Panel>
 

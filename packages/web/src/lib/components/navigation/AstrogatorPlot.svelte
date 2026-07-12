@@ -8,6 +8,7 @@
 	import ShieldSectorsOverlay from './ShieldSectorsOverlay.svelte';
 	import RangeCirclesOverlay from './RangeCirclesOverlay.svelte';
 	import EntityMarks from './EntityMarks.svelte';
+	import WeaponFireOverlay from './WeaponFireOverlay.svelte';
 
 	interface RangeCircle {
 		label: string;
@@ -38,6 +39,15 @@
 		durationMs?: number;
 	}
 
+	interface FireFlash {
+		/** World-space point the shot was fired from, e.g. the Enterprise's position at the moment of firing. */
+		from: Vector3;
+		/** World-space point the shot was aimed at. */
+		to: Vector3;
+		/** Changing this (e.g. an event sequence number) restarts the fade-out animation. */
+		key: number | string;
+	}
+
 	interface Props {
 		center: Vector3;
 		entities: PlotEntity[];
@@ -57,6 +67,10 @@
 		shipHeadingDeg?: number;
 		/** World-space points tracing the ship's predicted future track, e.g. from projected-path.ts — drawn as a dashed line when moving. */
 		projectedPath?: Vector3[];
+		/** A momentary beam line from the firing point to the target, fading out shortly after a phaser or torpedo is fired. */
+		fireFlash?: FireFlash | null;
+		/** A momentary ring at a torpedo's detonation point (hit or fuel-out), fading out over a couple of seconds. */
+		explosionFlash?: ScanFlash | null;
 	}
 
 	let {
@@ -69,7 +83,9 @@
 		shieldOverlay,
 		scanFlash,
 		shipHeadingDeg,
-		projectedPath
+		projectedPath,
+		fireFlash,
+		explosionFlash
 	}: Props = $props();
 
 	/** Fixed visual size in viewBox units for the directional ship icon. */
@@ -137,6 +153,25 @@
 			key: scanFlash.key,
 			initialOpacity: scanFlash.initialOpacity ?? 0.6,
 			durationMs: scanFlash.durationMs ?? 2000
+		};
+	});
+
+	let fireFlashPlot = $derived.by(() => {
+		if (!fireFlash) return null;
+		const from = worldToPlotPoint(fireFlash.from, center, zoomRange, VIEW_SIZE, PLOT_RADIUS_PCT);
+		const to = worldToPlotPoint(fireFlash.to, center, zoomRange, VIEW_SIZE, PLOT_RADIUS_PCT);
+		return { fromX: from.x, fromY: from.y, toX: to.x, toY: to.y, key: fireFlash.key };
+	});
+
+	let explosionFlashPlot = $derived.by(() => {
+		if (!explosionFlash) return null;
+		const point = worldToPlotPoint(explosionFlash.center, center, zoomRange, VIEW_SIZE, PLOT_RADIUS_PCT);
+		return {
+			...point,
+			radius: (explosionFlash.radius / zoomRange) * PLOT_RADIUS_PCT,
+			key: explosionFlash.key,
+			initialOpacity: explosionFlash.initialOpacity ?? 0.6,
+			durationMs: explosionFlash.durationMs ?? 2000
 		};
 	});
 
@@ -234,6 +269,22 @@
 					/>
 				{/key}
 			{/if}
+
+			<WeaponFireOverlay fireFlash={fireFlashPlot} />
+
+			{#if explosionFlashPlot}
+				{#key explosionFlashPlot.key}
+					<circle
+						data-testid="torpedo-explosion-flash"
+						cx={explosionFlashPlot.x}
+						cy={explosionFlashPlot.y}
+						r={explosionFlashPlot.radius}
+						fill="var(--chrome-helm)"
+						class="scan-flash"
+						style={`--flash-start: ${explosionFlashPlot.initialOpacity}; --flash-duration: ${explosionFlashPlot.durationMs}ms`}
+					/>
+				{/key}
+			{/if}
 		</svg>
 
 		<label class="zoom-control">
@@ -248,6 +299,7 @@
 		<li>△ ENEMY CRAFT</li>
 		<li>▢ FEDERATION CRAFT</li>
 		<li>○ CELESTIAL OBJECT</li>
+		<li>● TORPEDO</li>
 		<li class="universe-grid-key">▦ UNIVERSE GRID</li>
 		{#each rangeCircles as circle (circle.label)}
 			<li>⊚ {circle.label.toUpperCase()} RANGE</li>

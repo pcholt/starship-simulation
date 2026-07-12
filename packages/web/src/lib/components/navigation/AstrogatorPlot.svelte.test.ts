@@ -275,6 +275,49 @@ describe('AstrogatorPlot', () => {
 		expect(el.style.getPropertyValue('--flash-duration')).toBe('500ms');
 	});
 
+	it('shows a fading beam line from the firing point to the target when fireFlash is set', async () => {
+		render(AstrogatorPlot, {
+			center: { x: 0, y: 0, z: 0 },
+			entities: [],
+			range: 1000,
+			fireFlash: { from: { x: 0, y: 0, z: 0 }, to: { x: 300, y: 0, z: 0 }, key: 1 }
+		});
+
+		await expect.element(page.getByTestId('weapon-fire-line')).toBeInTheDocument();
+	});
+
+	it('restarts the fire-flash animation when a new key arrives', async () => {
+		const { rerender } = render(AstrogatorPlot, {
+			center: { x: 0, y: 0, z: 0 },
+			entities: [],
+			range: 1000,
+			fireFlash: { from: { x: 0, y: 0, z: 0 }, to: { x: 300, y: 0, z: 0 }, key: 1 }
+		});
+
+		const firstEl = page.getByTestId('weapon-fire-line').element();
+
+		await rerender({
+			center: { x: 0, y: 0, z: 0 },
+			entities: [],
+			range: 1000,
+			fireFlash: { from: { x: 0, y: 0, z: 0 }, to: { x: 300, y: 0, z: 0 }, key: 2 }
+		});
+
+		const secondEl = page.getByTestId('weapon-fire-line').element();
+		expect(secondEl).not.toBe(firstEl);
+	});
+
+	it('shows a fading explosion flash at the given world point when explosionFlash is set', async () => {
+		render(AstrogatorPlot, {
+			center: { x: 0, y: 0, z: 0 },
+			entities: [],
+			range: 1000,
+			explosionFlash: { center: { x: 300, y: 0, z: 0 }, radius: 3, key: 1 }
+		});
+
+		await expect.element(page.getByTestId('torpedo-explosion-flash')).toBeInTheDocument();
+	});
+
 	it('calls onSelectPoint with a world-space position when the plot is clicked', async () => {
 		const onSelectPoint = vi.fn();
 		render(AstrogatorPlot, { center: { x: 0, y: 0, z: 0 }, entities: [], range: 1000, onSelectPoint });

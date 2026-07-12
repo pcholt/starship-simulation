@@ -6,9 +6,15 @@ import { advancePosition, advanceHeading, bearingTo } from './domain/navigation.
 import type { Location } from './domain/location.js';
 import { scanCelestialObject, scanCraft, distanceBetween, scanQualityForDistance, type ScanResult } from './domain/sciences.js';
 import { allocateEnergy } from './domain/engineering.js';
-import { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage } from './domain/combat.js';
+import {
+	bankLocationForRelativePosition,
+	computePhaserDamage,
+	computeTorpedoDamage,
+	TORPEDO_SPLASH_RADIUS
+} from './domain/combat.js';
 import { admitPatient, recoverPatient } from './domain/medical.js';
 import { enqueueMessage, displayNextMessage } from './domain/communications.js';
+import { launchTorpedo, advanceTorpedo, type Torpedo } from './domain/torpedo.js';
 import type { Craft } from './domain/craft.js';
 import type { Vector3 } from './domain/vector.js';
 import type { EngineEvent, Unsubscribe } from './events.js';
@@ -37,6 +43,9 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 	// state, keeping `getState()` snapshots honestly readonly at runtime, not just by type.
 	let state: WorldState = produce(deps.initialState ?? createInitialWorldState(), () => {});
 	let nextCraftId = 1;
+	let nextTorpedoId = 1;
+	let weaponFireSequence = 0;
+	let torpedoExplosionSequence = 0;
 	const rng = deps.rng ?? Math.random;
 	const listeners = new Set<(event: EngineEvent) => void>();
 
@@ -117,6 +126,32 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 		emit({ type: 'StateChanged', paths: [fleet] });
 	}
 
+	/** Splash-damages every craft (in either fleet) within `TORPEDO_SPLASH_RADIUS` of `position`, excluding `excludeCraftId`. */
+	function applySplashDamage(position: Vector3, damage: number, excludeCraftId: number): void {
+		for (const fleet of ['enemyCraft', 'federationCraft'] as const) {
+			for (const craft of state[fleet]) {
+				if (craft.id === excludeCraftId) continue;
+				if (distanceBetween(craft.position, position) <= TORPEDO_SPLASH_RADIUS) {
+					applyDamage(fleet, craft.id, damage);
+				}
+			}
+		}
+	}
+
+	function recordWeaponFire(weapon: 'phaser' | 'torpedo', from: Vector3, to: Vector3): void {
+		state = produce(state, (draft) => {
+			draft.lastWeaponFireEvent = { weapon, from, to, sequence: ++weaponFireSequence, atMs: draft.simulatedTimeMs };
+		});
+		emit({ type: 'StateChanged', paths: ['lastWeaponFireEvent'] });
+	}
+
+	function recordTorpedoExplosion(position: Vector3): void {
+		state = produce(state, (draft) => {
+			draft.lastTorpedoExplosionEvent = { position, sequence: ++torpedoExplosionSequence, atMs: draft.simulatedTimeMs };
+		});
+		emit({ type: 'StateChanged', paths: ['lastTorpedoExplosionEvent'] });
+	}
+
 	function applyCommand(command: Command): CommandResult {
 		switch (command.type) {
 			case 'Initialize':
@@ -133,7 +168,14 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 			case 'CreateEnemyCraft': {
 				const id = nextCraftId++;
 				state = produce(state, (draft) => {
-					draft.enemyCraft.push({ id, name: command.name, mission: command.mission, position: command.position, hullIntegrity: 100 });
+					draft.enemyCraft.push({
+						id,
+						name: command.name,
+						mission: command.mission,
+						position: command.position,
+						hullIntegrity: 100,
+						speed: command.speed ?? 0
+					});
 				});
 				emit({ type: 'StateChanged', paths: ['enemyCraft'] });
 				return { ok: true };
@@ -141,7 +183,14 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 			case 'CreateFederationCraft': {
 				const id = nextCraftId++;
 				state = produce(state, (draft) => {
-					draft.federationCraft.push({ id, name: command.name, mission: command.mission, position: command.position, hullIntegrity: 100 });
+					draft.federationCraft.push({
+						id,
+						name: command.name,
+						mission: command.mission,
+						position: command.position,
+						hullIntegrity: 100,
+						speed: command.speed ?? 0
+					});
 				});
 				emit({ type: 'StateChanged', paths: ['federationCraft'] });
 				return { ok: true };
@@ -266,6 +315,7 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				// The target's own shields aren't modeled yet (only the Enterprise's device catalogue is) — treat non-Enterprise craft as unshielded.
 				const damage = computePhaserDamage(distance, 0);
 				applyDamage(fleet, craft.id, damage);
+				recordWeaponFire('phaser', state.enterpriseNavigation.position, craft.position);
 				return { ok: true };
 			}
 			case 'FireTorpedo': {
@@ -278,8 +328,18 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 					([id, device]) => id.startsWith('torpedoTube-') && device.functionalStatus > 0
 				);
 				if (!hasFunctionalTube) return { ok: false, reason: 'No functional torpedo tubes' };
-				const damage = computeTorpedoDamage(0);
-				applyDamage(fleet, craft.id, damage);
+				const torpedo = launchTorpedo(
+					state.enterpriseNavigation.velocity,
+					state.enterpriseNavigation.position,
+					{ fleet, id: craft.id },
+					state.simulatedTimeMs,
+					nextTorpedoId++
+				);
+				state = produce(state, (draft) => {
+					draft.torpedoes.push(torpedo);
+				});
+				emit({ type: 'StateChanged', paths: ['torpedoes'] });
+				recordWeaponFire('torpedo', state.enterpriseNavigation.position, craft.position);
 				return { ok: true };
 			}
 			case 'SetShieldLevel': {
@@ -404,6 +464,7 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 			return () => listeners.delete(listener);
 		},
 		tick(deltaMs) {
+			const explosions: { position: Vector3; hitTarget: boolean; targetFleet: 'enemyCraft' | 'federationCraft'; targetId: number }[] = [];
 			state = produce(state, (draft) => {
 				draft.simulatedTimeMs += deltaMs;
 				if (draft.modules.navigation === 'running') {
@@ -421,7 +482,37 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				if (draft.scenario?.runState === 'running') {
 					draft.scenario.elapsedMs += deltaMs;
 				}
+				const survivors: Torpedo[] = [];
+				for (const torpedo of draft.torpedoes) {
+					const target = draft[torpedo.targetFleet].find((c) => c.id === torpedo.targetId);
+					if (!target) {
+						// The target was destroyed by something else mid-flight — nothing left to home in on.
+						// Copy the position rather than reference the draft directly — it's revoked once this produce() call returns.
+						explosions.push({
+							position: { x: torpedo.position.x, y: torpedo.position.y, z: torpedo.position.z },
+							hitTarget: false,
+							targetFleet: torpedo.targetFleet,
+							targetId: torpedo.targetId
+						});
+						continue;
+					}
+					const result = advanceTorpedo(torpedo, target.position, target.speed, deltaMs, draft.simulatedTimeMs, rng);
+					if (result.torpedo) {
+						survivors.push(result.torpedo);
+					} else if (result.explosion) {
+						explosions.push({ ...result.explosion, targetFleet: torpedo.targetFleet, targetId: torpedo.targetId });
+					}
+				}
+				draft.torpedoes = survivors;
 			});
+			for (const explosion of explosions) {
+				const splashDamage = computeTorpedoDamage(0) / 2;
+				if (explosion.hitTarget) {
+					applyDamage(explosion.targetFleet, explosion.targetId, computeTorpedoDamage(0));
+				}
+				applySplashDamage(explosion.position, splashDamage, explosion.targetId);
+				recordTorpedoExplosion(explosion.position);
+			}
 			if (!state.scenario) return;
 			const steps = dueSteps(state.scenario);
 			if (steps.length === 0) return;

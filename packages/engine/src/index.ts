@@ -5,7 +5,7 @@ export type { EngineEvent, Unsubscribe } from './events.js';
 export type { ScenarioScript, ScenarioStep, ScenarioRuntimeState, ScenarioRunState } from './scenario/scenario.js';
 export type { ClientMessage, ServerMessage } from './protocol.js';
 
-export type { WorldState } from './domain/world-state.js';
+export type { WorldState, ScanAreaEvent, WeaponFireEvent, TorpedoExplosionEvent } from './domain/world-state.js';
 export { createInitialWorldState } from './domain/world-state.js';
 export type { ModuleName, ModuleRunState } from './domain/module.js';
 export { ALL_MODULE_NAMES } from './domain/module.js';
@@ -17,6 +17,8 @@ export { createDeviceStatus, damageDevice, repairDevice } from './domain/device.
 export type { Vector3 } from './domain/vector.js';
 export type { CelestialObject } from './domain/celestial-object.js';
 export type { Craft } from './domain/craft.js';
+export type { Torpedo } from './domain/torpedo.js';
+export { launchTorpedo, advanceTorpedo } from './domain/torpedo.js';
 export type { NavigationState, Velocity, IntendedDirection } from './domain/navigation.js';
 export {
 	createNavigationState,
@@ -43,7 +45,9 @@ export {
 	bankLocationForRelativePosition,
 	computePhaserDamage,
 	computeTorpedoDamage,
-	PHASER_RANGE_HALF_LIFE
+	PHASER_RANGE_HALF_LIFE,
+	TORPEDO_HIT_RADIUS,
+	TORPEDO_SPLASH_RADIUS
 } from './domain/combat.js';
 export type { WeaponTarget } from './commands.js';
 export type { Patient, MedicalState, AdmitResult, RecoveryOptions } from './domain/medical.js';

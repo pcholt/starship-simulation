@@ -234,6 +234,43 @@ describe('NavigationStation', () => {
 		await expect.element(page.getByTestId('scan-flash-circle')).not.toBeInTheDocument();
 	});
 
+	it('flashes a beam line on the Astrogator plot when phasers are fired at a target, then removes it', async () => {
+		const store = setup();
+		store.dispatch({
+			module: 'controller',
+			type: 'CreateEnemyCraft',
+			name: 'Klingon Bird of Prey',
+			mission: 'unconditionalAttack',
+			position: { x: 50, y: 0, z: 0 }
+		});
+		render(NavigationStation, { store });
+
+		store.dispatch({ module: 'helm', type: 'FirePhasers', target: { kind: 'object', name: 'Klingon Bird of Prey' } });
+
+		await expect.element(page.getByTestId('weapon-fire-line')).toBeInTheDocument();
+		await new Promise((resolve) => setTimeout(resolve, 700));
+		await expect.element(page.getByTestId('weapon-fire-line')).not.toBeInTheDocument();
+	}, 10_000);
+
+	it('flashes an explosion marker where a torpedo detonates', async () => {
+		const store = setup();
+		store.dispatch({
+			module: 'controller',
+			type: 'CreateEnemyCraft',
+			name: 'Klingon Bird of Prey',
+			mission: 'unconditionalAttack',
+			position: { x: 5, y: 0, z: 0 }
+		});
+		render(NavigationStation, { store });
+
+		store.dispatch({ module: 'helm', type: 'FireTorpedo', target: { kind: 'object', name: 'Klingon Bird of Prey' } });
+		for (let i = 0; i < 50 && store.state.torpedoes.length > 0; i++) {
+			store.tick(200);
+		}
+
+		await expect.element(page.getByTestId('torpedo-explosion-flash')).toBeInTheDocument();
+	});
+
 	it('sets speed via the speed slider (point-and-click, no typed command)', async () => {
 		const store = setup();
 		render(NavigationStation, { store });

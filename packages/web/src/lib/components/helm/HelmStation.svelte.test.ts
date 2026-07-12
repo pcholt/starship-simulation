@@ -99,6 +99,24 @@ describe('HelmStation', () => {
 		await expect.element(page.getByTestId('weapons-log')).toHaveTextContent('Klingon Bird of Prey');
 	});
 
+	it('shows a target hull-integrity readout that drops after a hit', async () => {
+		const store = setup();
+		store.dispatch({
+			module: 'controller',
+			type: 'CreateEnemyCraft',
+			name: 'Klingon Bird of Prey',
+			mission: 'unconditionalAttack',
+			position: { x: 50, y: 0, z: 0 }
+		});
+		render(HelmStation, { store });
+
+		await expect.element(page.getByTestId('target-hull-Klingon Bird of Prey')).toHaveTextContent('100');
+
+		await page.getByTestId('fire-phasers-Klingon Bird of Prey').click();
+
+		await expect.element(page.getByTestId('target-hull-Klingon Bird of Prey')).not.toHaveTextContent('100');
+	});
+
 	it('fires a torpedo at a listed target by clicking its Fire Torpedo button (point-and-click, no typed command)', async () => {
 		const store = setup();
 		store.dispatch({

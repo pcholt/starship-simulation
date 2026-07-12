@@ -10,6 +10,7 @@
 	// scan-area preview ring here rather than a course.
 	import AstrogatorPlot from '../navigation/AstrogatorPlot.svelte';
 	import { toPlotEntities } from '../navigation/plot-entities.js';
+	import { createWeaponFireOverlayState } from '../navigation/weapon-fire-overlay-state.svelte.js';
 	import { parseSciencesCommand, SCIENCES_COMMANDS } from './sciences-command-parser.js';
 
 	interface Props {
@@ -30,6 +31,8 @@
 	]);
 
 	let plotEntities = $derived(toPlotEntities(store.state));
+	// svelte-ignore state_referenced_locally
+	const weaponFireOverlay = createWeaponFireOverlayState(store);
 
 	// Offsets from the ship's current position, not absolute world coordinates — the science
 	// officer aims relative to where the Enterprise is now, matching how the Astrogator plot
@@ -151,6 +154,8 @@
 					entities={plotEntities}
 					range={PARTIAL_SCAN_RANGE}
 					previewCircle={scanAreaPreview}
+					fireFlash={weaponFireOverlay.fireFlash}
+					explosionFlash={weaponFireOverlay.explosionFlash}
 				/>
 				<div class="scan-area-controls">
 					<Slider

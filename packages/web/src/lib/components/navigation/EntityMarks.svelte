@@ -25,6 +25,8 @@
 				stroke="currentColor"
 				stroke-width="0.3"
 			/>
+		{:else if entity.kind === 'torpedo'}
+			<circle cx={entity.plotX} cy={entity.plotY} r="0.4" fill="currentColor" />
 		{:else}
 			<rect
 				x={entity.plotX - 0.9}

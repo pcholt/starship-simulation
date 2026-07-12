@@ -16,8 +16,8 @@ export type Command =
 	| { module: 'controller'; type: 'Initialize'; target: ModuleTarget }
 	| { module: 'controller'; type: 'Execute'; target: ModuleTarget }
 	| { module: 'controller'; type: 'Halt'; target: ModuleTarget }
-	| { module: 'controller'; type: 'CreateEnemyCraft'; name: string; mission: string; position: Vector3 }
-	| { module: 'controller'; type: 'CreateFederationCraft'; name: string; mission: string; position: Vector3 }
+	| { module: 'controller'; type: 'CreateEnemyCraft'; name: string; mission: string; position: Vector3; speed?: number }
+	| { module: 'controller'; type: 'CreateFederationCraft'; name: string; mission: string; position: Vector3; speed?: number }
 	| {
 			module: 'controller';
 			type: 'CreateCelestialObject';

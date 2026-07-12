@@ -30,8 +30,14 @@ export function computePhaserDamage(distance: number, targetShieldFunctional: nu
 
 const TORPEDO_BASE_DAMAGE = 30;
 
-/** Torpedoes home in and hit regardless of distance; only the target's shields mitigate damage. */
+/** Torpedo damage doesn't fall off with distance (unlike phasers) — flight/hit resolution happens separately, in torpedo.ts, before this is called. Only the target's shields mitigate damage. */
 export function computeTorpedoDamage(targetShieldFunctional: number): number {
 	const shieldFactor = 1 - targetShieldFunctional / 100;
 	return Math.max(0, TORPEDO_BASE_DAMAGE * shieldFactor);
 }
+
+/** Proximity-fuze radius (universe units) — a torpedo attempts to resolve a hit once within this distance of its target. */
+export const TORPEDO_HIT_RADIUS = 2;
+
+/** Radius (universe units) around a torpedo explosion within which other craft take splash damage. */
+export const TORPEDO_SPLASH_RADIUS = 3;

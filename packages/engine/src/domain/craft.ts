@@ -8,4 +8,6 @@ export interface Craft {
 	position: Vector3;
 	/** 0-100; a combat target's remaining structural integrity. 0 = destroyed. */
 	hullIntegrity: number;
+	/** Warp speed. Defaults to 0 (stationary) — feeds the torpedo miss-chance check; this craft does not actually move. */
+	speed: number;
 }
