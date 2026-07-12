@@ -162,7 +162,7 @@
 							<span class="target-name">{target.name} <span class="kind">({target.kind})</span></span>
 							<span class="hull-readout">
 								<span class="hull-bar"><span class="hull-bar-fill" style={`width: ${target.hullIntegrity}%`}></span></span>
-								<span data-testid={`target-hull-${target.name}`}>{target.hullIntegrity}%</span>
+								<span data-testid={`target-hull-${target.id}`}>{target.hullIntegrity}%</span>
 							</span>
 							<button data-testid={`fire-phasers-${target.name}`} onclick={() => handleFirePhasers(target.name)}>Fire Phasers</button>
 							<button data-testid={`fire-torpedo-${target.name}`} onclick={() => handleFireTorpedo(target.name)}>Fire Torpedo</button>

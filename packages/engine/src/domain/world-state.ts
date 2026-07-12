@@ -39,6 +39,21 @@ export interface TorpedoExplosionEvent {
 	atMs: number;
 }
 
+/** How many recent weapon-fire/torpedo-explosion events `WorldState` keeps — a torpedo tick can resolve several explosions at once, so a single "last event" slot would silently drop all but the final one; a short bounded history lets the UI notice every one by watching for sequences it hasn't rendered yet. */
+export const MAX_TRACKED_WEAPON_EVENTS = 20;
+
+/**
+ * Appends a new event to a bounded, sequence-numbered event list — shared by every "recent events"
+ * field (`weaponFireEvents`, `torpedoExplosionEvents`, ...) so they can't drift apart on
+ * sequencing/capping. The sequence number is derived from the list's own last entry rather than
+ * kept as separate state, so it survives being reset from a snapshot (e.g. a saved/resumed game).
+ */
+export function appendBoundedEvent<T extends { sequence: number }>(events: T[], event: Omit<T, 'sequence'>): T[] {
+	const sequence = (events.at(-1)?.sequence ?? 0) + 1;
+	const next = [...events, { ...event, sequence } as T];
+	return next.length > MAX_TRACKED_WEAPON_EVENTS ? next.slice(next.length - MAX_TRACKED_WEAPON_EVENTS) : next;
+}
+
 /** The "common data area" from the book: the single shared state tree every module reads and writes. */
 export interface WorldState {
 	simulatedTimeMs: number;
@@ -47,8 +62,10 @@ export interface WorldState {
 	lifeSupport: LifeSupportState;
 	lastScanResult: ScanResult | null;
 	lastScanAreaEvent: ScanAreaEvent | null;
-	lastWeaponFireEvent: WeaponFireEvent | null;
-	lastTorpedoExplosionEvent: TorpedoExplosionEvent | null;
+	/** Most recent weapon-fire events, oldest first, capped at `MAX_TRACKED_WEAPON_EVENTS`. */
+	weaponFireEvents: WeaponFireEvent[];
+	/** Most recent torpedo-explosion events, oldest first, capped at `MAX_TRACKED_WEAPON_EVENTS`. */
+	torpedoExplosionEvents: TorpedoExplosionEvent[];
 	engineering: EngineeringState;
 	medical: MedicalState;
 	communications: CommunicationsState;
@@ -73,8 +90,8 @@ export function createInitialWorldState(): WorldState {
 		lifeSupport: createLifeSupportState(),
 		lastScanResult: null,
 		lastScanAreaEvent: null,
-		lastWeaponFireEvent: null,
-		lastTorpedoExplosionEvent: null,
+		weaponFireEvents: [],
+		torpedoExplosionEvents: [],
 		engineering: createEngineeringState(),
 		medical: createMedicalState(),
 		communications: createCommunicationsState(),

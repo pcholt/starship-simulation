@@ -187,6 +187,23 @@ a {
 	outline-offset: 2px;
 }
 
+/* Shared fade-out for momentary Astrogator markers (scan flash, weapon fire, torpedo explosion) —
+   global, not component-scoped, so every plot overlay animates identically instead of each
+   defining its own near-duplicate keyframes. Callers set --flash-start/--flash-duration. */
+.fade-flash {
+	opacity: var(--flash-start, 0.6);
+	animation: fade-flash-out var(--flash-duration, 2000ms) linear forwards;
+}
+
+@keyframes fade-flash-out {
+	from {
+		opacity: var(--flash-start, 0.6);
+	}
+	to {
+		opacity: 0;
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	* {
 		animation-duration: 0.01ms !important;

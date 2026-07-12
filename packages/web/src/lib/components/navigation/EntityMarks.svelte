@@ -14,7 +14,9 @@
 </script>
 
 {#each entities as entity (entity.kind + entity.id)}
-	<g data-testid={`plot-mark-${entity.kind}-${entity.name}`}>
+	<!-- Torpedoes all share the display name "Torpedo", so id (not name) is what makes this
+	     testid unique when more than one is in flight at once. -->
+	<g data-testid={`plot-mark-${entity.kind}-${entity.kind === 'torpedo' ? entity.id : entity.name}`}>
 		<title>{entity.name}</title>
 		{#if entity.kind === 'celestialObject'}
 			<circle cx={entity.plotX} cy={entity.plotY} r="0.9" fill="none" stroke="currentColor" stroke-width="0.3" />

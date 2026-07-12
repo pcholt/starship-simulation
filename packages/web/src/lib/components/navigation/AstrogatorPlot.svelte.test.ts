@@ -34,6 +34,20 @@ describe('AstrogatorPlot', () => {
 		await expect.element(page.getByTestId('plot-mark-federationCraft-USS Excelsior')).toBeInTheDocument();
 	});
 
+	it('gives two simultaneously in-flight torpedoes distinct marks, even though they share the same display name', async () => {
+		render(AstrogatorPlot, {
+			center: { x: 0, y: 0, z: 0 },
+			entities: [
+				{ id: 9, name: 'Torpedo', kind: 'torpedo', position: { x: 10, y: 0, z: 0 } },
+				{ id: 10, name: 'Torpedo', kind: 'torpedo', position: { x: -10, y: 0, z: 0 } }
+			],
+			range: 1000
+		});
+
+		await expect.element(page.getByTestId('plot-mark-torpedo-9')).toBeInTheDocument();
+		await expect.element(page.getByTestId('plot-mark-torpedo-10')).toBeInTheDocument();
+	});
+
 	it('excludes entities beyond the plot range', async () => {
 		render(AstrogatorPlot, {
 			center: { x: 0, y: 0, z: 0 },
@@ -275,44 +289,38 @@ describe('AstrogatorPlot', () => {
 		expect(el.style.getPropertyValue('--flash-duration')).toBe('500ms');
 	});
 
-	it('shows a fading beam line from the firing point to the target when fireFlash is set', async () => {
+	it('shows a fading beam line from the firing point to the target when fireFlashes is set', async () => {
 		render(AstrogatorPlot, {
 			center: { x: 0, y: 0, z: 0 },
 			entities: [],
 			range: 1000,
-			fireFlash: { from: { x: 0, y: 0, z: 0 }, to: { x: 300, y: 0, z: 0 }, key: 1 }
+			fireFlashes: [{ from: { x: 0, y: 0, z: 0 }, to: { x: 300, y: 0, z: 0 }, key: 1 }]
 		});
 
 		await expect.element(page.getByTestId('weapon-fire-line')).toBeInTheDocument();
 	});
 
-	it('restarts the fire-flash animation when a new key arrives', async () => {
-		const { rerender } = render(AstrogatorPlot, {
-			center: { x: 0, y: 0, z: 0 },
-			entities: [],
-			range: 1000,
-			fireFlash: { from: { x: 0, y: 0, z: 0 }, to: { x: 300, y: 0, z: 0 }, key: 1 }
-		});
-
-		const firstEl = page.getByTestId('weapon-fire-line').element();
-
-		await rerender({
-			center: { x: 0, y: 0, z: 0 },
-			entities: [],
-			range: 1000,
-			fireFlash: { from: { x: 0, y: 0, z: 0 }, to: { x: 300, y: 0, z: 0 }, key: 2 }
-		});
-
-		const secondEl = page.getByTestId('weapon-fire-line').element();
-		expect(secondEl).not.toBe(firstEl);
-	});
-
-	it('shows a fading explosion flash at the given world point when explosionFlash is set', async () => {
+	it('shows a separate beam line for each simultaneous fire event', async () => {
 		render(AstrogatorPlot, {
 			center: { x: 0, y: 0, z: 0 },
 			entities: [],
 			range: 1000,
-			explosionFlash: { center: { x: 300, y: 0, z: 0 }, radius: 3, key: 1 }
+			fireFlashes: [
+				{ from: { x: 0, y: 0, z: 0 }, to: { x: 300, y: 0, z: 0 }, key: 1 },
+				{ from: { x: 0, y: 0, z: 0 }, to: { x: -300, y: 0, z: 0 }, key: 2 }
+			]
+		});
+
+		const lines = await page.getByTestId('weapon-fire-line').all();
+		expect(lines).toHaveLength(2);
+	});
+
+	it('shows a fading explosion flash at the given world point when explosionFlashes is set', async () => {
+		render(AstrogatorPlot, {
+			center: { x: 0, y: 0, z: 0 },
+			entities: [],
+			range: 1000,
+			explosionFlashes: [{ center: { x: 300, y: 0, z: 0 }, radius: 3, key: 1 }]
 		});
 
 		await expect.element(page.getByTestId('torpedo-explosion-flash')).toBeInTheDocument();

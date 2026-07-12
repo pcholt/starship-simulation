@@ -44,8 +44,12 @@
 		from: Vector3;
 		/** World-space point the shot was aimed at. */
 		to: Vector3;
-		/** Changing this (e.g. an event sequence number) restarts the fade-out animation. */
+		/** Distinguishes simultaneous fire events (e.g. an event sequence number) — each gets its own fade-out animation. */
 		key: number | string;
+		/** Starting opacity (0-1). Defaults to 1. */
+		initialOpacity?: number;
+		/** How long the fade takes, in milliseconds. Defaults to 500. */
+		durationMs?: number;
 	}
 
 	interface Props {
@@ -67,10 +71,10 @@
 		shipHeadingDeg?: number;
 		/** World-space points tracing the ship's predicted future track, e.g. from projected-path.ts — drawn as a dashed line when moving. */
 		projectedPath?: Vector3[];
-		/** A momentary beam line from the firing point to the target, fading out shortly after a phaser or torpedo is fired. */
-		fireFlash?: FireFlash | null;
-		/** A momentary ring at a torpedo's detonation point (hit or fuel-out), fading out over a couple of seconds. */
-		explosionFlash?: ScanFlash | null;
+		/** Momentary beam lines from the firing point to the target, one per shot still fading — several can be fired close together. */
+		fireFlashes?: FireFlash[];
+		/** Momentary rings at torpedo detonation points (hit or fuel-out), one per explosion still fading — several torpedoes can resolve in the same tick. */
+		explosionFlashes?: ScanFlash[];
 	}
 
 	let {
@@ -84,8 +88,8 @@
 		scanFlash,
 		shipHeadingDeg,
 		projectedPath,
-		fireFlash,
-		explosionFlash
+		fireFlashes = [],
+		explosionFlashes = []
 	}: Props = $props();
 
 	/** Fixed visual size in viewBox units for the directional ship icon. */
@@ -156,24 +160,34 @@
 		};
 	});
 
-	let fireFlashPlot = $derived.by(() => {
-		if (!fireFlash) return null;
-		const from = worldToPlotPoint(fireFlash.from, center, zoomRange, VIEW_SIZE, PLOT_RADIUS_PCT);
-		const to = worldToPlotPoint(fireFlash.to, center, zoomRange, VIEW_SIZE, PLOT_RADIUS_PCT);
-		return { fromX: from.x, fromY: from.y, toX: to.x, toY: to.y, key: fireFlash.key };
-	});
+	let fireFlashesPlot = $derived(
+		fireFlashes.map((flash) => {
+			const from = worldToPlotPoint(flash.from, center, zoomRange, VIEW_SIZE, PLOT_RADIUS_PCT);
+			const to = worldToPlotPoint(flash.to, center, zoomRange, VIEW_SIZE, PLOT_RADIUS_PCT);
+			return {
+				fromX: from.x,
+				fromY: from.y,
+				toX: to.x,
+				toY: to.y,
+				key: flash.key,
+				initialOpacity: flash.initialOpacity ?? 1,
+				durationMs: flash.durationMs ?? 500
+			};
+		})
+	);
 
-	let explosionFlashPlot = $derived.by(() => {
-		if (!explosionFlash) return null;
-		const point = worldToPlotPoint(explosionFlash.center, center, zoomRange, VIEW_SIZE, PLOT_RADIUS_PCT);
-		return {
-			...point,
-			radius: (explosionFlash.radius / zoomRange) * PLOT_RADIUS_PCT,
-			key: explosionFlash.key,
-			initialOpacity: explosionFlash.initialOpacity ?? 0.6,
-			durationMs: explosionFlash.durationMs ?? 2000
-		};
-	});
+	let explosionFlashesPlot = $derived(
+		explosionFlashes.map((flash) => {
+			const point = worldToPlotPoint(flash.center, center, zoomRange, VIEW_SIZE, PLOT_RADIUS_PCT);
+			return {
+				...point,
+				radius: (flash.radius / zoomRange) * PLOT_RADIUS_PCT,
+				key: flash.key,
+				initialOpacity: flash.initialOpacity ?? 0.6,
+				durationMs: flash.durationMs ?? 2000
+			};
+		})
+	);
 
 	// A small dart shape pointing in shipHeadingDeg: an apex forward, two points swept back on
 	// either side — the same pointerFromAngle convention the compass dial and shield sectors use.
@@ -264,27 +278,27 @@
 						cy={scanFlashPlot.y}
 						r={scanFlashPlot.radius}
 						fill="var(--chrome-sciences)"
-						class="scan-flash"
+						class="fade-flash"
 						style={`--flash-start: ${scanFlashPlot.initialOpacity}; --flash-duration: ${scanFlashPlot.durationMs}ms`}
 					/>
 				{/key}
 			{/if}
 
-			<WeaponFireOverlay fireFlash={fireFlashPlot} />
+			{#each fireFlashesPlot as flash (flash.key)}
+				<WeaponFireOverlay fireFlash={flash} />
+			{/each}
 
-			{#if explosionFlashPlot}
-				{#key explosionFlashPlot.key}
-					<circle
-						data-testid="torpedo-explosion-flash"
-						cx={explosionFlashPlot.x}
-						cy={explosionFlashPlot.y}
-						r={explosionFlashPlot.radius}
-						fill="var(--chrome-helm)"
-						class="scan-flash"
-						style={`--flash-start: ${explosionFlashPlot.initialOpacity}; --flash-duration: ${explosionFlashPlot.durationMs}ms`}
-					/>
-				{/key}
-			{/if}
+			{#each explosionFlashesPlot as flash (flash.key)}
+				<circle
+					data-testid="torpedo-explosion-flash"
+					cx={flash.x}
+					cy={flash.y}
+					r={flash.radius}
+					fill="var(--chrome-helm)"
+					class="scan-flash"
+					style={`--flash-start: ${flash.initialOpacity}; --flash-duration: ${flash.durationMs}ms`}
+				/>
+			{/each}
 		</svg>
 
 		<label class="zoom-control">
@@ -363,19 +377,5 @@
 
 	.preview-circle-key {
 		color: var(--chrome-sciences);
-	}
-
-	.scan-flash {
-		opacity: var(--flash-start, 0.6);
-		animation: scan-flash-fade var(--flash-duration, 2000ms) linear forwards;
-	}
-
-	@keyframes scan-flash-fade {
-		from {
-			opacity: var(--flash-start, 0.6);
-		}
-		to {
-			opacity: 0;
-		}
 	}
 </style>

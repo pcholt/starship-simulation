@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage } from '../../src/domain/combat.js';
+import { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage, resolveTorpedoHit } from '../../src/domain/combat.js';
 
 describe('bankLocationForRelativePosition', () => {
 	it('is "fore" when the target is ahead along +x', () => {
@@ -49,5 +49,20 @@ describe('computeTorpedoDamage', () => {
 
 	it('does less damage against a shielded target', () => {
 		expect(computeTorpedoDamage(100)).toBeLessThan(computeTorpedoDamage(0));
+	});
+});
+
+describe('resolveTorpedoHit', () => {
+	it('always hits a target moving at warp 5 or slower, regardless of the coin flip', () => {
+		expect(resolveTorpedoHit(5, () => 0)).toBe(true);
+		expect(resolveTorpedoHit(0, () => 0)).toBe(true);
+	});
+
+	it('misses a target moving faster than warp 5 when the coin flip goes against it', () => {
+		expect(resolveTorpedoHit(6, () => 0)).toBe(false);
+	});
+
+	it('hits a target moving faster than warp 5 when the coin flip favors it', () => {
+		expect(resolveTorpedoHit(6, () => 0.99)).toBe(true);
 	});
 });

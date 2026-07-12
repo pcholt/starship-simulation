@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createEngine } from '../../src/engine.js';
 import type { Engine } from '../../src/engine.js';
+import { TORPEDO_MAX_RANGE } from '../../src/domain/torpedo.js';
 
 function createEngineWithNearbyEnemy() {
 	const engine = createEngine();
@@ -71,6 +72,20 @@ describe('helm commands', () => {
 		expect(engine.getState().torpedoes).toHaveLength(0);
 	});
 
+	it('FireTorpedo fails when the target is within sensor range but beyond the torpedo\'s fuel-limited reach', () => {
+		const engine = createEngine();
+		engine.dispatch({
+			module: 'controller',
+			type: 'CreateEnemyCraft',
+			name: 'Distant Cruiser',
+			mission: 'unconditionalAttack',
+			position: { x: TORPEDO_MAX_RANGE + 50, y: 0, z: 0 } // within the 1000-unit sensor range, but unreachable on a full tank
+		});
+		const result = engine.dispatch({ module: 'helm', type: 'FireTorpedo', target: { kind: 'object', name: 'Distant Cruiser' } });
+		expect(result).toEqual({ ok: false, reason: 'Target out of torpedo range' });
+		expect(engine.getState().torpedoes).toHaveLength(0);
+	});
+
 	it('a launched torpedo damages its target once it homes in and resolves, over successive ticks', () => {
 		const engine = createEngine();
 		engine.dispatch({
@@ -125,6 +140,19 @@ describe('helm commands', () => {
 		const bystander = engine.getState().enemyCraft.find((c) => c.name === 'Bystander')!;
 		expect(target.hullIntegrity).toBe(70); // 100 - 30 direct hit
 		expect(bystander.hullIntegrity).toBe(85); // 100 - 15 splash (half of 30)
+	});
+
+	it('records every torpedo explosion resolved within a single tick, not just the last one', () => {
+		// Regression: lastTorpedoExplosionEvent used to be a single overwritten slot, so the first
+		// of several same-tick explosions was silently lost.
+		const engine = createEngine();
+		engine.dispatch({ module: 'controller', type: 'CreateEnemyCraft', name: 'Alpha', mission: 'none', position: { x: 0.1, y: 0, z: 0 } });
+		engine.dispatch({ module: 'controller', type: 'CreateFederationCraft', name: 'Beta', mission: 'none', position: { x: -0.1, y: 0, z: 0 } });
+		engine.dispatch({ module: 'helm', type: 'FireTorpedo', target: { kind: 'object', name: 'Alpha' } });
+		engine.dispatch({ module: 'helm', type: 'FireTorpedo', target: { kind: 'object', name: 'Beta' } });
+		engine.tick(1); // both torpedoes launched right next to their targets — resolve on the very first tick
+
+		expect(engine.getState().torpedoExplosionEvents).toHaveLength(2);
 	});
 
 	it('SetShieldLevel updates the corresponding shield device operational status', () => {

@@ -228,8 +228,8 @@
 					scanFlash={astrogatorOverlay.scanFlash}
 					shipHeadingDeg={navigation.velocity.xyAngleDeg}
 					projectedPath={shipProjectedPath}
-					fireFlash={weaponFireOverlay.fireFlash}
-					explosionFlash={weaponFireOverlay.explosionFlash}
+					fireFlashes={weaponFireOverlay.fireFlashes}
+					explosionFlashes={weaponFireOverlay.explosionFlashes}
 				/>
 			</Panel>
 

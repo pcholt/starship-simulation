@@ -1,21 +1,16 @@
 import { produce } from 'immer';
 import type { Command, CommandResult, WeaponTarget } from './commands.js';
 import { ALL_MODULE_NAMES } from './domain/module.js';
-import { createInitialWorldState, type WorldState } from './domain/world-state.js';
+import { createInitialWorldState, appendBoundedEvent, type WorldState } from './domain/world-state.js';
 import { advancePosition, advanceHeading, bearingTo } from './domain/navigation.js';
 import type { Location } from './domain/location.js';
 import { scanCelestialObject, scanCraft, distanceBetween, scanQualityForDistance, type ScanResult } from './domain/sciences.js';
 import { allocateEnergy } from './domain/engineering.js';
-import {
-	bankLocationForRelativePosition,
-	computePhaserDamage,
-	computeTorpedoDamage,
-	TORPEDO_SPLASH_RADIUS
-} from './domain/combat.js';
+import { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage } from './domain/combat.js';
 import { admitPatient, recoverPatient } from './domain/medical.js';
 import { enqueueMessage, displayNextMessage } from './domain/communications.js';
-import { launchTorpedo, advanceTorpedo, type Torpedo } from './domain/torpedo.js';
-import type { Craft } from './domain/craft.js';
+import { launchTorpedo, advanceTorpedoes, resolveExplosionDamage, TORPEDO_MAX_RANGE, type DamageAssignment } from './domain/torpedo.js';
+import type { Craft, Fleet } from './domain/craft.js';
 import type { Vector3 } from './domain/vector.js';
 import type { EngineEvent, Unsubscribe } from './events.js';
 import { createScenarioRuntimeState, dueSteps, type ScenarioScript } from './scenario/scenario.js';
@@ -44,8 +39,6 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 	let state: WorldState = produce(deps.initialState ?? createInitialWorldState(), () => {});
 	let nextCraftId = 1;
 	let nextTorpedoId = 1;
-	let weaponFireSequence = 0;
-	let torpedoExplosionSequence = 0;
 	const rng = deps.rng ?? Math.random;
 	const listeners = new Set<(event: EngineEvent) => void>();
 
@@ -67,7 +60,7 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 		for (const listener of listeners) listener(event);
 	}
 
-	function findCraftByName(name: string): { craft: Craft; fleet: 'enemyCraft' | 'federationCraft' } | undefined {
+	function findCraftByName(name: string): { craft: Craft; fleet: Fleet } | undefined {
 		const enemy = state.enemyCraft.find((c) => c.name === name);
 		if (enemy) return { craft: enemy, fleet: 'enemyCraft' };
 		const federation = state.federationCraft.find((c) => c.name === name);
@@ -90,7 +83,7 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 
 	const WEAPON_HIT_RADIUS = 5;
 
-	function findCraftNear(position: { x: number; y: number; z: number }): { craft: Craft; fleet: 'enemyCraft' | 'federationCraft' } | undefined {
+	function findCraftNear(position: { x: number; y: number; z: number }): { craft: Craft; fleet: Fleet } | undefined {
 		for (const fleet of ['enemyCraft', 'federationCraft'] as const) {
 			const craft = state[fleet].find((c) => distanceBetween(c.position, position) <= WEAPON_HIT_RADIUS);
 			if (craft) return { craft, fleet };
@@ -100,7 +93,7 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 
 	function resolveWeaponTarget(
 		target: WeaponTarget
-	): { craft: Craft; fleet: 'enemyCraft' | 'federationCraft' } | { ok: false; reason: string } {
+	): { craft: Craft; fleet: Fleet } | { ok: false; reason: string } {
 		if (target.kind === 'object') {
 			const found = findCraftByName(target.name);
 			if (!found) return { ok: false, reason: `No object or craft named "${target.name}"` };
@@ -111,7 +104,18 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 		return found;
 	}
 
-	function applyDamage(fleet: 'enemyCraft' | 'federationCraft', craftId: number, damage: number): void {
+	/** `resolveWeaponTarget` plus the sensor-range gate every weapon (phasers, torpedoes) shares — shared by both `FirePhasers` and `FireTorpedo` so they can't drift apart on it. */
+	function resolveInRangeTarget(
+		target: WeaponTarget
+	): { craft: Craft; fleet: Fleet; distance: number } | { ok: false; reason: string } {
+		const resolved = resolveWeaponTarget(target);
+		if ('reason' in resolved) return resolved;
+		const distance = distanceBetween(state.enterpriseNavigation.position, resolved.craft.position);
+		if (scanQualityForDistance(distance) === 'none') return { ok: false, reason: 'Target out of sensor range' };
+		return { ...resolved, distance };
+	}
+
+	function applyDamage(fleet: Fleet, craftId: number, damage: number): void {
 		state = produce(state, (draft) => {
 			const list = draft[fleet];
 			const index = list.findIndex((c) => c.id === craftId);
@@ -126,30 +130,33 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 		emit({ type: 'StateChanged', paths: [fleet] });
 	}
 
-	/** Splash-damages every craft (in either fleet) within `TORPEDO_SPLASH_RADIUS` of `position`, excluding `excludeCraftId`. */
-	function applySplashDamage(position: Vector3, damage: number, excludeCraftId: number): void {
-		for (const fleet of ['enemyCraft', 'federationCraft'] as const) {
-			for (const craft of state[fleet]) {
-				if (craft.id === excludeCraftId) continue;
-				if (distanceBetween(craft.position, position) <= TORPEDO_SPLASH_RADIUS) {
-					applyDamage(fleet, craft.id, damage);
-				}
-			}
-		}
+	/** Every craft in both fleets, flattened for `resolveExplosionDamage`'s "who's nearby" check. */
+	function allCraft(): { fleet: Fleet; id: number; position: Vector3 }[] {
+		return [
+			...state.enemyCraft.map((c) => ({ fleet: 'enemyCraft' as const, id: c.id, position: c.position })),
+			...state.federationCraft.map((c) => ({ fleet: 'federationCraft' as const, id: c.id, position: c.position }))
+		];
 	}
 
+	function applyDamageAssignments(assignments: DamageAssignment[]): void {
+		for (const assignment of assignments) applyDamage(assignment.fleet, assignment.craftId, assignment.amount);
+	}
+
+	// A single tick can resolve several torpedo explosions/weapon fires at once, so these push onto
+	// a short bounded history (see appendBoundedEvent) rather than overwrite a single "last event"
+	// slot — a singleton would silently lose every event but the final one from the same tick.
 	function recordWeaponFire(weapon: 'phaser' | 'torpedo', from: Vector3, to: Vector3): void {
 		state = produce(state, (draft) => {
-			draft.lastWeaponFireEvent = { weapon, from, to, sequence: ++weaponFireSequence, atMs: draft.simulatedTimeMs };
+			draft.weaponFireEvents = appendBoundedEvent(draft.weaponFireEvents, { weapon, from, to, atMs: draft.simulatedTimeMs });
 		});
-		emit({ type: 'StateChanged', paths: ['lastWeaponFireEvent'] });
+		emit({ type: 'StateChanged', paths: ['weaponFireEvents'] });
 	}
 
 	function recordTorpedoExplosion(position: Vector3): void {
 		state = produce(state, (draft) => {
-			draft.lastTorpedoExplosionEvent = { position, sequence: ++torpedoExplosionSequence, atMs: draft.simulatedTimeMs };
+			draft.torpedoExplosionEvents = appendBoundedEvent(draft.torpedoExplosionEvents, { position, atMs: draft.simulatedTimeMs });
 		});
-		emit({ type: 'StateChanged', paths: ['lastTorpedoExplosionEvent'] });
+		emit({ type: 'StateChanged', paths: ['torpedoExplosionEvents'] });
 	}
 
 	function applyCommand(command: Command): CommandResult {
@@ -302,11 +309,9 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				return { ok: true };
 			}
 			case 'FirePhasers': {
-				const resolved = resolveWeaponTarget(command.target);
+				const resolved = resolveInRangeTarget(command.target);
 				if ('reason' in resolved) return { ok: false, reason: resolved.reason };
-				const { craft, fleet } = resolved;
-				const distance = distanceBetween(state.enterpriseNavigation.position, craft.position);
-				if (scanQualityForDistance(distance) === 'none') return { ok: false, reason: 'Target out of sensor range' };
+				const { craft, fleet, distance } = resolved;
 				const bank = bankLocationForRelativePosition(state.enterpriseNavigation.position, craft.position);
 				const phaserBank = state.engineering.devices[`phaser-${bank}`];
 				if (!phaserBank || phaserBank.functionalStatus <= 0) {
@@ -319,11 +324,10 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				return { ok: true };
 			}
 			case 'FireTorpedo': {
-				const resolved = resolveWeaponTarget(command.target);
+				const resolved = resolveInRangeTarget(command.target);
 				if ('reason' in resolved) return { ok: false, reason: resolved.reason };
-				const { craft, fleet } = resolved;
-				const distance = distanceBetween(state.enterpriseNavigation.position, craft.position);
-				if (scanQualityForDistance(distance) === 'none') return { ok: false, reason: 'Target out of sensor range' };
+				const { craft, fleet, distance } = resolved;
+				if (distance > TORPEDO_MAX_RANGE) return { ok: false, reason: 'Target out of torpedo range' };
 				const hasFunctionalTube = Object.entries(state.engineering.devices).some(
 					([id, device]) => id.startsWith('torpedoTube-') && device.functionalStatus > 0
 				);
@@ -464,7 +468,7 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 			return () => listeners.delete(listener);
 		},
 		tick(deltaMs) {
-			const explosions: { position: Vector3; hitTarget: boolean; targetFleet: 'enemyCraft' | 'federationCraft'; targetId: number }[] = [];
+			let torpedoExplosions: ReturnType<typeof advanceTorpedoes>['explosions'] = [];
 			state = produce(state, (draft) => {
 				draft.simulatedTimeMs += deltaMs;
 				if (draft.modules.navigation === 'running') {
@@ -482,36 +486,24 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				if (draft.scenario?.runState === 'running') {
 					draft.scenario.elapsedMs += deltaMs;
 				}
-				const survivors: Torpedo[] = [];
-				for (const torpedo of draft.torpedoes) {
-					const target = draft[torpedo.targetFleet].find((c) => c.id === torpedo.targetId);
-					if (!target) {
-						// The target was destroyed by something else mid-flight — nothing left to home in on.
-						// Copy the position rather than reference the draft directly — it's revoked once this produce() call returns.
-						explosions.push({
-							position: { x: torpedo.position.x, y: torpedo.position.y, z: torpedo.position.z },
-							hitTarget: false,
-							targetFleet: torpedo.targetFleet,
-							targetId: torpedo.targetId
-						});
-						continue;
-					}
-					const result = advanceTorpedo(torpedo, target.position, target.speed, deltaMs, draft.simulatedTimeMs, rng);
-					if (result.torpedo) {
-						survivors.push(result.torpedo);
-					} else if (result.explosion) {
-						explosions.push({ ...result.explosion, targetFleet: torpedo.targetFleet, targetId: torpedo.targetId });
-					}
-				}
-				draft.torpedoes = survivors;
+				// Looking up a torpedo's target by fleet/id off `draft` here (rather than passing `draft`
+				// itself into torpedo.ts) keeps the batch-advance logic a pure, engine-independent
+				// function, testable without an Engine or Immer.
+				const findTarget = (fleet: Fleet, id: number) => {
+					const craft = draft[fleet].find((c) => c.id === id);
+					return craft ? { position: { x: craft.position.x, y: craft.position.y, z: craft.position.z }, speed: craft.speed } : undefined;
+				};
+				const result = advanceTorpedoes(draft.torpedoes, findTarget, deltaMs, draft.simulatedTimeMs, rng);
+				draft.torpedoes = result.torpedoes;
+				torpedoExplosions = result.explosions;
 			});
-			for (const explosion of explosions) {
-				const splashDamage = computeTorpedoDamage(0) / 2;
-				if (explosion.hitTarget) {
-					applyDamage(explosion.targetFleet, explosion.targetId, computeTorpedoDamage(0));
+			if (torpedoExplosions.length > 0) {
+				const directHitDamage = computeTorpedoDamage(0);
+				const nearbyCraft = allCraft();
+				for (const explosion of torpedoExplosions) {
+					applyDamageAssignments(resolveExplosionDamage(explosion, nearbyCraft, directHitDamage));
+					recordTorpedoExplosion(explosion.position);
 				}
-				applySplashDamage(explosion.position, splashDamage, explosion.targetId);
-				recordTorpedoExplosion(explosion.position);
 			}
 			if (!state.scenario) return;
 			const steps = dueSteps(state.scenario);

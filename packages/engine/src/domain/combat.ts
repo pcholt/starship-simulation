@@ -41,3 +41,10 @@ export const TORPEDO_HIT_RADIUS = 2;
 
 /** Radius (universe units) around a torpedo explosion within which other craft take splash damage. */
 export const TORPEDO_SPLASH_RADIUS = 3;
+
+const TARGET_FAST_THRESHOLD = 5;
+
+/** Whether a torpedo within proximity-fuze range of its target actually connects: a certain hit against a target at warp 5 or slower, a 50/50 coin flip otherwise. */
+export function resolveTorpedoHit(targetSpeed: number, rng: () => number): boolean {
+	return targetSpeed <= TARGET_FAST_THRESHOLD || rng() >= 0.5;
+}

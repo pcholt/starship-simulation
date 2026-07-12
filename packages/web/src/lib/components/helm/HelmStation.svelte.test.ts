@@ -110,11 +110,11 @@ describe('HelmStation', () => {
 		});
 		render(HelmStation, { store });
 
-		await expect.element(page.getByTestId('target-hull-Klingon Bird of Prey')).toHaveTextContent('100');
+		await expect.element(page.getByTestId('target-hull-1')).toHaveTextContent('100');
 
 		await page.getByTestId('fire-phasers-Klingon Bird of Prey').click();
 
-		await expect.element(page.getByTestId('target-hull-Klingon Bird of Prey')).not.toHaveTextContent('100');
+		await expect.element(page.getByTestId('target-hull-1')).not.toHaveTextContent('100');
 	});
 
 	it('fires a torpedo at a listed target by clicking its Fire Torpedo button (point-and-click, no typed command)', async () => {

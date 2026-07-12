@@ -154,8 +154,8 @@
 					entities={plotEntities}
 					range={PARTIAL_SCAN_RANGE}
 					previewCircle={scanAreaPreview}
-					fireFlash={weaponFireOverlay.fireFlash}
-					explosionFlash={weaponFireOverlay.explosionFlash}
+					fireFlashes={weaponFireOverlay.fireFlashes}
+					explosionFlashes={weaponFireOverlay.explosionFlashes}
 				/>
 				<div class="scan-area-controls">
 					<Slider

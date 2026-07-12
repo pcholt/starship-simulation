@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createInitialWorldState } from '../../src/domain/world-state.js';
+import { createInitialWorldState, appendBoundedEvent, MAX_TRACKED_WEAPON_EVENTS } from '../../src/domain/world-state.js';
 
 describe('createInitialWorldState', () => {
 	it('starts the simulated clock at zero', () => {
@@ -27,5 +27,27 @@ describe('createInitialWorldState', () => {
 
 	it('starts with no scenario loaded', () => {
 		expect(createInitialWorldState().scenario).toBeNull();
+	});
+});
+
+describe('appendBoundedEvent', () => {
+	it('assigns sequence 1 to the first event in an empty list', () => {
+		const events = appendBoundedEvent<{ sequence: number; atMs: number }>([], { atMs: 100 });
+		expect(events).toEqual([{ sequence: 1, atMs: 100 }]);
+	});
+
+	it('assigns each new event the next sequence number after the last one', () => {
+		const first = appendBoundedEvent<{ sequence: number; atMs: number }>([], { atMs: 0 });
+		const second = appendBoundedEvent(first, { atMs: 200 });
+		expect(second.map((e) => e.sequence)).toEqual([1, 2]);
+	});
+
+	it('drops the oldest event once the list exceeds MAX_TRACKED_WEAPON_EVENTS', () => {
+		let events: { sequence: number; atMs: number }[] = [];
+		for (let i = 0; i < MAX_TRACKED_WEAPON_EVENTS + 1; i++) {
+			events = appendBoundedEvent(events, { atMs: i });
+		}
+		expect(events).toHaveLength(MAX_TRACKED_WEAPON_EVENTS);
+		expect(events[0]!.sequence).toBe(2); // the very first (sequence 1) was dropped
 	});
 });

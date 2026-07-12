@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { launchTorpedo, advanceTorpedo } from '../../src/domain/torpedo.js';
-import { TORPEDO_HIT_RADIUS } from '../../src/domain/combat.js';
+import { launchTorpedo, advanceTorpedo, advanceTorpedoes, resolveExplosionDamage } from '../../src/domain/torpedo.js';
+import { TORPEDO_HIT_RADIUS, TORPEDO_SPLASH_RADIUS } from '../../src/domain/combat.js';
 
 describe('launchTorpedo', () => {
 	it('inherits the firing ship position and heading, and its speed plus 2', () => {
@@ -50,9 +50,11 @@ describe('advanceTorpedo — speed ramp', () => {
 
 describe('advanceTorpedo — homing turn', () => {
 	it('turns heading toward the target bearing, at twice the ship turn rate, without reaching it in one tick', () => {
-		// warpSpeed 7 -> turnRateDegPerSecond is 10 (between 5 and 10) -> torpedo turns at 20 deg/sec.
+		// Launch already at the ramp's target speed (18), so speed — and therefore turn rate —
+		// stays constant for the whole maneuver instead of interacting with the ramp.
+		// warpSpeed 18 -> turnRateDegPerSecond is 5 (>=10) -> torpedo turns at 10 deg/sec.
 		const torpedo = launchTorpedo(
-			{ xyAngleDeg: 0, xzAngleDeg: 0, warpSpeed: 5 },
+			{ xyAngleDeg: 0, xzAngleDeg: 0, warpSpeed: 16 },
 			{ x: 0, y: 0, z: 0 },
 			{ fleet: 'enemyCraft', id: 1 },
 			0,
@@ -60,7 +62,7 @@ describe('advanceTorpedo — homing turn', () => {
 		);
 		// Target along +y: bearing xyAngleDeg = 90, far enough away that a 1s tick can't reach it.
 		const { torpedo: after } = advanceTorpedo(torpedo, { x: 0, y: 10000, z: 0 }, 0, 1000, 1000, () => 0);
-		expect(after!.velocity.xyAngleDeg).toBeCloseTo(20);
+		expect(after!.velocity.xyAngleDeg).toBeCloseTo(10);
 	});
 });
 
@@ -146,6 +148,90 @@ describe('advanceTorpedo — hit resolution', () => {
 		const { torpedo: after, explosion } = advanceTorpedo(torpedo, { x: 0, y: 0, z: 0 }, 0, 1, 1, () => 0);
 		expect(explosion).toBeNull();
 		expect(after).not.toBeNull();
+	});
+
+	it('does not tunnel through a target when given a single large deltaMs (e.g. a backgrounded browser tab)', () => {
+		// Launched 3 units short of the target, heading straight at it, at a speed that would cover
+		// far more than 3 units in one un-chunked 5-second step (warp 18 * 5s = 90 units) — without
+		// internal sub-stepping, the post-step position would land 87 units past the target and
+		// never register as "in proximity" at all.
+		const torpedo = launchTorpedo(
+			{ xyAngleDeg: 0, xzAngleDeg: 0, warpSpeed: 16 }, // launch speed 18, already at ramp target
+			{ x: 0, y: 0, z: 0 },
+			{ fleet: 'enemyCraft', id: 1 },
+			0,
+			1
+		);
+		const { torpedo: after, explosion } = advanceTorpedo(torpedo, { x: 3, y: 0, z: 0 }, 0, 5000, 5000, () => 0);
+		expect(after).toBeNull();
+		expect(explosion).toEqual({ position: { x: 3, y: 0, z: 0 }, hitTarget: true });
+	});
+});
+
+describe('advanceTorpedoes', () => {
+	function target(fleet: 'enemyCraft' | 'federationCraft', id: number, position = { x: 0, y: 0, z: 0 }, speed = 0) {
+		return { fleet, id, position, speed };
+	}
+
+	it('advances every torpedo and reports no explosions when none resolve', () => {
+		const torpedo = launchTorpedo({ xyAngleDeg: 0, xzAngleDeg: 0, warpSpeed: 0 }, { x: 0, y: 0, z: 0 }, { fleet: 'enemyCraft', id: 1 }, 0, 1);
+		const far = target('enemyCraft', 1, { x: 100000, y: 0, z: 0 });
+		const { torpedoes, explosions } = advanceTorpedoes([torpedo], () => far, 1000, 1000, () => 0);
+		expect(torpedoes).toHaveLength(1);
+		expect(explosions).toHaveLength(0);
+	});
+
+	it('resolves a direct hit as an explosion and removes the torpedo from the survivors', () => {
+		const torpedo = launchTorpedo({ xyAngleDeg: 0, xzAngleDeg: 0, warpSpeed: 0 }, { x: 0.1, y: 0, z: 0 }, { fleet: 'enemyCraft', id: 1 }, 0, 1);
+		const near = target('enemyCraft', 1, { x: 0, y: 0, z: 0 }, 0);
+		const { torpedoes, explosions } = advanceTorpedoes([torpedo], () => near, 1, 1, () => 0);
+		expect(torpedoes).toHaveLength(0);
+		expect(explosions).toEqual([{ position: { x: 0, y: 0, z: 0 }, hitTarget: true, targetFleet: 'enemyCraft', targetId: 1 }]);
+	});
+
+	it('explodes a torpedo in place, without a hit, when its target no longer exists', () => {
+		const torpedo = launchTorpedo({ xyAngleDeg: 0, xzAngleDeg: 0, warpSpeed: 0 }, { x: 5, y: 0, z: 0 }, { fleet: 'enemyCraft', id: 1 }, 0, 1);
+		const { torpedoes, explosions } = advanceTorpedoes([torpedo], () => undefined, 1000, 1000, () => 0);
+		expect(torpedoes).toHaveLength(0);
+		expect(explosions).toEqual([{ position: { x: 5, y: 0, z: 0 }, hitTarget: false, targetFleet: 'enemyCraft', targetId: 1 }]);
+	});
+});
+
+describe('resolveExplosionDamage', () => {
+	const explosionPoint = { x: 0, y: 0, z: 0 };
+
+	it('assigns direct-hit damage to the target and splash damage to another nearby craft', () => {
+		const explosion = { position: explosionPoint, hitTarget: true, targetFleet: 'enemyCraft' as const, targetId: 1 };
+		const nearbyCraft = [
+			{ fleet: 'enemyCraft' as const, id: 1, position: explosionPoint },
+			{ fleet: 'federationCraft' as const, id: 2, position: { x: 2, y: 0, z: 0 } }
+		];
+		const assignments = resolveExplosionDamage(explosion, nearbyCraft, 30);
+		expect(assignments).toContainEqual({ fleet: 'enemyCraft', craftId: 1, amount: 30 });
+		expect(assignments).toContainEqual({ fleet: 'federationCraft', craftId: 2, amount: 15 });
+	});
+
+	it('does not double-count the direct-hit target as also receiving splash', () => {
+		const explosion = { position: explosionPoint, hitTarget: true, targetFleet: 'enemyCraft' as const, targetId: 1 };
+		const nearbyCraft = [{ fleet: 'enemyCraft' as const, id: 1, position: explosionPoint }];
+		const assignments = resolveExplosionDamage(explosion, nearbyCraft, 30);
+		expect(assignments).toEqual([{ fleet: 'enemyCraft', craftId: 1, amount: 30 }]);
+	});
+
+	it('splash-damages the original target too when the explosion was a miss/fuel-out, not a direct hit', () => {
+		// Regression: a torpedo that missed or ran out of fuel right next to its own target used to
+		// unconditionally exclude that target from splash, so it took zero damage from a blast it
+		// was standing right next to.
+		const explosion = { position: explosionPoint, hitTarget: false, targetFleet: 'enemyCraft' as const, targetId: 1 };
+		const nearbyCraft = [{ fleet: 'enemyCraft' as const, id: 1, position: explosionPoint }];
+		const assignments = resolveExplosionDamage(explosion, nearbyCraft, 30);
+		expect(assignments).toEqual([{ fleet: 'enemyCraft', craftId: 1, amount: 15 }]);
+	});
+
+	it('ignores craft outside the splash radius', () => {
+		const explosion = { position: explosionPoint, hitTarget: false, targetFleet: 'enemyCraft' as const, targetId: 1 };
+		const nearbyCraft = [{ fleet: 'federationCraft' as const, id: 2, position: { x: TORPEDO_SPLASH_RADIUS + 1, y: 0, z: 0 } }];
+		expect(resolveExplosionDamage(explosion, nearbyCraft, 30)).toEqual([]);
 	});
 });
 
