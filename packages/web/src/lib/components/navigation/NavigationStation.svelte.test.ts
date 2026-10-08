@@ -26,8 +26,29 @@ describe('NavigationStation', () => {
 		render(NavigationStation, { store });
 
 		await store.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 7 });
+		store.tick(60_000);
 
 		await expect.element(page.getByTestId('nav-speed')).toHaveTextContent('7');
+	});
+
+	it('does not show the new speed in the current-speed readout until the ship has had time to accelerate', async () => {
+		const store = setup();
+		render(NavigationStation, { store });
+
+		await store.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 7 });
+
+		await expect.element(page.getByTestId('nav-speed')).toHaveTextContent('0');
+		await expect.element(page.getByTestId('nav-speed-requested')).toHaveTextContent('7');
+	});
+
+	it('shows the current speed as a bar behind the speed slider, which fills as the ship accelerates', async () => {
+		const store = setup();
+		render(NavigationStation, { store });
+		await store.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 10 });
+
+		store.tick(1000);
+
+		await expect.element(page.getByTestId('nav-speed-current-bar')).toHaveAttribute('aria-valuenow', '1');
 	});
 
 	it('sets the intended heading immediately after the direction is set, without snapping the actual heading there yet', async () => {
@@ -80,8 +101,9 @@ describe('NavigationStation', () => {
 
 		await store.dispatch({ module: 'navigation', type: 'SetCourse', destination: { kind: 'coordinates', x: 100, y: 0, z: 0 } });
 		await store.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 10 });
+		store.tick(60_000);
 
-		await expect.element(page.getByTestId('nav-eta')).toHaveTextContent('10');
+		await expect.element(page.getByTestId('nav-eta')).toHaveTextContent(/^\d+\.\ds$/);
 	});
 
 	it('shows ETA as N/A when speed is zero', async () => {
@@ -151,6 +173,7 @@ describe('NavigationStation', () => {
 		render(NavigationStation, { store });
 
 		await store.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 5 });
+		store.tick(1000);
 
 		await expect.element(page.getByTestId('projected-path')).toBeInTheDocument();
 	});
@@ -258,7 +281,7 @@ describe('NavigationStation', () => {
 
 		await page.getByLabelText('Speed').fill('12');
 
-		await expect.element(page.getByTestId('nav-speed')).toHaveTextContent('12');
+		await expect.element(page.getByTestId('nav-speed-requested')).toHaveTextContent('12');
 	});
 
 	it('sets heading via the compass dial (point-and-click, no typed command)', async () => {
@@ -282,5 +305,44 @@ describe('NavigationStation', () => {
 		await page.getByTestId('astrogator-svg').click();
 
 		await expect.element(page.getByTestId('nav-destination')).not.toHaveTextContent('NONE');
+	});
+
+	it('shows the maximum warp the current warp drive power allows', async () => {
+		const store = setup();
+		render(NavigationStation, { store });
+		await store.dispatch({ module: 'engineering', type: 'SetEnergyAllocation', deviceId: 'warpEngine-1', amount: 100 });
+		await store.dispatch({ module: 'engineering', type: 'SetEnergyAllocation', deviceId: 'warpEngine-2', amount: 100 });
+		store.tick(120_000);
+
+		await expect.element(page.getByTestId('nav-max-warp')).toHaveTextContent('5');
+	});
+
+	it('shows maximum warp as 0 when the warp drives have under 200 EU', async () => {
+		const store = setup();
+		render(NavigationStation, { store });
+		await store.dispatch({ module: 'engineering', type: 'SetEnergyAllocation', deviceId: 'warpEngine-1', amount: 50 });
+		await store.dispatch({ module: 'engineering', type: 'SetEnergyAllocation', deviceId: 'warpEngine-2', amount: 50 });
+		store.tick(120_000);
+
+		await expect.element(page.getByTestId('nav-max-warp')).toHaveTextContent('0');
+	});
+
+	it('hatches the part of the speed bar above the available maximum warp', async () => {
+		const store = setup();
+		render(NavigationStation, { store });
+
+		await expect.element(page.getByTestId('nav-speed-current-bar-unavailable')).toBeInTheDocument();
+	});
+
+	it('holds the ship below the available maximum warp however high the speed slider is set', async () => {
+		const store = setup();
+		render(NavigationStation, { store });
+		await page.getByLabelText('Speed', { exact: true }).fill('20');
+
+		store.tick(120_000);
+
+		const speed = Number(page.getByTestId('nav-speed').element().textContent);
+		const maxWarp = Number(page.getByTestId('nav-max-warp').element().textContent);
+		expect(speed).toBeLessThanOrEqual(maxWarp + 0.1);
 	});
 });

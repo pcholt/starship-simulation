@@ -23,6 +23,8 @@ export interface NavigationState {
 	position: Vector3;
 	velocity: Velocity;
 	intendedDirection: IntendedDirection;
+	/** The warp speed the helm has asked for — `velocity.warpSpeed` ramps toward this rather than jumping to it. */
+	intendedWarpSpeed: number;
 	destination: Location | null;
 }
 
@@ -31,8 +33,54 @@ export function createNavigationState(): NavigationState {
 		position: { x: 0, y: 0, z: 0 },
 		velocity: { xyAngleDeg: 0, xzAngleDeg: 0, warpSpeed: 0 },
 		intendedDirection: { xyAngleDeg: 0, xzAngleDeg: 0 },
+		intendedWarpSpeed: 0,
 		destination: null
 	};
+}
+
+export const MAXIMUM_WARP_DECELERATION_PER_SECOND = 2;
+
+const MINIMUM_WARP_DRIVE_ENERGY_FOR_WARP = 200;
+const WARP_AT_MINIMUM_WARP_DRIVE_ENERGY = 5;
+const WARP_DRIVE_ENERGY_FOR_TOP_WARP = 2000;
+const TOP_WARP_SPEED = 20;
+
+/**
+ * The fastest warp the drives can sustain on `totalWarpDriveEnergy` (the EU of every warp engine added
+ * together): none below 200 EU, warp 5 at 200 EU, rising linearly to warp 20 at 2000 EU and no further.
+ */
+export function maximumWarpSpeed(totalWarpDriveEnergy: number): number {
+	if (totalWarpDriveEnergy < MINIMUM_WARP_DRIVE_ENERGY_FOR_WARP) return 0;
+	const fractionOfRange =
+		(totalWarpDriveEnergy - MINIMUM_WARP_DRIVE_ENERGY_FOR_WARP) /
+		(WARP_DRIVE_ENERGY_FOR_TOP_WARP - MINIMUM_WARP_DRIVE_ENERGY_FOR_WARP);
+	return Math.min(TOP_WARP_SPEED, WARP_AT_MINIMUM_WARP_DRIVE_ENERGY + fractionOfRange * (TOP_WARP_SPEED - WARP_AT_MINIMUM_WARP_DRIVE_ENERGY));
+}
+
+/** Warp levels per second the ship can speed up by, which slows as the warp factor climbs: 1/s up to warp 2, 1 per 2s to 5, 1 per 4s to 10, then 1 per 5s. */
+const WARP_ACCELERATION_TIERS: ReadonlyArray<{ upToWarp: number; perSecond: number }> = [
+	{ upToWarp: 2, perSecond: 1 },
+	{ upToWarp: 5, perSecond: 1 / 2 },
+	{ upToWarp: 10, perSecond: 1 / 4 },
+	{ upToWarp: Infinity, perSecond: 1 / 5 }
+];
+
+/** Moves the actual warp speed toward the intended one, no faster than the acceleration or deceleration limits allow. */
+export function advanceWarpSpeed(current: number, intended: number, deltaMs: number): number {
+	const seconds = deltaMs / 1000;
+	if (intended <= current) return Math.max(intended, current - MAXIMUM_WARP_DECELERATION_PER_SECOND * seconds);
+
+	let warp = current;
+	let remainingSeconds = seconds;
+	while (warp < intended && remainingSeconds > 0) {
+		const tier = WARP_ACCELERATION_TIERS.find(({ upToWarp }) => warp < upToWarp)!;
+		const warpAvailableInTier = Math.min(intended, tier.upToWarp) - warp;
+		const secondsToFinishTier = warpAvailableInTier / tier.perSecond;
+		if (secondsToFinishTier > remainingSeconds) return warp + tier.perSecond * remainingSeconds;
+		warp += warpAvailableInTier;
+		remainingSeconds -= secondsToFinishTier;
+	}
+	return Math.min(warp, intended);
 }
 
 export function headingVector(xyAngleDeg: number, xzAngleDeg: number): Vector3 {

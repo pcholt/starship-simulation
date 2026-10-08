@@ -50,7 +50,7 @@ describe('createSession — dispatch', () => {
 		const messages = sentMessages(socket);
 		const reply = messages.find((m) => m.type === 'dispatchResult');
 		expect(reply).toEqual({ type: 'dispatchResult', requestId: 'abc123', result: { ok: true } });
-		expect(session.engine.getState().enterpriseNavigation.velocity.warpSpeed).toBe(5);
+		expect(session.engine.getState().enterpriseNavigation.intendedWarpSpeed).toBe(5);
 	});
 
 	it('broadcasts the updated state to every connected client after a dispatch', () => {
@@ -65,7 +65,7 @@ describe('createSession — dispatch', () => {
 		const messagesB = sentMessages(socketB);
 		const stateMessage = messagesB.find((m) => m.type === 'state');
 		expect(stateMessage).toBeDefined();
-		expect((stateMessage as { state: { enterpriseNavigation: { velocity: { warpSpeed: number } } } }).state.enterpriseNavigation.velocity.warpSpeed).toBe(7);
+		expect((stateMessage as { state: { enterpriseNavigation: { intendedWarpSpeed: number } } }).state.enterpriseNavigation.intendedWarpSpeed).toBe(7);
 	});
 
 	it('relays engine alert events to every connected client', () => {

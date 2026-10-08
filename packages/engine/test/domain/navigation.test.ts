@@ -6,6 +6,8 @@ import {
 	turnRateDegPerSecond,
 	rotateToward,
 	advanceHeading,
+	advanceWarpSpeed,
+	maximumWarpSpeed,
 	bearingTo
 } from '../../src/domain/navigation.js';
 
@@ -15,6 +17,7 @@ describe('createNavigationState', () => {
 			position: { x: 0, y: 0, z: 0 },
 			velocity: { xyAngleDeg: 0, xzAngleDeg: 0, warpSpeed: 0 },
 			intendedDirection: { xyAngleDeg: 0, xzAngleDeg: 0 },
+			intendedWarpSpeed: 0,
 			destination: null
 		});
 	});
@@ -206,5 +209,70 @@ describe('bearingTo', () => {
 	it('computes bearing relative to a non-origin starting position', () => {
 		const bearing = bearingTo({ x: 100, y: 100, z: 0 }, { x: 100, y: 110, z: 0 });
 		expect(bearing.xyAngleDeg).toBeCloseTo(90);
+	});
+});
+
+describe('advanceWarpSpeed', () => {
+	it('speeds up 1 warp per second between warp 0 and 2', () => {
+		expect(advanceWarpSpeed(0, 10, 1000)).toBeCloseTo(1);
+	});
+
+	it('speeds up 1 warp per 2 seconds between warp 2 and 5', () => {
+		expect(advanceWarpSpeed(2, 10, 2000)).toBeCloseTo(3);
+	});
+
+	it('speeds up 1 warp per 4 seconds between warp 5 and 10', () => {
+		expect(advanceWarpSpeed(5, 20, 4000)).toBeCloseTo(6);
+	});
+
+	it('speeds up 1 warp per 5 seconds from warp 10 upward', () => {
+		expect(advanceWarpSpeed(10, 20, 5000)).toBeCloseTo(11);
+	});
+
+	it('applies each tier rate to the part of a long step spent in that tier', () => {
+		// 0 -> 2 takes 2s, 2 -> 5 takes 6s, 5 -> 6 takes 4s.
+		expect(advanceWarpSpeed(0, 20, 12_000)).toBeCloseTo(6);
+	});
+
+	it('does not overshoot the intended speed', () => {
+		expect(advanceWarpSpeed(0, 1.5, 60_000)).toBeCloseTo(1.5);
+	});
+
+	it('slows down at most 2 warp per second', () => {
+		expect(advanceWarpSpeed(9, 0, 1000)).toBeCloseTo(7);
+	});
+
+	it('does not undershoot the intended speed when slowing down', () => {
+		expect(advanceWarpSpeed(3, 2.5, 5000)).toBeCloseTo(2.5);
+	});
+
+	it('stays put when already at the intended speed', () => {
+		expect(advanceWarpSpeed(4, 4, 1000)).toBe(4);
+	});
+});
+
+describe('maximumWarpSpeed', () => {
+	it('is 0 below 200 EU of warp drive power', () => {
+		expect(maximumWarpSpeed(199)).toBe(0);
+	});
+
+	it('is warp 5 at exactly 200 EU', () => {
+		expect(maximumWarpSpeed(200)).toBe(5);
+	});
+
+	it('is warp 20 at 2000 EU', () => {
+		expect(maximumWarpSpeed(2000)).toBe(20);
+	});
+
+	it('interpolates linearly between warp 5 at 200 EU and warp 20 at 2000 EU', () => {
+		expect(maximumWarpSpeed(1100)).toBeCloseTo(12.5);
+	});
+
+	it('does not rise above warp 20 when the drives are overdriven past 2000 EU', () => {
+		expect(maximumWarpSpeed(2200)).toBe(20);
+	});
+
+	it('is 0 with no power at all', () => {
+		expect(maximumWarpSpeed(0)).toBe(0);
 	});
 });

@@ -6,7 +6,7 @@ const form = (overrides: Partial<CreateObjectForm>): CreateObjectForm => ({ ...c
 describe('buildCreateObjectCommand', () => {
 	it('builds a CreateEnemyCraft command', () => {
 		const result = buildCreateObjectCommand(
-			form({ kind: 'enemyCraft', name: 'Klingon Bird of Prey', mission: 'unconditionalAttack', x: 1, y: 2, z: 3 })
+			form({ kind: 'enemyCraft', name: 'Klingon Bird of Prey', mission: 'unconditionalAttack', x: 1, y: 2, })
 		);
 
 		expect(result).toEqual({
@@ -16,20 +16,20 @@ describe('buildCreateObjectCommand', () => {
 				type: 'CreateEnemyCraft',
 				name: 'Klingon Bird of Prey',
 				mission: 'unconditionalAttack',
-				position: { x: 1, y: 2, z: 3 }
+				position: { x: 1, y: 2, z: 0 }
 			}
 		});
 	});
 
 	it('builds a CreateFederationCraft command', () => {
-		const result = buildCreateObjectCommand(form({ kind: 'federationCraft', name: 'USS Excelsior', mission: 'patrol', x: -5, y: 0, z: 9 }));
+		const result = buildCreateObjectCommand(form({ kind: 'federationCraft', name: 'USS Excelsior', mission: 'patrol', x: -5, y: 0 }));
 
-		expect(result).toMatchObject({ ok: true, command: { type: 'CreateFederationCraft', name: 'USS Excelsior', position: { x: -5, y: 0, z: 9 } } });
+		expect(result).toMatchObject({ ok: true, command: { type: 'CreateFederationCraft', name: 'USS Excelsior', position: { x: -5, y: 0 } } });
 	});
 
 	it('builds a CreateCelestialObject command without needing a mission', () => {
 		const result = buildCreateObjectCommand(
-			form({ kind: 'celestialObject', name: 'Rigel VII', mission: '', x: 10, y: 0, z: 0, radius: 6000, mass: 5.9e24 })
+			form({ kind: 'celestialObject', name: 'Rigel VII', mission: '', x: 10, y: 0, radius: 6000, mass: 5.9e24 })
 		);
 
 		expect(result).toEqual({
@@ -58,7 +58,7 @@ describe('buildCreateObjectCommand', () => {
 	it('rejects missing coordinates', () => {
 		expect(buildCreateObjectCommand(form({ name: 'Raider', mission: 'patrol', y: null }))).toEqual({
 			ok: false,
-			reason: 'Enter X, Y and Z coordinates for the new object'
+			reason: 'Enter X and Y coordinates for the new object'
 		});
 	});
 

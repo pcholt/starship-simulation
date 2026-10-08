@@ -203,3 +203,10 @@ export function advanceEnergyLevels(state: EngineeringState, deltaMs: number): E
 	const radiatedEnergy = Math.max(0, state.totalEnergy - sumOf(ids.map((id) => devices[id]!.energyAssigned)));
 	return { ...state, devices, radiatedEnergy };
 }
+
+/** The energy the warp engines are actually receiving, added together — what limits the ship's top warp speed. */
+export function totalWarpDriveEnergy(devices: Record<string, { energyAssigned: number }>): number {
+	return Object.entries(devices)
+		.filter(([id]) => id.startsWith('warpEngine-'))
+		.reduce((sum, [, device]) => sum + device.energyAssigned, 0);
+}

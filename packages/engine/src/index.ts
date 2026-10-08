@@ -25,6 +25,9 @@ export {
 	headingVector,
 	advancePosition,
 	advanceHeading,
+	advanceWarpSpeed,
+	maximumWarpSpeed,
+	MAXIMUM_WARP_DECELERATION_PER_SECOND,
 	bearingTo,
 	rotateToward,
 	turnRateDegPerSecond
@@ -40,7 +43,7 @@ export {
 	PARTIAL_SCAN_RANGE
 } from './domain/sciences.js';
 export type { EngineeringState, Shuttlecraft, ShuttlecraftMission, BankLocation } from './domain/engineering.js';
-export { createEngineeringState, allocateEnergy, allocateEnergyToDevices, allocateMinimumEnergyToGroup, setGroupLocked, advanceEnergyLevels, DEVICE_IDS, BANK_LOCATIONS } from './domain/engineering.js';
+export { createEngineeringState, allocateEnergy, totalWarpDriveEnergy, allocateEnergyToDevices, allocateMinimumEnergyToGroup, setGroupLocked, advanceEnergyLevels, DEVICE_IDS, BANK_LOCATIONS } from './domain/engineering.js';
 export {
 	bankLocationForRelativePosition,
 	computePhaserDamage,

@@ -2,11 +2,11 @@ import { produce } from 'immer';
 import type { Command, CommandResult, WeaponTarget } from './commands.js';
 import { ALL_MODULE_NAMES } from './domain/module.js';
 import { createInitialWorldState, appendBoundedEvent, type WorldState } from './domain/world-state.js';
-import { advancePosition, advanceHeading, bearingTo } from './domain/navigation.js';
+import { advancePosition, advanceHeading, advanceWarpSpeed, bearingTo, maximumWarpSpeed } from './domain/navigation.js';
 import type { Location } from './domain/location.js';
 import { scanCelestialObject, scanCraft, distanceBetween, scanQualityForDistance, type ScanResult } from './domain/sciences.js';
 import { DEVICE_GROUP_IDS } from './domain/device-groups.js';
-import { advanceEnergyLevels, allocateEnergy, allocateMinimumEnergyToGroup, setGroupLocked } from './domain/engineering.js';
+import { advanceEnergyLevels, totalWarpDriveEnergy, allocateEnergy, allocateMinimumEnergyToGroup, setGroupLocked } from './domain/engineering.js';
 import { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage } from './domain/combat.js';
 import { admitPatient, recoverPatient } from './domain/medical.js';
 import { enqueueMessage, displayNextMessage } from './domain/communications.js';
@@ -244,9 +244,9 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 			}
 			case 'SetSpeed': {
 				state = produce(state, (draft) => {
-					draft.enterpriseNavigation.velocity.warpSpeed = command.warpSpeed;
+					draft.enterpriseNavigation.intendedWarpSpeed = command.warpSpeed;
 				});
-				emit({ type: 'StateChanged', paths: ['enterpriseNavigation.velocity'] });
+				emit({ type: 'StateChanged', paths: ['enterpriseNavigation.intendedWarpSpeed'] });
 				return { ok: true };
 			}
 			case 'SetCourse': {
@@ -494,7 +494,13 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 			let torpedoExplosions: ReturnType<typeof advanceTorpedoes>['explosions'] = [];
 			state = produce(state, (draft) => {
 				draft.simulatedTimeMs += deltaMs;
+				draft.engineering = advanceEnergyLevels(draft.engineering, deltaMs);
 				if (draft.modules.navigation === 'running') {
+					draft.enterpriseNavigation.velocity.warpSpeed = advanceWarpSpeed(
+						draft.enterpriseNavigation.velocity.warpSpeed,
+						Math.min(draft.enterpriseNavigation.intendedWarpSpeed, maximumWarpSpeed(totalWarpDriveEnergy(draft.engineering.devices))),
+						deltaMs
+					);
 					draft.enterpriseNavigation.velocity = advanceHeading(draft.enterpriseNavigation, deltaMs);
 					draft.enterpriseNavigation.position = advancePosition(draft.enterpriseNavigation, deltaMs);
 				}
@@ -506,7 +512,6 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 						return recovered.health <= 0 || recovered.health >= 10 ? null : recovered;
 					});
 				}
-				draft.engineering = advanceEnergyLevels(draft.engineering, deltaMs);
 				if (draft.scenario?.runState === 'running') {
 					draft.scenario.elapsedMs += deltaMs;
 				}

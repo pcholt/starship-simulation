@@ -104,7 +104,7 @@ describe('HelmStation', () => {
 
 		await page.getByRole('button', { name: 'Fire Phasers at Aim Point' }).click();
 
-		await expect.element(page.getByTestId('weapons-log')).toHaveTextContent('Phasers fired at coordinates (100, 0, 0)');
+		await expect.element(page.getByTestId('weapons-log')).toHaveTextContent('Phasers fired at coordinates (100, 0)');
 	});
 
 	it('fires a torpedo at the aim-point coordinates via its button (point-and-click)', async () => {
@@ -116,7 +116,7 @@ describe('HelmStation', () => {
 
 		await page.getByRole('button', { name: 'Fire Torpedo at Aim Point' }).click();
 
-		await expect.element(page.getByTestId('weapons-log')).toHaveTextContent('Torpedo fired at coordinates (40, -30, 0)');
+		await expect.element(page.getByTestId('weapons-log')).toHaveTextContent('Torpedo fired at coordinates (40, -30)');
 		expect(store.state.torpedoes).toHaveLength(1);
 	});
 

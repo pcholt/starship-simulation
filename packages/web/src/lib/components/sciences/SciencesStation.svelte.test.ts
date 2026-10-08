@@ -96,7 +96,6 @@ describe('SciencesStation', () => {
 
 		await page.getByLabelText('Scan Area X').fill('0');
 		await page.getByLabelText('Scan Area Y').fill('0');
-		await page.getByLabelText('Scan Area Z').fill('0');
 		await page.getByRole('button', { name: 'Scan Area' }).click();
 
 		await expect.element(page.getByTestId('scan-identity')).toHaveTextContent('Rigel VII');
@@ -124,7 +123,6 @@ describe('SciencesStation', () => {
 
 		await page.getByLabelText('Scan Area X').fill('50');
 		await page.getByLabelText('Scan Area Y').fill('0');
-		await page.getByLabelText('Scan Area Z').fill('0');
 		await page.getByRole('button', { name: 'Scan Area' }).click();
 
 		await expect.element(page.getByTestId('scan-identity')).toHaveTextContent('Relative Object');

@@ -8,7 +8,6 @@ export interface CreateObjectForm {
 	mission: string;
 	x: number | null;
 	y: number | null;
-	z: number | null;
 	radius: number | null;
 	mass: number | null;
 }
@@ -27,16 +26,16 @@ export const SUGGESTED_MISSIONS: Record<'enemyCraft' | 'federationCraft', string
 };
 
 export function createEmptyObjectForm(): CreateObjectForm {
-	return { kind: 'enemyCraft', name: '', mission: '', x: 0, y: 0, z: 0, radius: 1000, mass: 1e20 };
+	return { kind: 'enemyCraft', name: '', mission: '', x: 0, y: 0, radius: 1000, mass: 1e20 };
 }
 
 export function buildCreateObjectCommand(form: CreateObjectForm): CreateObjectResult {
 	const name = form.name.trim();
 	if (!name) return { ok: false, reason: 'Enter a name for the new object' };
-	if (form.x === null || form.y === null || form.z === null) {
-		return { ok: false, reason: 'Enter X, Y and Z coordinates for the new object' };
+	if (form.x === null || form.y === null) {
+		return { ok: false, reason: 'Enter X and Y coordinates for the new object' };
 	}
-	const position = { x: form.x, y: form.y, z: form.z };
+	const position = { x: form.x, y: form.y, z: 0 };
 
 	if (form.kind === 'celestialObject') {
 		if (form.radius === null || form.radius <= 0) return { ok: false, reason: 'Enter a radius greater than zero' };

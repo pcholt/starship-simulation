@@ -60,7 +60,6 @@
 		<div class="coordinates">
 			<label>X <input type="number" bind:value={form.x} aria-label="Object X" /></label>
 			<label>Y <input type="number" bind:value={form.y} aria-label="Object Y" /></label>
-			<label>Z <input type="number" bind:value={form.z} aria-label="Object Z" /></label>
 		</div>
 		{#if !isCraft}
 			<div class="coordinates">

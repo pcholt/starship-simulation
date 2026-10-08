@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DeviceGroupId } from '../../src/domain/device-groups.js';
 import { minimumOperationalEnergy, nominalMaximumEnergy, overdriveEnergyLimit } from '../../src/domain/device-groups.js';
-import { createEngineeringState, allocateEnergy, allocateMinimumEnergyToGroup, allocateEnergyToDevices, advanceEnergyLevels, setGroupLocked, DEVICE_IDS } from '../../src/domain/engineering.js';
+import { createEngineeringState, allocateEnergy, allocateMinimumEnergyToGroup, allocateEnergyToDevices, totalWarpDriveEnergy, advanceEnergyLevels, setGroupLocked, DEVICE_IDS } from '../../src/domain/engineering.js';
 
 describe('createEngineeringState', () => {
 	it('creates one device entry per catalogued device id', () => {
@@ -348,5 +348,17 @@ describe('advanceEnergyLevels settling', () => {
 		for (const id of ['shield-fore', 'shield-aft', 'shield-port', 'shield-starboard']) {
 			expect(state.devices[id]!.energyAssigned).toBeGreaterThanOrEqual(100);
 		}
+	});
+});
+
+describe('totalWarpDriveEnergy', () => {
+	it('adds together the energy both warp engines are receiving', () => {
+		const state = createEngineeringState();
+
+		expect(totalWarpDriveEnergy(state.devices)).toBeCloseTo(state.devices['warpEngine-1']!.energyAssigned + state.devices['warpEngine-2']!.energyAssigned);
+	});
+
+	it('ignores every device that is not a warp engine', () => {
+		expect(totalWarpDriveEnergy({ 'warpEngine-1': { energyAssigned: 100 }, 'impulseEngine-1': { energyAssigned: 999 } })).toBe(100);
 	});
 });

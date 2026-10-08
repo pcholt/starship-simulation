@@ -4,6 +4,8 @@
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import Panel from '../shared/Panel.svelte';
 	import Slider from '../shared/Slider.svelte';
+	import LevelBar from '../shared/LevelBar.svelte';
+	import { maximumWarpSpeed, totalWarpDriveEnergy } from '@starship/engine';
 	import { formatChronometer, formatCoordinate } from '../../format.js';
 	import AstrogatorPlot from './AstrogatorPlot.svelte';
 	import CompassDial from './CompassDial.svelte';
@@ -20,6 +22,10 @@
 	/** 0-20 warp, per the book's navigation data spec. */
 	const MAX_WARP_SPEED = 20;
 
+	function formatWarp(warpSpeed: number): string {
+		return String(Math.round(warpSpeed * 10) / 10);
+	}
+
 	// Torpedoes have no fixed range ring (their reach depends on fuel and target speed, not a
 	// simple radius), so only sensors and phasers get one — phasers use their damage half-life as
 	// the "effective range" since damage merely decays with distance rather than cutting off sharply.
@@ -34,6 +40,7 @@
 	}
 
 	let { store }: Props = $props();
+	let availableWarpSpeed = $derived(maximumWarpSpeed(totalWarpDriveEnergy(store.state.engineering.devices)));
 	let errorMessage: string | null = $state(null);
 
 	let navigation = $derived(store.state.enterpriseNavigation);
@@ -145,7 +152,9 @@
 					<dt>X/Z DIRECTION</dt>
 					<dd data-testid="nav-xz-angle">{Math.round(navigation.velocity.xzAngleDeg)}</dd>
 					<dt>SPEED</dt>
-					<dd data-testid="nav-speed">{navigation.velocity.warpSpeed}</dd>
+					<dd data-testid="nav-speed">{formatWarp(navigation.velocity.warpSpeed)}</dd>
+					<dt>MAX WARP</dt>
+					<dd data-testid="nav-max-warp">{formatWarp(availableWarpSpeed)}</dd>
 				</dl>
 			</Panel>
 
@@ -174,16 +183,30 @@
 							<span data-testid="nav-xz-angle-intended">{Math.round(navigation.intendedDirection.xzAngleDeg)}°</span>
 						</dd>
 					</dl>
-					<Slider
-						label="Speed"
-						value={navigation.velocity.warpSpeed}
-						min={0}
-						max={MAX_WARP_SPEED}
-						step={1}
-						unit="warp"
-						accentVar="chrome-navigation"
-						onChange={handleSpeedChange}
-					/>
+					<div class="speed-slider">
+						<Slider
+							label="Speed"
+							value={navigation.intendedWarpSpeed}
+							min={0}
+							max={MAX_WARP_SPEED}
+							step={1}
+							unit="warp"
+							accentVar="chrome-navigation"
+							testId="nav-speed-requested"
+							onChange={handleSpeedChange}
+						>
+							{#snippet behindTrack()}
+								<LevelBar
+									label="Current warp factor"
+									value={navigation.velocity.warpSpeed}
+									max={MAX_WARP_SPEED}
+									limit={availableWarpSpeed}
+									testId="nav-speed-current-bar"
+									title="Currently at warp {formatWarp(navigation.velocity.warpSpeed)}"
+								/>
+							{/snippet}
+						</Slider>
+					</div>
 					<Slider
 						label="X/Z Angle"
 						value={navigation.intendedDirection.xzAngleDeg}
@@ -288,6 +311,10 @@
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: var(--space-4);
+	}
+
+	.speed-slider {
+		--slider-height: 1.3rem;
 	}
 
 	.helm-controls {

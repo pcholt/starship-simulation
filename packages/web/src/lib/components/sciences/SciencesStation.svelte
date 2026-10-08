@@ -36,12 +36,11 @@
 	// itself is always centered on the ship rather than on a fixed world point.
 	let scanAreaX = $state(0);
 	let scanAreaY = $state(0);
-	let scanAreaZ = $state(0);
 
 	let scanAreaWorldPosition = $derived({
 		x: store.state.enterpriseNavigation.position.x + scanAreaX,
 		y: store.state.enterpriseNavigation.position.y + scanAreaY,
-		z: store.state.enterpriseNavigation.position.z + scanAreaZ
+		z: store.state.enterpriseNavigation.position.z
 	});
 
 	// Tracks the sliders live (Slider fires onChange on every `oninput`, not just on release),
@@ -169,15 +168,6 @@
 						step={10}
 						accentVar="chrome-sciences"
 						onChange={(v) => (scanAreaY = v)}
-					/>
-					<Slider
-						label="Scan Area Z"
-						value={scanAreaZ}
-						min={-PARTIAL_SCAN_RANGE}
-						max={PARTIAL_SCAN_RANGE}
-						step={10}
-						accentVar="chrome-sciences"
-						onChange={(v) => (scanAreaZ = v)}
 					/>
 					<button onclick={handleScanArea}>Scan Area</button>
 				</div>

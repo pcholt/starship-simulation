@@ -9,15 +9,39 @@ describe('navigation commands', () => {
 		engine.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg: 45, xzAngleDeg: 10 });
 		const nav = engine.getState().enterpriseNavigation;
 		expect(nav.intendedDirection).toEqual({ xyAngleDeg: 45, xzAngleDeg: 10 });
-		expect(nav.velocity).toEqual({ xyAngleDeg: 0, xzAngleDeg: 0, warpSpeed: 5 });
+		expect(nav.velocity).toEqual({ xyAngleDeg: 0, xzAngleDeg: 0, warpSpeed: 0 });
 	});
 
-	it('SetSpeed updates warp speed without changing heading angles', () => {
+	it('SetSpeed sets the intended warp speed without changing heading angles', () => {
 		const engine = createEngine();
 		engine.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg: 45, xzAngleDeg: 10 });
 		engine.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 5 });
 		expect(engine.getState().enterpriseNavigation.intendedDirection).toEqual({ xyAngleDeg: 45, xzAngleDeg: 10 });
-		expect(engine.getState().enterpriseNavigation.velocity.warpSpeed).toBe(5);
+		expect(engine.getState().enterpriseNavigation.intendedWarpSpeed).toBe(5);
+	});
+
+	it('SetSpeed does not change the actual warp speed until time passes', () => {
+		const engine = createEngine();
+		engine.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 5 });
+		expect(engine.getState().enterpriseNavigation.velocity.warpSpeed).toBe(0);
+	});
+
+	it('ticking raises the actual warp speed toward the intended one at the acceleration limit', () => {
+		const engine = createEngine();
+		engine.dispatch({ module: 'controller', type: 'Execute', target: 'navigation' });
+		engine.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 5 });
+		engine.tick(1000);
+		expect(engine.getState().enterpriseNavigation.velocity.warpSpeed).toBeCloseTo(1);
+	});
+
+	it('ticking lowers the actual warp speed by at most 2 per second', () => {
+		const engine = createEngine();
+		engine.dispatch({ module: 'controller', type: 'Execute', target: 'navigation' });
+		engine.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 5 });
+		engine.tick(60_000);
+		engine.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 0 });
+		engine.tick(1000);
+		expect(engine.getState().enterpriseNavigation.velocity.warpSpeed).toBeCloseTo(3);
 	});
 
 	it('SetCourse records the destination location, whether given as an object or raw coordinates', () => {
@@ -64,6 +88,54 @@ describe('navigation commands', () => {
 	});
 });
 
+describe('warp speed limited by warp drive power', () => {
+	function engineWithWarpEnergy(energyPerEngine: number) {
+		const engine = createEngine();
+		engine.dispatch({ module: 'controller', type: 'Execute', target: 'navigation' });
+		engine.dispatch({ module: 'engineering', type: 'SetEnergyAllocation', deviceId: 'warpEngine-1', amount: energyPerEngine });
+		engine.dispatch({ module: 'engineering', type: 'SetEnergyAllocation', deviceId: 'warpEngine-2', amount: energyPerEngine });
+		engine.tick(120_000);
+		return engine;
+	}
+
+	it('never accelerates past the maximum warp the current warp drive power allows', () => {
+		const engine = engineWithWarpEnergy(100);
+		engine.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 20 });
+
+		engine.tick(120_000);
+
+		expect(engine.getState().enterpriseNavigation.velocity.warpSpeed).toBeCloseTo(5, 1);
+	});
+
+	it('cannot leave warp 0 when the drives have under 200 EU between them', () => {
+		const engine = engineWithWarpEnergy(50);
+		engine.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 10 });
+
+		engine.tick(60_000);
+
+		expect(engine.getState().enterpriseNavigation.velocity.warpSpeed).toBe(0);
+	});
+
+	it('slows the ship down when warp drive power drops below what its current speed needs', () => {
+		const engine = engineWithWarpEnergy(500);
+		engine.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 20 });
+		engine.tick(120_000);
+		engine.dispatch({ module: 'engineering', type: 'SetEnergyAllocation', deviceId: 'warpEngine-1', amount: 100 });
+		engine.dispatch({ module: 'engineering', type: 'SetEnergyAllocation', deviceId: 'warpEngine-2', amount: 100 });
+
+		engine.tick(120_000);
+
+		expect(engine.getState().enterpriseNavigation.velocity.warpSpeed).toBeCloseTo(5, 1);
+	});
+
+	it('keeps the speed the helm asked for, so the ship speeds up again if power returns', () => {
+		const engine = engineWithWarpEnergy(100);
+		engine.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 20 });
+
+		expect(engine.getState().enterpriseNavigation.intendedWarpSpeed).toBe(20);
+	});
+});
+
 describe('navigation movement during tick', () => {
 	it('does not move the ship while the navigation module is halted', () => {
 		const engine = createEngine();
@@ -81,7 +153,7 @@ describe('navigation movement during tick', () => {
 		engine.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 10 });
 		engine.tick(1000);
 		const position = engine.getState().enterpriseNavigation.position;
-		expect(position.x).toBeCloseTo(10);
+		expect(position.x).toBeCloseTo(1);
 	});
 
 	it('stops moving once the navigation module is halted again', () => {
@@ -93,6 +165,6 @@ describe('navigation movement during tick', () => {
 		engine.dispatch({ module: 'controller', type: 'Halt', target: 'navigation' });
 		engine.tick(1000);
 		const position = engine.getState().enterpriseNavigation.position;
-		expect(position.x).toBeCloseTo(10);
+		expect(position.x).toBeCloseTo(1);
 	});
 });

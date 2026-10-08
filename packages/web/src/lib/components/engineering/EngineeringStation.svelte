@@ -3,6 +3,7 @@
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import Panel from '../shared/Panel.svelte';
 	import Slider from '../shared/Slider.svelte';
+	import LevelBar from '../shared/LevelBar.svelte';
 	import { minimumOperationalEnergy, nominalMaximumEnergy, overdriveEnergyLimit } from '@starship/engine';
 	import { DEVICE_GROUPS, type DeviceGroupId, deviceHealth, groupIdForDevice, humanizeDeviceId, summarizeGroupEnergy } from './device-groups.js';
 	import { VALID_MISSIONS } from './engineering-command-parser.js';
@@ -142,18 +143,13 @@
 										onChange={(v) => handleSetEnergy(id, v)}
 									>
 										{#snippet behindTrack()}
-											<div
-											class="level-bar"
-											role="meter"
-											aria-label={`${id} current energy`}
-											aria-valuemin={0}
-											aria-valuemax={overdriveEnergyLimit(id)}
-											aria-valuenow={Math.round(device.energyAssigned)}
-											data-testid={`device-${id}-current-energy`}
-											title="Receiving {Math.round(device.energyAssigned)} EU"
-										>
-											<div class="level-bar__fill" style:width="{(device.energyAssigned / overdriveEnergyLimit(id)) * 100}%"></div>
-										</div>
+											<LevelBar
+												label={`${id} current energy`}
+												value={device.energyAssigned}
+												max={overdriveEnergyLimit(id)}
+												testId={`device-${id}-current-energy`}
+												title="Receiving {Math.round(device.energyAssigned)} EU"
+											/>
 										{/snippet}
 									</Slider>
 								</div>
@@ -340,20 +336,6 @@
 		--slider-label-width: 8.5rem;
 		--slider-value-width: 4.5rem;
 		--slider-height: 1.3rem;
-	}
-
-	.level-bar {
-		position: absolute;
-		inset: 0;
-		background: rgba(255, 255, 255, 0.1);
-		border-radius: var(--radius-sm);
-		overflow: hidden;
-	}
-
-	.level-bar__fill {
-		height: 100%;
-		background: color-mix(in srgb, var(--group-accent) 55%, transparent);
-		transition: width 0.15s linear;
 	}
 
 	.device-group__header {

@@ -47,12 +47,11 @@
 	// convention as Sciences' scan area, since the plot is always centered on the Enterprise.
 	let aimOffsetX = $state(0);
 	let aimOffsetY = $state(0);
-	let aimOffsetZ = $state(0);
 
 	let aimPoint = $derived({
 		x: store.state.enterpriseNavigation.position.x + aimOffsetX,
 		y: store.state.enterpriseNavigation.position.y + aimOffsetY,
-		z: store.state.enterpriseNavigation.position.z + aimOffsetZ
+		z: store.state.enterpriseNavigation.position.z
 	});
 
 	const AIM_MARKER_RADIUS = 15;
@@ -64,7 +63,7 @@
 	}
 
 	function describeAimPoint(): string {
-		return `coordinates (${Math.round(aimPoint.x)}, ${Math.round(aimPoint.y)}, ${Math.round(aimPoint.z)})`;
+		return `coordinates (${Math.round(aimPoint.x)}, ${Math.round(aimPoint.y)})`;
 	}
 
 	function logWeaponResult(weapon: 'Phasers' | 'Torpedo', targetName: string) {
@@ -204,7 +203,6 @@
 				<div class="aim-controls">
 					<Slider label="Aim X" value={aimOffsetX} min={-PARTIAL_SCAN_RANGE} max={PARTIAL_SCAN_RANGE} step={10} accentVar="chrome-helm" testId="aim-x" onChange={(v) => (aimOffsetX = v)} />
 					<Slider label="Aim Y" value={aimOffsetY} min={-PARTIAL_SCAN_RANGE} max={PARTIAL_SCAN_RANGE} step={10} accentVar="chrome-helm" testId="aim-y" onChange={(v) => (aimOffsetY = v)} />
-					<Slider label="Aim Z" value={aimOffsetZ} min={-PARTIAL_SCAN_RANGE} max={PARTIAL_SCAN_RANGE} step={10} accentVar="chrome-helm" testId="aim-z" onChange={(v) => (aimOffsetZ = v)} />
 					<div class="aim-buttons">
 						<button type="button" onclick={handleFirePhasersAtAimPoint}>Fire Phasers at Aim Point</button>
 						<button type="button" onclick={handleFireTorpedoAtAimPoint}>Fire Torpedo at Aim Point</button>
