@@ -8,7 +8,7 @@ describe('navigation commands', () => {
 		engine.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 5 });
 		engine.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg: 45, xzAngleDeg: 10 });
 		const nav = engine.getState().enterpriseNavigation;
-		expect(nav.intendedDirection).toEqual({ xyAngleDeg: 45, xzAngleDeg: 10 });
+		expect(nav.intendedDirection).toEqual({ xyAngleDeg: 45, xzAngleDeg: 0 });
 		expect(nav.velocity).toEqual({ xyAngleDeg: 0, xzAngleDeg: 0, warpSpeed: 0 });
 	});
 
@@ -16,7 +16,7 @@ describe('navigation commands', () => {
 		const engine = createEngine();
 		engine.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg: 45, xzAngleDeg: 10 });
 		engine.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 5 });
-		expect(engine.getState().enterpriseNavigation.intendedDirection).toEqual({ xyAngleDeg: 45, xzAngleDeg: 10 });
+		expect(engine.getState().enterpriseNavigation.intendedDirection).toEqual({ xyAngleDeg: 45, xzAngleDeg: 0 });
 		expect(engine.getState().enterpriseNavigation.intendedWarpSpeed).toBe(5);
 	});
 
@@ -85,6 +85,29 @@ describe('navigation commands', () => {
 
 		engine.tick(1000);
 		expect(engine.getState().enterpriseNavigation.velocity.xyAngleDeg).toBeCloseTo(30);
+	});
+});
+
+describe('planar navigation', () => {
+	it('SetDirection ignores a requested x/z angle, so the ship cannot pitch out of the x/y plane', () => {
+		const engine = createEngine();
+		engine.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg: 30, xzAngleDeg: 45 });
+		expect(engine.getState().enterpriseNavigation.intendedDirection.xzAngleDeg).toBe(0);
+	});
+
+	it('SetCourse to a point above the ship still steers within the x/y plane', () => {
+		const engine = createEngine();
+		engine.dispatch({ module: 'navigation', type: 'SetCourse', destination: { kind: 'coordinates', x: 100, y: 0, z: 100 } });
+		expect(engine.getState().enterpriseNavigation.intendedDirection).toEqual({ xyAngleDeg: 0, xzAngleDeg: 0 });
+	});
+
+	it('a ship told to head for a point above it never leaves z = 0', () => {
+		const engine = createEngine();
+		engine.dispatch({ module: 'controller', type: 'Execute', target: 'navigation' });
+		engine.dispatch({ module: 'navigation', type: 'SetCourse', destination: { kind: 'coordinates', x: 100, y: 100, z: 500 } });
+		engine.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 5 });
+		engine.tick(60_000);
+		expect(engine.getState().enterpriseNavigation.position.z).toBe(0);
 	});
 });
 

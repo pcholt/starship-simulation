@@ -55,13 +55,11 @@ describe('NavigationStation', () => {
 		const store = setup();
 		render(NavigationStation, { store });
 
-		await store.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg: 45, xzAngleDeg: 10 });
+		await store.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg: 45, xzAngleDeg: 0 });
 
 		await expect.element(page.getByTestId('nav-xy-angle-intended')).toHaveTextContent('45');
-		await expect.element(page.getByTestId('nav-xz-angle-intended')).toHaveTextContent('10');
 		// Turning takes time — the actual heading hasn't moved yet since no tick has run.
 		await expect.element(page.getByTestId('nav-xy-angle')).toHaveTextContent('0');
-		await expect.element(page.getByTestId('nav-xz-angle')).toHaveTextContent('0');
 	});
 
 	it('turns the actual heading toward the intended heading over time once the engine ticks', async () => {
@@ -80,9 +78,9 @@ describe('NavigationStation', () => {
 		const store = setup();
 		render(NavigationStation, { store });
 
-		await store.dispatch({ module: 'navigation', type: 'SetCourse', destination: { kind: 'coordinates', x: 4, y: 5, z: 6 } });
+		await store.dispatch({ module: 'navigation', type: 'SetCourse', destination: { kind: 'coordinates', x: 4, y: 5, z: 0 } });
 
-		await expect.element(page.getByTestId('nav-destination')).toHaveTextContent('4.0, 5.0, 6.0');
+		await expect.element(page.getByTestId('nav-destination')).toHaveTextContent('4.0, 5.0');
 	});
 
 	it('also turns the ship to face the new destination when a course is set', async () => {
@@ -344,5 +342,25 @@ describe('NavigationStation', () => {
 		const speed = Number(page.getByTestId('nav-speed').element().textContent);
 		const maxWarp = Number(page.getByTestId('nav-max-warp').element().textContent);
 		expect(speed).toBeLessThanOrEqual(maxWarp + 0.1);
+	});
+
+	it('has no z coordinate, x/z direction or pitch control anywhere on the page', async () => {
+		const store = setup();
+		render(NavigationStation, { store });
+
+		await expect.element(page.getByText('Z-COORDINATE')).not.toBeInTheDocument();
+		await expect.element(page.getByText('X/Z', { exact: false })).not.toBeInTheDocument();
+		await expect.element(page.getByLabelText('X/Z Angle')).not.toBeInTheDocument();
+	});
+
+	it('keeps the ship in the x/y plane when a course is set to a point above it', async () => {
+		const store = setup();
+		render(NavigationStation, { store });
+
+		await store.dispatch({ module: 'navigation', type: 'SetCourse', destination: { kind: 'coordinates', x: 100, y: 0, z: 300 } });
+		await store.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 5 });
+		store.tick(30_000);
+
+		expect(store.state.enterpriseNavigation.position.z).toBe(0);
 	});
 });

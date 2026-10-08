@@ -5,6 +5,11 @@ import { createLocalEngineClient } from '../../adapters/local-engine-client.js';
 import { WorldStateStore } from '../../stores/world-state.svelte.js';
 import SciencesStation from './SciencesStation.svelte';
 
+async function clickPlotAt(fractionX: number, fractionY: number) {
+	const bounds = page.getByTestId('astrogator-svg').element().getBoundingClientRect();
+	await page.getByTestId('astrogator-svg').click({ position: { x: bounds.width * fractionX, y: bounds.height * fractionY } });
+}
+
 function setup() {
 	const client = createLocalEngineClient();
 	const store = new WorldStateStore(client);
@@ -70,19 +75,68 @@ describe('SciencesStation', () => {
 		await expect.element(page.getByTestId('scan-identity')).not.toHaveTextContent('NONE');
 	});
 
-	it('shows a scan preview circle on the plot that tracks the Scan Area sliders live', async () => {
+	it('moves the scan preview circle on the plot when the plot is clicked', async () => {
 		const store = setup();
 		render(SciencesStation, { store });
-
 		const before = await page.getByTestId('scan-preview-circle').element().getAttribute('cx');
 
-		await page.getByLabelText('Scan Area X').fill('300');
+		await clickPlotAt(0.8, 0.5);
 
 		const after = await page.getByTestId('scan-preview-circle').element().getAttribute('cx');
 		expect(after).not.toBe(before);
 	});
 
-	it('scans an area via coordinate sliders and a Scan Area button (point-and-click, no typed command)', async () => {
+	it('shows the selected scan center, relative to the ship, after the plot is clicked', async () => {
+		const store = setup();
+		render(SciencesStation, { store });
+
+		await clickPlotAt(0.8, 0.5);
+
+		await expect.element(page.getByTestId('scan-area-center')).not.toHaveTextContent('0, 0');
+	});
+
+	it('keeps moving the scan preview while the pointer is dragged across the plot', async () => {
+		const store = setup();
+		render(SciencesStation, { store });
+		const svg = page.getByTestId('astrogator-svg').element();
+		const bounds = svg.getBoundingClientRect();
+		const pointerAt = (type: string, fractionX: number) =>
+			svg.dispatchEvent(
+				new PointerEvent(type, {
+					bubbles: true,
+					pointerId: 1,
+					clientX: bounds.left + bounds.width * fractionX,
+					clientY: bounds.top + bounds.height * 0.5
+				})
+			);
+
+		const settle = () => new Promise((resolve) => setTimeout(resolve, 30));
+		const previewCx = () => page.getByTestId('scan-preview-circle').element().getAttribute('cx');
+
+		pointerAt('pointerdown', 0.6);
+		await settle();
+		const firstCx = previewCx();
+		pointerAt('pointermove', 0.8);
+		await settle();
+		const movedCx = previewCx();
+		pointerAt('pointerup', 0.8);
+		pointerAt('pointermove', 0.3);
+		await settle();
+		const cxAfterRelease = previewCx();
+
+		expect(movedCx).not.toBe(firstCx);
+		expect(cxAfterRelease).toBe(movedCx);
+	});
+
+	it('has no Scan Area X or Y sliders any more', async () => {
+		const store = setup();
+		render(SciencesStation, { store });
+
+		await expect.element(page.getByLabelText('Scan Area X')).not.toBeInTheDocument();
+		await expect.element(page.getByLabelText('Scan Area Y')).not.toBeInTheDocument();
+	});
+
+	it('scans an area chosen on the plot with the Scan Area button (point-and-click, no typed command)', async () => {
 		const store = setup();
 		store.dispatch({
 			module: 'controller',
@@ -94,35 +148,31 @@ describe('SciencesStation', () => {
 		});
 		render(SciencesStation, { store });
 
-		await page.getByLabelText('Scan Area X').fill('0');
-		await page.getByLabelText('Scan Area Y').fill('0');
+		await clickPlotAt(0.5, 0.5);
 		await page.getByRole('button', { name: 'Scan Area' }).click();
 
 		await expect.element(page.getByTestId('scan-identity')).toHaveTextContent('Rigel VII');
 	});
 
-	it('treats the Scan Area sliders as an offset from the ship, not absolute world coordinates', async () => {
+	it('treats the chosen scan center as an offset from the ship, not absolute world coordinates', async () => {
 		const store = setup();
-		// Move the ship away from the world origin first.
 		store.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg: 0, xzAngleDeg: 0 });
 		store.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 10 });
-		store.tick(5000);
+		store.tick(60_000);
 		const shipPosition = store.state.enterpriseNavigation.position;
-		expect(shipPosition.x).not.toBe(0);
+		expect(shipPosition.x).toBeGreaterThan(500);
 
-		// An object sitting 50 units ahead of the ship's *current* position, not at world (50,0,0).
 		store.dispatch({
 			module: 'controller',
 			type: 'CreateCelestialObject',
 			name: 'Relative Object',
-			position: { x: shipPosition.x + 50, y: shipPosition.y, z: shipPosition.z },
+			position: { x: shipPosition.x + 10, y: shipPosition.y, z: shipPosition.z },
 			radius: 1,
 			mass: 1
 		});
 		render(SciencesStation, { store });
 
-		await page.getByLabelText('Scan Area X').fill('50');
-		await page.getByLabelText('Scan Area Y').fill('0');
+		await clickPlotAt(0.5, 0.5);
 		await page.getByRole('button', { name: 'Scan Area' }).click();
 
 		await expect.element(page.getByTestId('scan-identity')).toHaveTextContent('Relative Object');

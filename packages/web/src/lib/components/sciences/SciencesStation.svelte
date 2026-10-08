@@ -3,7 +3,6 @@
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import Panel from '../shared/Panel.svelte';
-	import Slider from '../shared/Slider.svelte';
 	// Reused from Navigation: a generic world-space plot, not navigation-specific — it draws the
 	// scan-area preview ring here rather than a course.
 	import AstrogatorPlot from '../navigation/AstrogatorPlot.svelte';
@@ -43,12 +42,17 @@
 		z: store.state.enterpriseNavigation.position.z
 	});
 
-	// Tracks the sliders live (Slider fires onChange on every `oninput`, not just on release),
-	// so the preview ring on the plot below follows the science officer's finger in real time.
+	// Tracks the plot drag live, so the preview ring follows the science officer's finger in real time.
 	let scanAreaPreview = $derived({
 		center: scanAreaWorldPosition,
 		radius: FULL_SCAN_RANGE
 	});
+
+	function handleSelectScanArea(position: { x: number; y: number }) {
+		const ship = store.state.enterpriseNavigation.position;
+		scanAreaX = position.x - ship.x;
+		scanAreaY = position.y - ship.y;
+	}
 
 	async function handleScanObject(name: string) {
 		const result = await store.dispatch({ module: 'sciences', type: 'ScanObject', name });
@@ -147,28 +151,16 @@
 					entities={plotEntities}
 					range={PARTIAL_SCAN_RANGE}
 					previewCircle={scanAreaPreview}
+					dragSelect
+					onSelectPoint={handleSelectScanArea}
 					fireFlashes={weaponFireOverlay.fireFlashes}
 					explosionFlashes={weaponFireOverlay.explosionFlashes}
 				/>
 				<div class="scan-area-controls">
-					<Slider
-						label="Scan Area X"
-						value={scanAreaX}
-						min={-PARTIAL_SCAN_RANGE}
-						max={PARTIAL_SCAN_RANGE}
-						step={10}
-						accentVar="chrome-sciences"
-						onChange={(v) => (scanAreaX = v)}
-					/>
-					<Slider
-						label="Scan Area Y"
-						value={scanAreaY}
-						min={-PARTIAL_SCAN_RANGE}
-						max={PARTIAL_SCAN_RANGE}
-						step={10}
-						accentVar="chrome-sciences"
-						onChange={(v) => (scanAreaY = v)}
-					/>
+					<span class="scan-area-readout">
+						SCAN CENTER
+						<strong data-testid="scan-area-center">{Math.round(scanAreaX)}, {Math.round(scanAreaY)}</strong>
+					</span>
 					<button onclick={handleScanArea}>Scan Area</button>
 				</div>
 			</Panel>
@@ -231,11 +223,24 @@
 	}
 
 	.scan-area-controls {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-		align-items: end;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
 		gap: var(--space-4);
 		margin-top: var(--space-3);
+	}
+
+	.scan-area-readout {
+		font-size: 0.75rem;
+		letter-spacing: 0.06em;
+		color: var(--text-muted);
+	}
+
+	.scan-area-readout strong {
+		margin-left: var(--space-2);
+		font-family: var(--font-data);
+		font-size: 1rem;
+		color: var(--text-primary);
 	}
 
 	@media (max-width: 800px) {

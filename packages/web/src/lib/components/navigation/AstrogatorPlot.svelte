@@ -59,6 +59,8 @@
 		range: number;
 		/** Called with the world-space point clicked on the plot, for point-and-click course setting. */
 		onSelectPoint?: (position: Vector3) => void;
+		/** Reports the point under the pointer continuously while it is pressed and dragged, not only on a click. */
+		dragSelect?: boolean;
 		/** Weapon/sensor reach rings drawn around the Enterprise, e.g. sensor and phaser range. */
 		rangeCircles?: RangeCircle[];
 		/** A single ring drawn at an arbitrary world point, e.g. a live scan-area preview that tracks a slider. */
@@ -86,6 +88,7 @@
 		entities,
 		range,
 		onSelectPoint,
+		dragSelect = false,
 		rangeCircles = [],
 		previewCircle,
 		previewLabel = 'Scan preview',
@@ -135,15 +138,44 @@
 			}))
 	);
 
-	function handlePlotClick(event: MouseEvent) {
+	function selectPointAt(event: MouseEvent, svg: SVGSVGElement) {
 		if (!onSelectPoint) return;
-		const svg = event.currentTarget as SVGSVGElement;
 		const rect = svg.getBoundingClientRect();
 		const svgPoint = {
 			x: ((event.clientX - rect.left) / rect.width) * VIEW_SIZE,
 			y: ((event.clientY - rect.top) / rect.height) * VIEW_SIZE
 		};
 		onSelectPoint(plotPointToWorld(svgPoint, center, zoomRange, VIEW_SIZE, PLOT_RADIUS_PCT));
+	}
+
+	function handlePlotClick(event: MouseEvent) {
+		if (dragSelect) return;
+		selectPointAt(event, event.currentTarget as SVGSVGElement);
+	}
+
+	let isDragging = false;
+
+	function handlePointerDown(event: PointerEvent) {
+		if (!dragSelect) return;
+		const svg = event.currentTarget as SVGSVGElement;
+		try {
+			svg.setPointerCapture(event.pointerId);
+		} catch {
+			// Synthetic pointers (and some browsers) cannot be captured; dragging still works while over the plot.
+		}
+		isDragging = true;
+		selectPointAt(event, svg);
+	}
+
+	function handlePointerMove(event: PointerEvent) {
+		if (!dragSelect || !isDragging) return;
+		selectPointAt(event, event.currentTarget as SVGSVGElement);
+	}
+
+	function handlePointerEnd(event: PointerEvent) {
+		if (!isDragging) return;
+		isDragging = false;
+		(event.currentTarget as SVGSVGElement).releasePointerCapture?.(event.pointerId);
 	}
 
 	// Recomputes on every change to previewCircle.center, so dragging a slider that feeds this
@@ -230,6 +262,11 @@
 			role="img"
 			aria-label="Tactical plot — click to set course"
 			onclick={handlePlotClick}
+			onpointerdown={handlePointerDown}
+			onpointermove={handlePointerMove}
+			onpointerup={handlePointerEnd}
+			onpointercancel={handlePointerEnd}
+			class:drag-select={dragSelect}
 		>
 			<PlotGrids {center} {zoomRange} viewSize={VIEW_SIZE} plotRadiusPct={PLOT_RADIUS_PCT} />
 
@@ -364,6 +401,10 @@
 		width: min(100cqw, 100cqh);
 		height: min(100cqw, 100cqh);
 		cursor: crosshair;
+	}
+
+	svg.drag-select {
+		touch-action: none;
 	}
 
 	.zoom-control {

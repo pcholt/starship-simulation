@@ -48,7 +48,7 @@
 		const destination = navigation.destination;
 		if (!destination) return 'NONE';
 		if (destination.kind === 'coordinates')
-			return `${formatCoordinate(destination.x)}, ${formatCoordinate(destination.y)}, ${formatCoordinate(destination.z)}`;
+			return `${formatCoordinate(destination.x)}, ${formatCoordinate(destination.y)}`;
 		if (destination.kind === 'celestialObject') return `Celestial Object #${destination.id}`;
 		if (destination.kind === 'craft') return `${destination.craftClass} #${destination.id}`;
 		return destination.kind;
@@ -58,7 +58,7 @@
 	let destinationPosition = $derived.by(() => {
 		const destination = navigation.destination;
 		if (!destination) return null;
-		if (destination.kind === 'coordinates') return { x: destination.x, y: destination.y, z: destination.z };
+		if (destination.kind === 'coordinates') return { x: destination.x, y: destination.y, z: 0 };
 		if (destination.kind === 'celestialObject') {
 			return store.state.celestialObjects.find((o) => o.id === destination.id)?.position ?? null;
 		}
@@ -116,15 +116,8 @@
 		await store.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed });
 	}
 
-	// Preserves the *intended* value of the other axis, not the (possibly still turning) actual
-	// value — otherwise nudging one axis while a turn on the other axis is still in progress would
-	// silently cancel that in-progress turn back to wherever the ship currently happens to be facing.
 	async function handleHeadingChange(xyAngleDeg: number) {
-		await store.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg, xzAngleDeg: navigation.intendedDirection.xzAngleDeg });
-	}
-
-	async function handlePitchChange(xzAngleDeg: number) {
-		await store.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg: navigation.intendedDirection.xyAngleDeg, xzAngleDeg });
+		await store.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg, xzAngleDeg: 0 });
 	}
 
 	async function handleSelectPoint(position: { x: number; y: number; z: number }) {
@@ -144,13 +137,9 @@
 					<dd data-testid="nav-position-x">{formatCoordinate(navigation.position.x)}</dd>
 					<dt>Y-COORDINATE</dt>
 					<dd data-testid="nav-position-y">{formatCoordinate(navigation.position.y)}</dd>
-					<dt>Z-COORDINATE</dt>
-					<dd data-testid="nav-position-z">{formatCoordinate(navigation.position.z)}</dd>
 
-					<dt>X/Y DIRECTION</dt>
+					<dt>HEADING</dt>
 					<dd data-testid="nav-xy-angle">{Math.round(navigation.velocity.xyAngleDeg)}</dd>
-					<dt>X/Z DIRECTION</dt>
-					<dd data-testid="nav-xz-angle">{Math.round(navigation.velocity.xzAngleDeg)}</dd>
 					<dt>SPEED</dt>
 					<dd data-testid="nav-speed">{formatWarp(navigation.velocity.warpSpeed)}</dd>
 					<dt>MAX WARP</dt>
@@ -172,16 +161,10 @@
 			<Panel title="Helm Controls" accentVar="chrome-navigation">
 				<div class="helm-controls">
 					<dl class="heading-readout">
-						<dt>CURRENT X/Y, X/Z</dt>
-						<dd>
-							<span data-testid="nav-xy-angle-current">{Math.round(navigation.velocity.xyAngleDeg)}°</span>,
-							<span data-testid="nav-xz-angle-current">{Math.round(navigation.velocity.xzAngleDeg)}°</span>
-						</dd>
-						<dt>INTENDED X/Y, X/Z</dt>
-						<dd>
-							<span data-testid="nav-xy-angle-intended">{Math.round(navigation.intendedDirection.xyAngleDeg)}°</span>,
-							<span data-testid="nav-xz-angle-intended">{Math.round(navigation.intendedDirection.xzAngleDeg)}°</span>
-						</dd>
+						<dt>CURRENT HEADING</dt>
+						<dd data-testid="nav-xy-angle-current">{Math.round(navigation.velocity.xyAngleDeg)}°</dd>
+						<dt>INTENDED HEADING</dt>
+						<dd data-testid="nav-xy-angle-intended">{Math.round(navigation.intendedDirection.xyAngleDeg)}°</dd>
 					</dl>
 					<div class="speed-slider">
 						<Slider
@@ -207,16 +190,6 @@
 							{/snippet}
 						</Slider>
 					</div>
-					<Slider
-						label="X/Z Angle"
-						value={navigation.intendedDirection.xzAngleDeg}
-						min={0}
-						max={359}
-						step={1}
-						unit="°"
-						accentVar="chrome-navigation"
-						onChange={handlePitchChange}
-					/>
 					<CompassDial
 						headingDeg={navigation.velocity.xyAngleDeg}
 						intendedHeadingDeg={navigation.intendedDirection.xyAngleDeg}

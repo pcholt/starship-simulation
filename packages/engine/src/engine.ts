@@ -235,9 +235,10 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 			}
 			case 'SetDirection': {
 				// Sets the *intended* heading only — velocity's actual angles turn toward it over
-				// time in tick(), at a rate that depends on speed, rather than snapping instantly.
+				// time in tick(), at a rate that depends on speed, rather than snapping instantly. The ship
+				// only steers in the x/y plane, so the x/z (pitch) angle is always held at 0.
 				state = produce(state, (draft) => {
-					draft.enterpriseNavigation.intendedDirection = { xyAngleDeg: command.xyAngleDeg, xzAngleDeg: command.xzAngleDeg };
+					draft.enterpriseNavigation.intendedDirection = { xyAngleDeg: command.xyAngleDeg, xzAngleDeg: 0 };
 				});
 				emit({ type: 'StateChanged', paths: ['enterpriseNavigation.intendedDirection'] });
 				return { ok: true };
@@ -256,7 +257,10 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				state = produce(state, (draft) => {
 					draft.enterpriseNavigation.destination = command.destination;
 					if (targetPosition) {
-						draft.enterpriseNavigation.intendedDirection = bearingTo(draft.enterpriseNavigation.position, targetPosition);
+						draft.enterpriseNavigation.intendedDirection = {
+							xyAngleDeg: bearingTo(draft.enterpriseNavigation.position, targetPosition).xyAngleDeg,
+							xzAngleDeg: 0
+						};
 					}
 				});
 				emit({ type: 'StateChanged', paths: ['enterpriseNavigation.destination', 'enterpriseNavigation.intendedDirection'] });
