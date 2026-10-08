@@ -10,8 +10,10 @@ export interface DeviceStatus {
 	operationalStatus: number;
 	/** How likely the device is to work correctly when used; also governs repair speed. */
 	reliabilityFactor: number;
-	/** Energy currently allocated to this device by Engineering's distribution. */
+	/** Energy the device is actually receiving right now. Ramps toward `energyRequested` at a rate-limited pace. */
 	energyAssigned: number;
+	/** Energy Engineering has asked this device to receive; `energyAssigned` converges on it over time. */
+	energyRequested: number;
 }
 
 export function createDeviceStatus(overrides: Partial<DeviceStatus> = {}): DeviceStatus {
@@ -20,6 +22,7 @@ export function createDeviceStatus(overrides: Partial<DeviceStatus> = {}): Devic
 		operationalStatus: 100,
 		reliabilityFactor: 100,
 		energyAssigned: 0,
+		energyRequested: overrides.energyAssigned ?? 0,
 		...overrides
 	};
 }

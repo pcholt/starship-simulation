@@ -1,12 +1,12 @@
 <script lang="ts">
-	import type { BankLocation } from '@starship/engine';
+	import { PARTIAL_SCAN_RANGE, type BankLocation } from '@starship/engine';
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
-	import CommandBox from '../shared/CommandBox.svelte';
-	import CommandReference from '../shared/CommandReference.svelte';
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import Panel from '../shared/Panel.svelte';
 	import Slider from '../shared/Slider.svelte';
-	import { parseHelmCommand, HELM_COMMANDS } from './helm-command-parser.js';
+	import AstrogatorPlot from '../navigation/AstrogatorPlot.svelte';
+	import { toPlotEntities } from '../navigation/plot-entities.js';
+	import { createWeaponFireOverlayState } from '../navigation/weapon-fire-overlay-state.svelte.js';
 
 	interface Props {
 		store: WorldStateStore;
@@ -39,30 +39,36 @@
 		...store.state.federationCraft.map((c) => ({ id: c.id, name: c.name, kind: 'federation craft', hullIntegrity: c.hullIntegrity }))
 	]);
 
-	function describeTarget(command: { type: 'FirePhasers' | 'FireTorpedo'; target: { kind: string; name?: string } }): string {
-		return command.target.kind === 'object' ? command.target.name! : 'coordinates';
+	let plotEntities = $derived(toPlotEntities(store.state));
+	// svelte-ignore state_referenced_locally
+	const weaponFireOverlay = createWeaponFireOverlayState(store);
+
+	// Offsets from the ship's current position, not absolute world coordinates — the same
+	// convention as Sciences' scan area, since the plot is always centered on the Enterprise.
+	let aimOffsetX = $state(0);
+	let aimOffsetY = $state(0);
+	let aimOffsetZ = $state(0);
+
+	let aimPoint = $derived({
+		x: store.state.enterpriseNavigation.position.x + aimOffsetX,
+		y: store.state.enterpriseNavigation.position.y + aimOffsetY,
+		z: store.state.enterpriseNavigation.position.z + aimOffsetZ
+	});
+
+	const AIM_MARKER_RADIUS = 15;
+
+	function handleSelectAimPoint(position: { x: number; y: number; z: number }) {
+		const ship = store.state.enterpriseNavigation.position;
+		aimOffsetX = Math.round(position.x - ship.x);
+		aimOffsetY = Math.round(position.y - ship.y);
+	}
+
+	function describeAimPoint(): string {
+		return `coordinates (${Math.round(aimPoint.x)}, ${Math.round(aimPoint.y)}, ${Math.round(aimPoint.z)})`;
 	}
 
 	function logWeaponResult(weapon: 'Phasers' | 'Torpedo', targetName: string) {
 		weaponsLog = [`${weapon} fired at ${targetName}`, ...weaponsLog].slice(0, 10);
-	}
-
-	async function handleSubmit(text: string) {
-		const parsed = parseHelmCommand(text);
-		if (!parsed.ok) {
-			errorMessage = parsed.reason;
-			return;
-		}
-		const result = await store.dispatch(parsed.command);
-		if (!result.ok) {
-			errorMessage = result.reason;
-			return;
-		}
-		errorMessage = null;
-		if (parsed.command.type === 'FirePhasers' || parsed.command.type === 'FireTorpedo') {
-			const weapon = parsed.command.type === 'FirePhasers' ? 'Phasers' : 'Torpedo';
-			logWeaponResult(weapon, describeTarget(parsed.command));
-		}
 	}
 
 	async function handleSetShieldLevel(location: BankLocation, level: number) {
@@ -80,6 +86,18 @@
 		const result = await store.dispatch({ module: 'helm', type: 'FireTorpedo', target: { kind: 'object', name } });
 		errorMessage = result.ok ? null : result.reason;
 		if (result.ok) logWeaponResult('Torpedo', name);
+	}
+
+	async function handleFirePhasersAtAimPoint() {
+		const result = await store.dispatch({ module: 'helm', type: 'FirePhasers', target: { kind: 'coordinates', position: aimPoint } });
+		errorMessage = result.ok ? null : result.reason;
+		if (result.ok) logWeaponResult('Phasers', describeAimPoint());
+	}
+
+	async function handleFireTorpedoAtAimPoint() {
+		const result = await store.dispatch({ module: 'helm', type: 'FireTorpedo', target: { kind: 'coordinates', position: aimPoint } });
+		errorMessage = result.ok ? null : result.reason;
+		if (result.ok) logWeaponResult('Torpedo', describeAimPoint());
 	}
 </script>
 
@@ -171,6 +189,29 @@
 				</ul>
 			</Panel>
 
+			<Panel title="Aim Point" accentVar="chrome-helm" grow>
+				<AstrogatorPlot
+					center={store.state.enterpriseNavigation.position}
+					entities={plotEntities}
+					range={PARTIAL_SCAN_RANGE}
+					onSelectPoint={handleSelectAimPoint}
+					previewCircle={{ center: aimPoint, radius: AIM_MARKER_RADIUS }}
+					previewLabel="Aim point"
+					previewAccentVar="chrome-helm"
+					fireFlashes={weaponFireOverlay.fireFlashes}
+					explosionFlashes={weaponFireOverlay.explosionFlashes}
+				/>
+				<div class="aim-controls">
+					<Slider label="Aim X" value={aimOffsetX} min={-PARTIAL_SCAN_RANGE} max={PARTIAL_SCAN_RANGE} step={10} accentVar="chrome-helm" testId="aim-x" onChange={(v) => (aimOffsetX = v)} />
+					<Slider label="Aim Y" value={aimOffsetY} min={-PARTIAL_SCAN_RANGE} max={PARTIAL_SCAN_RANGE} step={10} accentVar="chrome-helm" testId="aim-y" onChange={(v) => (aimOffsetY = v)} />
+					<Slider label="Aim Z" value={aimOffsetZ} min={-PARTIAL_SCAN_RANGE} max={PARTIAL_SCAN_RANGE} step={10} accentVar="chrome-helm" testId="aim-z" onChange={(v) => (aimOffsetZ = v)} />
+					<div class="aim-buttons">
+						<button type="button" onclick={handleFirePhasersAtAimPoint}>Fire Phasers at Aim Point</button>
+						<button type="button" onclick={handleFireTorpedoAtAimPoint}>Fire Torpedo at Aim Point</button>
+					</div>
+				</div>
+			</Panel>
+
 			<Panel title="Weapons Log" accentVar="chrome-neutral">
 				<ul data-testid="weapons-log">
 					{#each weaponsLog as entry, i (i)}
@@ -180,23 +221,43 @@
 			</Panel>
 
 			<Panel title="Alerts" accentVar="chrome-neutral">
-				<div aria-label="Alerts"></div>
+				<div aria-label="Alerts">
+					{#if errorMessage}
+						<p role="alert">{errorMessage}</p>
+					{/if}
+				</div>
 			</Panel>
 
-			<Panel title="Command" accentVar="chrome-helm">
-				<CommandBox onSubmit={handleSubmit} {errorMessage} accentVar="chrome-helm" />
-				<CommandReference commands={HELM_COMMANDS} />
-			</Panel>
 		</div>
 	</div>
 </section>
 
 <style>
+	section {
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.aim-controls {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+		gap: var(--space-3) var(--space-4);
+		margin-top: var(--space-3);
+		align-items: center;
+	}
+
+	.aim-buttons {
+		display: flex;
+		gap: var(--space-2);
+	}
+
 	.grid {
 		display: grid;
 		grid-template-columns: minmax(260px, 320px) 1fr;
 		gap: var(--space-4);
-		align-items: start;
+		flex: 1;
+		min-height: 0;
 	}
 
 	.sidebar {

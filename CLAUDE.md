@@ -19,18 +19,19 @@ npm-workspaces monorepo:
 
 - `packages/engine` has zero framework/UI/transport dependencies. It must stay testable without a browser or network.
 - The web app talks to the engine through `EngineClient` (`packages/web/src/lib/adapters/engine-client.ts`) — an interface with `Promise`-based `dispatch`/`loadScenario`, so the same station components work against either `local-engine-client.ts` (in-browser) or `ws-engine-client.ts` (networked), selected in `packages/web/src/lib/app-state.svelte.ts` based on `PUBLIC_MULTIPLAYER_URL`.
-- Station commands are dispatched as typed `Command` objects. Each station also has a terse typed-command parser (`*-command-parser.ts`) mirroring the book's syntax, kept as a secondary/fallback input path — see "UI conventions" below.
+- Station commands are dispatched as typed `Command` objects. The stations no longer have a typed command box; the terse parsers (`*-command-parser.ts`) remain only as a record of the book's command set — see "UI conventions" below.
 
 ## UI conventions (apply to every station)
 
-- **Point-and-click is the primary interaction.** Sliders for scalar values, clickable target lists with action buttons for spatial/craft targeting, dropdowns for enums. The typed `CommandBox` + `CommandReference` stay underneath as a secondary, keyboard-accessible fallback — don't remove them, and don't make them the primary path for new features.
+- **Point-and-click is the primary interaction.** Sliders for scalar values, clickable target lists with action buttons for spatial/craft targeting, dropdowns for enums. There is no typed command box on any station: every command must be reachable through a control. Errors from a dispatch are shown in the station's Alerts panel.
 - **LCARS-inspired visual design.** `Panel.svelte` (capsule header + accent border) wraps every section; each station has its own `--chrome-<station>` accent CSS variable (`packages/web/src/app.css`). True-black background, no light theme — this is a deliberate single dark visual world, not an oversight.
-- Reuse shared components before writing new ones: `Panel`, `Slider` (has an optional `testId` prop for pages with many sliders), `CommandBox`, `CommandReference`, `StatusChip`/`StationStatusBar`. `AstrogatorPlot` (in `components/navigation/`) is a generic world-space plot, not Navigation-specific — Sciences already reuses it; reach for it before building another spatial view from scratch.
+- Reuse shared components before writing new ones: `Panel`, `Slider` (has an optional `testId` prop for pages with many sliders), `StatusChip`/`StationStatusBar`. `AstrogatorPlot` (in `components/navigation/`) is a generic world-space plot, not Navigation-specific — Sciences already reuses it; reach for it before building another spatial view from scratch.
 - Command syntax has no spaces between the code and a concatenated-token style where the book used space-separated letters (e.g. `SPO` not `S P O`) — keep that simplification in any new parser.
 
-## Testing (non-negotiable, per user's global TDD policy)
+## Testing - revocation of the TDD requirement
 
-Red-Green-Refactor: write a failing test before writing the behavior it tests. No unit tests are allowed real I/O/network — dispatch through the engine or a fake `EngineClient`/`SessionSocket`, never a real WebSocket in a unit test.
+TDD is not required, but unit tests are still encouraged for testing isolated pieces of behaviour.
+No unit tests are allowed real I/O/network — dispatch through the engine or a fake `EngineClient`/`SessionSocket`, never a real WebSocket in a unit test.
 
 - Engine: plain Vitest, `packages/engine/test/`.
 - Server: plain Vitest, `packages/server/test/`, sockets faked as `{ send(data: string) }`.

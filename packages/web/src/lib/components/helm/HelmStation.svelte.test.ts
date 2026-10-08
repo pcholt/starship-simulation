@@ -37,43 +37,6 @@ describe('HelmStation', () => {
 		await expect.element(page.getByTestId('torpedo-tube-6-func')).toBeInTheDocument();
 	});
 
-	it('updates a shield level after an S D command is entered', async () => {
-		const store = setup();
-		render(HelmStation, { store });
-
-		await page.getByLabelText('Command input').fill('SD fore 40');
-		await page.getByRole('button', { name: 'Enter' }).click();
-
-		await expect.element(page.getByTestId('shield-fore-level')).toHaveTextContent('40');
-	});
-
-	it('damages a named target after firing phasers, reflected in the last-fired-at readout', async () => {
-		const store = setup();
-		store.dispatch({
-			module: 'controller',
-			type: 'CreateEnemyCraft',
-			name: 'Klingon Bird of Prey',
-			mission: 'unconditionalAttack',
-			position: { x: 50, y: 0, z: 0 }
-		});
-		render(HelmStation, { store });
-
-		await page.getByLabelText('Command input').fill('FPO Klingon Bird of Prey');
-		await page.getByRole('button', { name: 'Enter' }).click();
-
-		await expect.element(page.getByTestId('weapons-log')).toHaveTextContent('Klingon Bird of Prey');
-	});
-
-	it('shows an error message when firing at a nonexistent target', async () => {
-		const store = setup();
-		render(HelmStation, { store });
-
-		await page.getByLabelText('Command input').fill('FPO Nobody');
-		await page.getByRole('button', { name: 'Enter' }).click();
-
-		await expect.element(page.getByRole('alert')).toBeInTheDocument();
-	});
-
 	it('sets a shield level via its slider (point-and-click, no typed command)', async () => {
 		const store = setup();
 		render(HelmStation, { store });
@@ -131,5 +94,48 @@ describe('HelmStation', () => {
 		await page.getByTestId('fire-torpedo-Klingon Bird of Prey').click();
 
 		await expect.element(page.getByTestId('weapons-log')).toHaveTextContent('Klingon Bird of Prey');
+	});
+
+	it('fires phasers at the aim-point coordinates via its button (point-and-click)', async () => {
+		const store = setup();
+		store.dispatch({ module: 'controller', type: 'CreateEnemyCraft', name: 'Raider', mission: 'unconditionalAttack', position: { x: 100, y: 0, z: 0 } });
+		render(HelmStation, { store });
+		await page.getByLabelText('Aim X').fill('100');
+
+		await page.getByRole('button', { name: 'Fire Phasers at Aim Point' }).click();
+
+		await expect.element(page.getByTestId('weapons-log')).toHaveTextContent('Phasers fired at coordinates (100, 0, 0)');
+	});
+
+	it('fires a torpedo at the aim-point coordinates via its button (point-and-click)', async () => {
+		const store = setup();
+		store.dispatch({ module: 'controller', type: 'CreateEnemyCraft', name: 'Raider', mission: 'unconditionalAttack', position: { x: 40, y: -30, z: 0 } });
+		render(HelmStation, { store });
+		await page.getByLabelText('Aim X').fill('40');
+		await page.getByLabelText('Aim Y').fill('-30');
+
+		await page.getByRole('button', { name: 'Fire Torpedo at Aim Point' }).click();
+
+		await expect.element(page.getByTestId('weapons-log')).toHaveTextContent('Torpedo fired at coordinates (40, -30, 0)');
+		expect(store.state.torpedoes).toHaveLength(1);
+	});
+
+	it('sets the aim point by clicking the plot', async () => {
+		const store = setup();
+		render(HelmStation, { store });
+
+		await page.getByTestId('astrogator-svg').click();
+
+		await expect.element(page.getByTestId('aim-x')).toBeInTheDocument();
+		await expect.element(page.getByTestId('scan-preview-circle')).toBeInTheDocument();
+	});
+
+	it('shows the reason in the Alerts panel when nothing is at the aim point', async () => {
+		const store = setup();
+		render(HelmStation, { store });
+
+		await page.getByRole('button', { name: 'Fire Phasers at Aim Point' }).click();
+
+		await expect.element(page.getByRole('alert')).toBeInTheDocument();
 	});
 });

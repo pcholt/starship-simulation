@@ -1,3 +1,4 @@
+import type { DeviceGroupId } from './domain/device-groups.js';
 import type { ModuleName } from './domain/module.js';
 import type { Location } from './domain/location.js';
 import type { Vector3 } from './domain/vector.js';
@@ -35,6 +36,8 @@ export type Command =
 	| { module: 'sciences'; type: 'ScanArea'; position: Vector3 }
 	| { module: 'sciences'; type: 'ScanRandom' }
 	| { module: 'engineering'; type: 'SetEnergyAllocation'; deviceId: string; amount: number }
+	| { module: 'engineering'; type: 'SetGroupToMinimumEnergy'; group: DeviceGroupId }
+	| { module: 'engineering'; type: 'SetEnergyGroupLocked'; group: DeviceGroupId; locked: boolean }
 	| {
 			module: 'engineering';
 			type: 'SetShuttlecraftMission';

@@ -36,35 +36,6 @@ describe('SciencesStation', () => {
 		await expect.element(page.getByTestId('sciences-computer-opstat')).toHaveTextContent('100');
 	});
 
-	it('displays scan results after scanning a named object', async () => {
-		const store = setup();
-		store.dispatch({
-			module: 'controller',
-			type: 'CreateCelestialObject',
-			name: 'Rigel VII',
-			position: { x: 10, y: 0, z: 0 },
-			radius: 6000,
-			mass: 5.9e24
-		});
-		render(SciencesStation, { store });
-
-		await page.getByLabelText('Command input').fill('SSO Rigel VII');
-		await page.getByRole('button', { name: 'Enter' }).click();
-
-		await expect.element(page.getByTestId('scan-identity')).toHaveTextContent('Rigel VII');
-		await expect.element(page.getByTestId('scan-quality')).toHaveTextContent('full');
-	});
-
-	it('shows an error message when scanning an object that does not exist', async () => {
-		const store = setup();
-		render(SciencesStation, { store });
-
-		await page.getByLabelText('Command input').fill('SSO Nonexistent');
-		await page.getByRole('button', { name: 'Enter' }).click();
-
-		await expect.element(page.getByRole('alert')).toBeInTheDocument();
-	});
-
 	it('scans a listed object by clicking its Scan button (point-and-click, no typed command)', async () => {
 		const store = setup();
 		store.dispatch({

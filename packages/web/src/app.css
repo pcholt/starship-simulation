@@ -46,6 +46,7 @@
 	--status-ok: #5fd98a;
 	--status-warning: #f2c14e;
 	--status-critical: #ff5c5c;
+	--status-overdrive: #ff8a1f;
 
 	/* Type */
 	--font-display: 'Orbitron', sans-serif;
@@ -71,6 +72,7 @@
 
 html,
 body {
+	overflow: hidden;
 	margin: 0;
 	padding: 0;
 	background: var(--void);

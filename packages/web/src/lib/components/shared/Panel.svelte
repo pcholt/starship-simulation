@@ -6,12 +6,14 @@
 		/** CSS custom property name (without `--`) for this panel's accent, e.g. `chrome-engineering`. */
 		accentVar: string;
 		children: Snippet;
+		/** Stretch to take the remaining height of a flex-column parent. */
+		grow?: boolean;
 	}
 
-	let { title, accentVar, children }: Props = $props();
+	let { title, accentVar, children, grow = false }: Props = $props();
 </script>
 
-<section class="panel" style:--accent="var(--{accentVar})">
+<section class="panel" class:grow style:--accent="var(--{accentVar})">
 	<header>{title}</header>
 	<div class="body">
 		{@render children?.()}
@@ -24,7 +26,14 @@
 		border: 1px solid var(--accent);
 		border-radius: var(--radius-capsule) var(--radius-sm) var(--radius-sm) var(--radius-sm);
 		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
 		margin-bottom: var(--space-4);
+	}
+
+	.grow {
+		flex: 1;
 	}
 
 	header {
@@ -39,6 +48,10 @@
 	}
 
 	.body {
+		flex: 1;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
 		padding: var(--space-4);
 	}
 </style>

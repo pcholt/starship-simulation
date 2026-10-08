@@ -7,7 +7,8 @@ describe('createDeviceStatus', () => {
 			functionalStatus: 100,
 			operationalStatus: 100,
 			reliabilityFactor: 100,
-			energyAssigned: 0
+			energyAssigned: 0,
+			energyRequested: 0
 		});
 	});
 

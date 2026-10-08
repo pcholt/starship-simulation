@@ -40,7 +40,7 @@ export {
 	PARTIAL_SCAN_RANGE
 } from './domain/sciences.js';
 export type { EngineeringState, Shuttlecraft, ShuttlecraftMission, BankLocation } from './domain/engineering.js';
-export { createEngineeringState, allocateEnergy, DEVICE_IDS, BANK_LOCATIONS } from './domain/engineering.js';
+export { createEngineeringState, allocateEnergy, allocateEnergyToDevices, allocateMinimumEnergyToGroup, setGroupLocked, advanceEnergyLevels, DEVICE_IDS, BANK_LOCATIONS } from './domain/engineering.js';
 export {
 	bankLocationForRelativePosition,
 	computePhaserDamage,
@@ -54,3 +54,5 @@ export type { Patient, MedicalState, AdmitResult, RecoveryOptions } from './doma
 export { createMedicalState, admitPatient, dischargePatient, recoverPatient, ICU_CAPACITY } from './domain/medical.js';
 export type { Message, CommunicationsState } from './domain/communications.js';
 export { createCommunicationsState, enqueueMessage, displayNextMessage } from './domain/communications.js';
+export type { DeviceGroupId, EnergyChangeRate } from './domain/device-groups.js';
+export { DEVICE_GROUP_IDS, MAXIMUM_ENERGY_UNITS_CHANGE_PER_SECOND, groupIdForDevice, minimumOperationalEnergy, nominalMaximumEnergy, overdriveEnergyLimit, OVERDRIVE_PERCENT_OF_NOMINAL_MAXIMUM } from './domain/device-groups.js';

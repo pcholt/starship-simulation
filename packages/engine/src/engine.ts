@@ -5,7 +5,8 @@ import { createInitialWorldState, appendBoundedEvent, type WorldState } from './
 import { advancePosition, advanceHeading, bearingTo } from './domain/navigation.js';
 import type { Location } from './domain/location.js';
 import { scanCelestialObject, scanCraft, distanceBetween, scanQualityForDistance, type ScanResult } from './domain/sciences.js';
-import { allocateEnergy } from './domain/engineering.js';
+import { DEVICE_GROUP_IDS } from './domain/device-groups.js';
+import { advanceEnergyLevels, allocateEnergy, allocateMinimumEnergyToGroup, setGroupLocked } from './domain/engineering.js';
 import { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage } from './domain/combat.js';
 import { admitPatient, recoverPatient } from './domain/medical.js';
 import { enqueueMessage, displayNextMessage } from './domain/communications.js';
@@ -308,6 +309,28 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				emit({ type: 'StateChanged', paths: ['engineering.devices'] });
 				return { ok: true };
 			}
+			case 'SetGroupToMinimumEnergy': {
+				if (!DEVICE_GROUP_IDS.includes(command.group)) {
+					return { ok: false, reason: `No device group named "${command.group}"` };
+				}
+				const nextEngineering = allocateMinimumEnergyToGroup(state.engineering, command.group);
+				state = produce(state, (draft) => {
+					draft.engineering = nextEngineering;
+				});
+				emit({ type: 'StateChanged', paths: ['engineering.devices'] });
+				return { ok: true };
+			}
+			case 'SetEnergyGroupLocked': {
+				if (!DEVICE_GROUP_IDS.includes(command.group)) {
+					return { ok: false, reason: `No device group named "${command.group}"` };
+				}
+				const nextEngineering = setGroupLocked(state.engineering, command.group, command.locked);
+				state = produce(state, (draft) => {
+					draft.engineering = nextEngineering;
+				});
+				emit({ type: 'StateChanged', paths: ['engineering.lockedGroups'] });
+				return { ok: true };
+			}
 			case 'FirePhasers': {
 				const resolved = resolveInRangeTarget(command.target);
 				if ('reason' in resolved) return { ok: false, reason: resolved.reason };
@@ -483,6 +506,7 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 						return recovered.health <= 0 || recovered.health >= 10 ? null : recovered;
 					});
 				}
+				draft.engineering = advanceEnergyLevels(draft.engineering, deltaMs);
 				if (draft.scenario?.runState === 'running') {
 					draft.scenario.elapsedMs += deltaMs;
 				}

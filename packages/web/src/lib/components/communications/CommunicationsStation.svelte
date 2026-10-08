@@ -2,11 +2,8 @@
 	import type { ShipStation } from '@starship/engine';
 	import { SHIP_STATIONS } from '@starship/engine';
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
-	import CommandBox from '../shared/CommandBox.svelte';
-	import CommandReference from '../shared/CommandReference.svelte';
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import Panel from '../shared/Panel.svelte';
-	import { parseCommunicationsCommand, COMMUNICATIONS_COMMANDS } from './communications-command-parser.js';
 
 	interface Props {
 		store: WorldStateStore;
@@ -25,16 +22,6 @@
 	let personnelStation: ShipStation = $state(SHIP_STATIONS[0]);
 	let cargoType = $state('');
 	let cargoStation: ShipStation = $state(SHIP_STATIONS[0]);
-
-	async function handleSubmit(text: string) {
-		const parsed = parseCommunicationsCommand(text);
-		if (!parsed.ok) {
-			errorMessage = parsed.reason;
-			return;
-		}
-		const result = await store.dispatch(parsed.command);
-		errorMessage = result.ok ? null : result.reason;
-	}
 
 	async function dispatchAndReport(command: Parameters<WorldStateStore['dispatch']>[0]) {
 		const result = await store.dispatch(command);
@@ -114,7 +101,11 @@
 			</Panel>
 
 			<Panel title="Alerts" accentVar="chrome-neutral">
-				<div aria-label="Alerts"></div>
+				<div aria-label="Alerts">
+					{#if errorMessage}
+						<p role="alert">{errorMessage}</p>
+					{/if}
+				</div>
 			</Panel>
 		</div>
 
@@ -182,10 +173,6 @@
 				</div>
 			</Panel>
 
-			<Panel title="Command" accentVar="chrome-communications">
-				<CommandBox onSubmit={handleSubmit} {errorMessage} accentVar="chrome-communications" />
-				<CommandReference commands={COMMUNICATIONS_COMMANDS} />
-			</Panel>
 		</div>
 	</div>
 </section>

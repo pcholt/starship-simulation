@@ -63,6 +63,10 @@
 		rangeCircles?: RangeCircle[];
 		/** A single ring drawn at an arbitrary world point, e.g. a live scan-area preview that tracks a slider. */
 		previewCircle?: PreviewCircle;
+		/** Names the preview ring in the symbol key and its tooltip. */
+		previewLabel?: string;
+		/** CSS custom property name (without `--`) coloring the preview ring and its key entry. */
+		previewAccentVar?: string;
 		/** Deflector shield strength per bank, drawn as heading-oriented pie sectors over the Enterprise. */
 		shieldOverlay?: ShieldOverlay;
 		/** A momentary ring at a scanned point that fades out over a couple of seconds, e.g. a Sciences Scan Area result. */
@@ -84,6 +88,8 @@
 		onSelectPoint,
 		rangeCircles = [],
 		previewCircle,
+		previewLabel = 'Scan preview',
+		previewAccentVar = 'chrome-sciences',
 		shieldOverlay,
 		scanFlash,
 		shipHeadingDeg,
@@ -217,6 +223,7 @@
 		<!-- Free-form point selection has no clean keyboard equivalent; the typed SCC command remains the keyboard-accessible path for setting course. -->
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+		<div class="plot-box">
 		<svg
 			data-testid="astrogator-svg"
 			viewBox="0 0 {VIEW_SIZE} {VIEW_SIZE}"
@@ -263,10 +270,10 @@
 					cy={previewCirclePlot.y}
 					r={previewCirclePlot.radius}
 					fill="none"
-					stroke="var(--chrome-sciences)"
+					stroke="var(--{previewAccentVar})"
 					stroke-width="0.3"
 				>
-					<title>Scan preview — {previewCircle?.radius} units</title>
+					<title>{previewLabel} — {previewCircle?.radius} units</title>
 				</circle>
 			{/if}
 
@@ -300,6 +307,7 @@
 				/>
 			{/each}
 		</svg>
+		</div>
 
 		<label class="zoom-control">
 			Zoom (plot range)
@@ -319,7 +327,7 @@
 			<li>⊚ {circle.label.toUpperCase()} RANGE</li>
 		{/each}
 		{#if previewCircle}
-			<li class="preview-circle-key">⊚ SCAN PREVIEW</li>
+			<li class="preview-circle-key" style:color="var(--{previewAccentVar})">⊚ {previewLabel.toUpperCase()}</li>
 		{/if}
 	</ul>
 </div>
@@ -327,22 +335,34 @@
 <style>
 	.astrogator {
 		display: flex;
+		flex-wrap: wrap;
 		gap: var(--space-6);
-		align-items: flex-start;
+		align-items: stretch;
+		height: 100%;
 		/* Distinct from --chrome-navigation, so the absolute universe grid reads as a separate
 		   layer from the ship-relative grid and the navigation station's own accent chrome. */
 		--universe-grid: #3b5bdb;
 	}
 
 	.plot-column {
-		flex: 1;
+		flex: 1 1 18rem;
 		min-width: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.plot-box {
+		flex: 1;
+		min-height: 12rem;
+		container-type: size;
+		display: grid;
+		place-items: center;
 	}
 
 	svg {
 		display: block;
-		width: 100%;
-		aspect-ratio: 1;
+		width: min(100cqw, 100cqh);
+		height: min(100cqw, 100cqh);
 		cursor: crosshair;
 	}
 

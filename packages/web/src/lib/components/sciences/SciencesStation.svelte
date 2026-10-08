@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { FULL_SCAN_RANGE, PARTIAL_SCAN_RANGE } from '@starship/engine';
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
-	import CommandBox from '../shared/CommandBox.svelte';
-	import CommandReference from '../shared/CommandReference.svelte';
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import Panel from '../shared/Panel.svelte';
 	import Slider from '../shared/Slider.svelte';
@@ -11,7 +9,6 @@
 	import AstrogatorPlot from '../navigation/AstrogatorPlot.svelte';
 	import { toPlotEntities } from '../navigation/plot-entities.js';
 	import { createWeaponFireOverlayState } from '../navigation/weapon-fire-overlay-state.svelte.js';
-	import { parseSciencesCommand, SCIENCES_COMMANDS } from './sciences-command-parser.js';
 
 	interface Props {
 		store: WorldStateStore;
@@ -53,16 +50,6 @@
 		center: scanAreaWorldPosition,
 		radius: FULL_SCAN_RANGE
 	});
-
-	async function handleSubmit(text: string) {
-		const parsed = parseSciencesCommand(text);
-		if (!parsed.ok) {
-			errorMessage = parsed.reason;
-			return;
-		}
-		const result = await store.dispatch(parsed.command);
-		errorMessage = result.ok ? null : result.reason;
-	}
 
 	async function handleScanObject(name: string) {
 		const result = await store.dispatch({ module: 'sciences', type: 'ScanObject', name });
@@ -132,6 +119,13 @@
 					{/if}
 				</dl>
 			</Panel>
+			<Panel title="Alerts" accentVar="chrome-neutral">
+				<div aria-label="Alerts">
+					{#if errorMessage}
+						<p role="alert">{errorMessage}</p>
+					{/if}
+				</div>
+			</Panel>
 		</div>
 
 		<div class="main-column">
@@ -148,7 +142,7 @@
 				<button onclick={handleScanRandom}>Scan Randomly</button>
 			</Panel>
 
-			<Panel title="Scan Area" accentVar="chrome-sciences">
+			<Panel title="Scan Area" accentVar="chrome-sciences" grow>
 				<AstrogatorPlot
 					center={store.state.enterpriseNavigation.position}
 					entities={plotEntities}
@@ -189,24 +183,24 @@
 				</div>
 			</Panel>
 
-			<Panel title="Alerts" accentVar="chrome-neutral">
-				<div aria-label="Alerts"></div>
-			</Panel>
 
-			<Panel title="Command" accentVar="chrome-sciences">
-				<CommandBox onSubmit={handleSubmit} {errorMessage} accentVar="chrome-sciences" />
-				<CommandReference commands={SCIENCES_COMMANDS} />
-			</Panel>
 		</div>
 	</div>
 </section>
 
 <style>
+	section {
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+	}
+
 	.grid {
 		display: grid;
 		grid-template-columns: minmax(260px, 320px) 1fr;
 		gap: var(--space-4);
-		align-items: start;
+		flex: 1;
+		min-height: 0;
 	}
 
 	.sidebar {
@@ -247,9 +241,11 @@
 	}
 
 	.scan-area-controls {
-		display: flex;
-		flex-direction: column;
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+		align-items: end;
 		gap: var(--space-4);
+		margin-top: var(--space-3);
 	}
 
 	@media (max-width: 800px) {

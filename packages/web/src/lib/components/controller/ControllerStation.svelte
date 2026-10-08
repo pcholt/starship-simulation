@@ -2,10 +2,8 @@
 	import type { ModuleTarget, ScenarioScript } from '@starship/engine';
 	import { ALL_MODULE_NAMES } from '@starship/engine';
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
-	import CommandBox from '../shared/CommandBox.svelte';
-	import CommandReference from '../shared/CommandReference.svelte';
 	import Panel from '../shared/Panel.svelte';
-	import { parseControllerCommand, CONTROLLER_COMMANDS } from './controller-command-parser.js';
+	import CreateObjectPanel from './CreateObjectPanel.svelte';
 	import { PRESET_SCENARIOS, type PresetScenario } from './preset-scenarios.js';
 
 	interface Props {
@@ -30,16 +28,6 @@
 			value: typeof value === 'object' ? JSON.stringify(value) : String(value)
 		}));
 	});
-
-	async function handleSubmit(text: string) {
-		const parsed = parseControllerCommand(text);
-		if (!parsed.ok) {
-			errorMessage = parsed.reason;
-			return;
-		}
-		const result = await store.dispatch(parsed.command);
-		errorMessage = result.ok ? null : result.reason;
-	}
 
 	async function handleLoadScenario() {
 		try {
@@ -67,6 +55,11 @@
 		scenarioError = result.ok ? null : result.reason;
 	}
 
+	async function handleCreateObject(command: Parameters<WorldStateStore['dispatch']>[0]) {
+		const result = await store.dispatch(command);
+		errorMessage = result.ok ? null : result.reason;
+	}
+
 	async function handleModuleLifecycle(type: 'Initialize' | 'Execute' | 'Halt', target: ModuleTarget) {
 		const result = await store.dispatch({ module: 'controller', type, target });
 		errorMessage = result.ok ? null : result.reason;
@@ -77,6 +70,7 @@
 	<h2>Simulation Controller</h2>
 
 	<div class="grid">
+		<div class="controls-column">
 		<Panel title="Module Status" accentVar="chrome-controller">
 			<table>
 				<thead>
@@ -117,37 +111,15 @@
 			</table>
 		</Panel>
 
-		<Panel title="Variable Display" accentVar="chrome-controller">
-			<label>
-				NAME OF MODULE WHOSE VARIABLES ARE BEING DISPLAYED:
-				<select bind:value={selectedModule}>
-					<option value="all">all</option>
-					{#each ALL_MODULE_NAMES as name (name)}
-						<option value={name}>{name}</option>
-					{/each}
-				</select>
-			</label>
-			<table>
-				<thead>
-					<tr>
-						<th>VARIABLE NAME</th>
-						<th>VALUE</th>
-					</tr>
-				</thead>
-				<tbody data-testid="variable-display">
-					{#each displayedVariables as row (row.name)}
-						<tr>
-							<td>{row.name}</td>
-							<td>{row.value}</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
+		<Panel title="Alerts" accentVar="chrome-neutral">
+			<div aria-label="Alerts">
+					{#if errorMessage}
+						<p role="alert">{errorMessage}</p>
+					{/if}
+				</div>
 		</Panel>
 
-		<Panel title="Alerts" accentVar="chrome-neutral">
-			<div aria-label="Alerts"></div>
-		</Panel>
+		<CreateObjectPanel onCreate={handleCreateObject} onInvalid={(reason) => (errorMessage = reason)} />
 
 		<Panel title="Scenario" accentVar="chrome-controller">
 			<p data-testid="scenario-status">SCENARIO {scenarioRunning ? 'IS RUNNING' : 'IS NOT RUNNING'}</p>
@@ -174,18 +146,85 @@
 			{/if}
 		</Panel>
 
-		<Panel title="Command" accentVar="chrome-controller">
-			<CommandBox onSubmit={handleSubmit} {errorMessage} accentVar="chrome-controller" />
-			<CommandReference commands={CONTROLLER_COMMANDS} />
+		</div>
+
+		<div class="variables-column">
+		<Panel title="Variable Display" accentVar="chrome-controller" grow>
+			<label>
+				NAME OF MODULE WHOSE VARIABLES ARE BEING DISPLAYED:
+				<select bind:value={selectedModule}>
+					<option value="all">all</option>
+					{#each ALL_MODULE_NAMES as name (name)}
+						<option value={name}>{name}</option>
+					{/each}
+				</select>
+			</label>
+			<div class="variable-scroller">
+			<table>
+				<thead>
+					<tr>
+						<th>VARIABLE NAME</th>
+						<th>VALUE</th>
+					</tr>
+				</thead>
+				<tbody data-testid="variable-display">
+					{#each displayedVariables as row (row.name)}
+						<tr>
+							<td>{row.name}</td>
+							<td>{row.value}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+			</div>
 		</Panel>
+		</div>
 	</div>
 </section>
 
 <style>
-	.grid {
+	section {
+		height: 100%;
 		display: flex;
 		flex-direction: column;
+	}
+
+	.grid {
+		flex: 1;
+		min-height: 0;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 		gap: var(--space-4);
+	}
+
+	.controls-column,
+	.variables-column {
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+		min-width: 0;
+	}
+
+	.controls-column {
+		overflow-y: auto;
+	}
+
+	.controls-column > :global(*) {
+		flex-shrink: 0;
+	}
+
+	.variable-scroller td:first-child {
+		white-space: nowrap;
+	}
+
+	.variable-scroller td {
+		overflow-wrap: anywhere;
+	}
+
+	.variable-scroller {
+		flex: 1;
+		min-height: 0;
+		overflow: auto;
 	}
 
 	.module-actions {

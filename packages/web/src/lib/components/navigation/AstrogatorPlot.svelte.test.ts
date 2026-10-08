@@ -1,9 +1,22 @@
 import { page } from 'vitest/browser';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import AstrogatorPlot from './AstrogatorPlot.svelte';
 
 describe('AstrogatorPlot', () => {
+	afterEach(async () => {
+		await page.viewport(414, 896);
+	});
+
+	it('stays square when constrained by window height', async () => {
+		await page.viewport(1400, 500);
+		render(AstrogatorPlot, { center: { x: 0, y: 0, z: 0 }, entities: [], range: 1000 });
+
+		const plotBounds = page.getByTestId('astrogator-svg').element().getBoundingClientRect();
+
+		expect(plotBounds.width).toBeCloseTo(plotBounds.height, 0);
+	});
+
 	it('always plots the Enterprise at the center', async () => {
 		render(AstrogatorPlot, { center: { x: 0, y: 0, z: 0 }, entities: [], range: 1000 });
 

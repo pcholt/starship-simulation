@@ -1,15 +1,12 @@
 <script lang="ts">
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import { BANK_LOCATIONS, distanceBetween, FULL_SCAN_RANGE, PARTIAL_SCAN_RANGE, PHASER_RANGE_HALF_LIFE } from '@starship/engine';
-	import CommandBox from '../shared/CommandBox.svelte';
-	import CommandReference from '../shared/CommandReference.svelte';
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import Panel from '../shared/Panel.svelte';
 	import Slider from '../shared/Slider.svelte';
 	import { formatChronometer, formatCoordinate } from '../../format.js';
 	import AstrogatorPlot from './AstrogatorPlot.svelte';
 	import CompassDial from './CompassDial.svelte';
-	import { parseNavigationCommand, NAVIGATION_COMMANDS } from './navigation-command-parser.js';
 	import { toPlotEntities } from './plot-entities.js';
 	import { createAstrogatorOverlayState } from './astrogator-overlay-state.svelte.js';
 	import { createWeaponFireOverlayState } from './weapon-fire-overlay-state.svelte.js';
@@ -107,16 +104,6 @@
 	let shipProjectedPath = $derived(astrogatorOverlay.projectedPath(navigation));
 	// svelte-ignore state_referenced_locally
 	const weaponFireOverlay = createWeaponFireOverlayState(store);
-
-	async function handleSubmit(text: string) {
-		const parsed = parseNavigationCommand(text);
-		if (!parsed.ok) {
-			errorMessage = parsed.reason;
-			return;
-		}
-		const result = await store.dispatch(parsed.command);
-		errorMessage = result.ok ? null : result.reason;
-	}
 
 	async function handleSpeedChange(warpSpeed: number) {
 		await store.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed });
@@ -217,7 +204,7 @@
 		</div>
 
 		<div class="main-column">
-			<Panel title="Astrogator" accentVar="chrome-navigation">
+			<Panel title="Astrogator" accentVar="chrome-navigation" grow>
 				<AstrogatorPlot
 					center={navigation.position}
 					entities={plotEntities}
@@ -256,24 +243,32 @@
 				</Panel>
 
 				<Panel title="Alerts" accentVar="chrome-neutral">
-					<div aria-label="Alerts"></div>
+					<div aria-label="Alerts">
+					{#if errorMessage}
+						<p role="alert">{errorMessage}</p>
+					{/if}
+				</div>
 				</Panel>
+
 			</div>
 
-			<Panel title="Command" accentVar="chrome-navigation">
-				<CommandBox onSubmit={handleSubmit} {errorMessage} accentVar="chrome-navigation" />
-				<CommandReference commands={NAVIGATION_COMMANDS} />
-			</Panel>
 		</div>
 	</div>
 </section>
 
 <style>
+	section {
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+	}
+
 	.grid {
 		display: grid;
 		grid-template-columns: minmax(260px, 320px) 1fr;
 		gap: var(--space-4);
-		align-items: start;
+		flex: 1;
+		min-height: 0;
 	}
 
 	.sidebar {
@@ -291,7 +286,7 @@
 
 	.lower-row {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: var(--space-4);
 	}
 

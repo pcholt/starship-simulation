@@ -26,22 +26,17 @@ describe('ControllerStation', () => {
 		await expect.element(page.getByTestId('module-status-navigation')).toHaveTextContent('running');
 	});
 
-	it('executes a module via the command box and reflects it in the module status table', async () => {
+	it('shows a newly created enemy craft in the variable display', async () => {
 		const store = setup();
 		render(ControllerStation, { store });
 
-		await page.getByLabelText('Command input').fill('EN');
-		await page.getByRole('button', { name: 'Enter' }).click();
-
-		await expect.element(page.getByTestId('module-status-navigation')).toHaveTextContent('running');
-	});
-
-	it('creates an enemy craft via the command box and shows it in the variable display', async () => {
-		const store = setup();
-		render(ControllerStation, { store });
-
-		await page.getByLabelText('Command input').fill('CE Klingon Bird of Prey, unconditionalAttack, 1, 2, 3');
-		await page.getByRole('button', { name: 'Enter' }).click();
+		await store.dispatch({
+			module: 'controller',
+			type: 'CreateEnemyCraft',
+			name: 'Klingon Bird of Prey',
+			mission: 'unconditionalAttack',
+			position: { x: 1, y: 2, z: 3 }
+		});
 
 		await expect.element(page.getByTestId('variable-display')).toHaveTextContent('Klingon Bird of Prey');
 	});
@@ -76,16 +71,6 @@ describe('ControllerStation', () => {
 		await expect.element(page.getByRole('alert')).toHaveTextContent('No scenario loaded');
 	});
 
-	it('shows an error message for an unrecognized command', async () => {
-		const store = setup();
-		render(ControllerStation, { store });
-
-		await page.getByLabelText('Command input').fill('BOGUS');
-		await page.getByRole('button', { name: 'Enter' }).click();
-
-		await expect.element(page.getByRole('alert')).toBeInTheDocument();
-	});
-
 	it('lists the preset scenarios by name', async () => {
 		const store = setup();
 		render(ControllerStation, { store });
@@ -116,5 +101,53 @@ describe('ControllerStation', () => {
 		await expect.element(page.getByTestId('scenario-status')).toHaveTextContent('IS RUNNING');
 		store.tick(0);
 		await expect.element(page.getByTestId('variable-display')).toHaveTextContent('Klingon Bird of Prey');
+	});
+
+	it('creates an enemy craft from the Create Object form', async () => {
+		const store = setup();
+		render(ControllerStation, { store });
+
+		await page.getByLabelText('Object name').fill('Klingon Bird of Prey');
+		await page.getByLabelText('Craft mission').fill('unconditionalAttack');
+		await page.getByLabelText('Object X').fill('50');
+		await page.getByRole('button', { name: 'Create', exact: true }).click();
+
+		await expect.element(page.getByTestId('variable-display')).toHaveTextContent('Klingon Bird of Prey');
+		expect(store.state.enemyCraft[0]).toMatchObject({ name: 'Klingon Bird of Prey', mission: 'unconditionalAttack', position: { x: 50, y: 0, z: 0 } });
+	});
+
+	it('creates a federation craft when that kind is selected', async () => {
+		const store = setup();
+		render(ControllerStation, { store });
+
+		await page.getByLabelText('Kind of object').selectOptions('federationCraft');
+		await page.getByLabelText('Object name').fill('USS Excelsior');
+		await page.getByLabelText('Craft mission').fill('patrol');
+		await page.getByRole('button', { name: 'Create', exact: true }).click();
+
+		expect(store.state.federationCraft[0]).toMatchObject({ name: 'USS Excelsior' });
+	});
+
+	it('creates a celestial object with a radius and mass, and hides the mission field', async () => {
+		const store = setup();
+		render(ControllerStation, { store });
+
+		await page.getByLabelText('Kind of object').selectOptions('celestialObject');
+		await expect.element(page.getByLabelText('Craft mission')).not.toBeInTheDocument();
+		await page.getByLabelText('Object name').fill('Rigel VII');
+		await page.getByLabelText('Object radius').fill('6000');
+		await page.getByRole('button', { name: 'Create', exact: true }).click();
+
+		expect(store.state.celestialObjects[0]).toMatchObject({ name: 'Rigel VII', radius: 6000 });
+	});
+
+	it('shows a reason in the Alerts panel when the form is incomplete', async () => {
+		const store = setup();
+		render(ControllerStation, { store });
+
+		await page.getByRole('button', { name: 'Create', exact: true }).click();
+
+		await expect.element(page.getByRole('alert')).toHaveTextContent('Enter a name');
+		expect(store.state.enemyCraft).toHaveLength(0);
 	});
 });

@@ -21,22 +21,20 @@ describe('NavigationStation', () => {
 		await expect.element(page.getByTestId('nav-speed')).toHaveTextContent('0');
 	});
 
-	it('updates the displayed speed after a Set Velocity command is entered', async () => {
+	it('updates the displayed speed after the speed is set', async () => {
 		const store = setup();
 		render(NavigationStation, { store });
 
-		await page.getByLabelText('Command input').fill('SV 7');
-		await page.getByRole('button', { name: 'Enter' }).click();
+		await store.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 7 });
 
 		await expect.element(page.getByTestId('nav-speed')).toHaveTextContent('7');
 	});
 
-	it('sets the intended heading immediately after a Set Direction command, without snapping the actual heading there yet', async () => {
+	it('sets the intended heading immediately after the direction is set, without snapping the actual heading there yet', async () => {
 		const store = setup();
 		render(NavigationStation, { store });
 
-		await page.getByLabelText('Command input').fill('SD 45 10');
-		await page.getByRole('button', { name: 'Enter' }).click();
+		await store.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg: 45, xzAngleDeg: 10 });
 
 		await expect.element(page.getByTestId('nav-xy-angle-intended')).toHaveTextContent('45');
 		await expect.element(page.getByTestId('nav-xz-angle-intended')).toHaveTextContent('10');
@@ -49,8 +47,7 @@ describe('NavigationStation', () => {
 		const store = setup();
 		render(NavigationStation, { store });
 
-		await page.getByLabelText('Command input').fill('SD 90 0');
-		await page.getByRole('button', { name: 'Enter' }).click();
+		await store.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg: 90, xzAngleDeg: 0 });
 		store.tick(1000);
 
 		// Below warp 5 (the default speed is 0), turn rate is 15 deg/sec.
@@ -58,45 +55,31 @@ describe('NavigationStation', () => {
 		await expect.element(page.getByTestId('nav-xy-angle-intended')).toHaveTextContent('90');
 	});
 
-	it('displays the destination after a Set Course to Coordinates command is entered', async () => {
+	it('displays the destination after a course to coordinates is set', async () => {
 		const store = setup();
 		render(NavigationStation, { store });
 
-		await page.getByLabelText('Command input').fill('SCC 4 5 6');
-		await page.getByRole('button', { name: 'Enter' }).click();
+		await store.dispatch({ module: 'navigation', type: 'SetCourse', destination: { kind: 'coordinates', x: 4, y: 5, z: 6 } });
 
 		await expect.element(page.getByTestId('nav-destination')).toHaveTextContent('4.0, 5.0, 6.0');
 	});
 
-	it('also turns the ship to face the new destination when a Set Course command is entered', async () => {
+	it('also turns the ship to face the new destination when a course is set', async () => {
 		const store = setup();
 		render(NavigationStation, { store });
 
-		await page.getByLabelText('Command input').fill('SCC 0 10 0');
-		await page.getByRole('button', { name: 'Enter' }).click();
+		await store.dispatch({ module: 'navigation', type: 'SetCourse', destination: { kind: 'coordinates', x: 0, y: 10, z: 0 } });
 
 		// Straight ahead (0,0) toward (0,10,0) is 90 degrees x/y.
 		await expect.element(page.getByTestId('nav-xy-angle-intended')).toHaveTextContent('90');
-	});
-
-	it('shows an error message for an unrecognized command without dispatching anything', async () => {
-		const store = setup();
-		render(NavigationStation, { store });
-
-		await page.getByLabelText('Command input').fill('BOGUS');
-		await page.getByRole('button', { name: 'Enter' }).click();
-
-		await expect.element(page.getByRole('alert')).toBeInTheDocument();
 	});
 
 	it('computes an ETA once a course and speed toward coordinates are both set', async () => {
 		const store = setup();
 		render(NavigationStation, { store });
 
-		await page.getByLabelText('Command input').fill('SCC 100 0 0');
-		await page.getByRole('button', { name: 'Enter' }).click();
-		await page.getByLabelText('Command input').fill('SV 10');
-		await page.getByRole('button', { name: 'Enter' }).click();
+		await store.dispatch({ module: 'navigation', type: 'SetCourse', destination: { kind: 'coordinates', x: 100, y: 0, z: 0 } });
+		await store.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 10 });
 
 		await expect.element(page.getByTestId('nav-eta')).toHaveTextContent('10');
 	});
@@ -105,8 +88,7 @@ describe('NavigationStation', () => {
 		const store = setup();
 		render(NavigationStation, { store });
 
-		await page.getByLabelText('Command input').fill('SCC 100 0 0');
-		await page.getByRole('button', { name: 'Enter' }).click();
+		await store.dispatch({ module: 'navigation', type: 'SetCourse', destination: { kind: 'coordinates', x: 100, y: 0, z: 0 } });
 
 		await expect.element(page.getByTestId('nav-eta')).toHaveTextContent('N/A');
 	});
@@ -168,8 +150,7 @@ describe('NavigationStation', () => {
 		const store = setup();
 		render(NavigationStation, { store });
 
-		await page.getByLabelText('Command input').fill('SV 5');
-		await page.getByRole('button', { name: 'Enter' }).click();
+		await store.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 5 });
 
 		await expect.element(page.getByTestId('projected-path')).toBeInTheDocument();
 	});
