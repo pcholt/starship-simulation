@@ -213,25 +213,25 @@ describe('bearingTo', () => {
 });
 
 describe('advanceWarpSpeed', () => {
-	it('speeds up 1 warp per second between warp 0 and 2', () => {
-		expect(advanceWarpSpeed(0, 10, 1000)).toBeCloseTo(1);
+	it('speeds up 1 warp per half second between warp 0 and 2', () => {
+		expect(advanceWarpSpeed(0, 10, 500)).toBeCloseTo(1);
 	});
 
-	it('speeds up 1 warp per 2 seconds between warp 2 and 5', () => {
-		expect(advanceWarpSpeed(2, 10, 2000)).toBeCloseTo(3);
+	it('speeds up 1 warp per second between warp 2 and 5', () => {
+		expect(advanceWarpSpeed(2, 10, 1000)).toBeCloseTo(3);
 	});
 
-	it('speeds up 1 warp per 4 seconds between warp 5 and 10', () => {
-		expect(advanceWarpSpeed(5, 20, 4000)).toBeCloseTo(6);
+	it('speeds up 1 warp per 2 seconds between warp 5 and 10', () => {
+		expect(advanceWarpSpeed(5, 20, 2000)).toBeCloseTo(6);
 	});
 
-	it('speeds up 1 warp per 5 seconds from warp 10 upward', () => {
-		expect(advanceWarpSpeed(10, 20, 5000)).toBeCloseTo(11);
+	it('speeds up 1 warp per 2.5 seconds from warp 10 upward', () => {
+		expect(advanceWarpSpeed(10, 20, 2500)).toBeCloseTo(11);
 	});
 
 	it('applies each tier rate to the part of a long step spent in that tier', () => {
-		// 0 -> 2 takes 2s, 2 -> 5 takes 6s, 5 -> 6 takes 4s.
-		expect(advanceWarpSpeed(0, 20, 12_000)).toBeCloseTo(6);
+		// 0 -> 2 takes 1s, 2 -> 5 takes 3s, 5 -> 6 takes 2s.
+		expect(advanceWarpSpeed(0, 20, 6000)).toBeCloseTo(6);
 	});
 
 	it('does not overshoot the intended speed', () => {

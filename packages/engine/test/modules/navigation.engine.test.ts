@@ -31,7 +31,7 @@ describe('navigation commands', () => {
 		engine.dispatch({ module: 'controller', type: 'Execute', target: 'navigation' });
 		engine.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 5 });
 		engine.tick(1000);
-		expect(engine.getState().enterpriseNavigation.velocity.warpSpeed).toBeCloseTo(1);
+		expect(engine.getState().enterpriseNavigation.velocity.warpSpeed).toBeCloseTo(2);
 	});
 
 	it('ticking lowers the actual warp speed by at most 2 per second', () => {
@@ -176,7 +176,7 @@ describe('navigation movement during tick', () => {
 		engine.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 10 });
 		engine.tick(1000);
 		const position = engine.getState().enterpriseNavigation.position;
-		expect(position.x).toBeCloseTo(1);
+		expect(position.x).toBeCloseTo(2);
 	});
 
 	it('stops moving once the navigation module is halted again', () => {
@@ -188,6 +188,6 @@ describe('navigation movement during tick', () => {
 		engine.dispatch({ module: 'controller', type: 'Halt', target: 'navigation' });
 		engine.tick(1000);
 		const position = engine.getState().enterpriseNavigation.position;
-		expect(position.x).toBeCloseTo(1);
+		expect(position.x).toBeCloseTo(2);
 	});
 });

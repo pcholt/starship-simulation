@@ -57,12 +57,12 @@ export function maximumWarpSpeed(totalWarpDriveEnergy: number): number {
 	return Math.min(TOP_WARP_SPEED, WARP_AT_MINIMUM_WARP_DRIVE_ENERGY + fractionOfRange * (TOP_WARP_SPEED - WARP_AT_MINIMUM_WARP_DRIVE_ENERGY));
 }
 
-/** Warp levels per second the ship can speed up by, which slows as the warp factor climbs: 1/s up to warp 2, 1 per 2s to 5, 1 per 4s to 10, then 1 per 5s. */
+/** Warp levels per second the ship can speed up by, which slows as the warp factor climbs: 2/s up to warp 2, 1 per second to 5, 1 per 2s to 10, then 1 per 2.5s. */
 const WARP_ACCELERATION_TIERS: ReadonlyArray<{ upToWarp: number; perSecond: number }> = [
-	{ upToWarp: 2, perSecond: 1 },
-	{ upToWarp: 5, perSecond: 1 / 2 },
-	{ upToWarp: 10, perSecond: 1 / 4 },
-	{ upToWarp: Infinity, perSecond: 1 / 5 }
+	{ upToWarp: 2, perSecond: 2 },
+	{ upToWarp: 5, perSecond: 1 },
+	{ upToWarp: 10, perSecond: 1 / 2 },
+	{ upToWarp: Infinity, perSecond: 1 / 2.5 }
 ];
 
 /** Moves the actual warp speed toward the intended one, no faster than the acceleration or deceleration limits allow. */

@@ -48,7 +48,7 @@ describe('NavigationStation', () => {
 
 		store.tick(1000);
 
-		await expect.element(page.getByTestId('nav-speed-current-bar')).toHaveAttribute('aria-valuenow', '1');
+		await expect.element(page.getByTestId('nav-speed-current-bar')).toHaveAttribute('aria-valuenow', '2');
 	});
 
 	it('sets the intended heading immediately after the direction is set, without snapping the actual heading there yet', async () => {
