@@ -11,7 +11,7 @@ import { scanCelestialObject, scanCraft, distanceBetween, scanQualityForDistance
 import { advancePhaserCharges, dischargePhaserBank, isWeaponCoverLifted, setWeaponCoverLifted } from './domain/helm.js';
 import { DEVICE_GROUP_IDS } from './domain/device-groups.js';
 import { advanceEnergyLevels, totalWarpDriveEnergy, allocateEnergy, allocateMinimumEnergyToGroup, setGroupLocked } from './domain/engineering.js';
-import { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage } from './domain/combat.js';
+import { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage, damageAfterShield, resolvePhaserHit } from './domain/combat.js';
 import { admitPatient, recoveredHealth } from './domain/medical.js';
 import { enqueueMessage, displayNextMessage } from './domain/communications.js';
 import { launchTorpedo, advanceTorpedoes, resolveExplosionDamage, TORPEDO_MAX_RANGE, type DamageAssignment } from './domain/torpedo.js';
@@ -150,6 +150,11 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 		});
 	}
 
+	function shieldFunctionalOf(fleet: Fleet, craftId: number): number {
+		if (fleet !== 'shuttlecraft') return 0;
+		return state.shuttlecraft.find((shuttle) => shuttle.id === craftId)?.shieldFunctional ?? 0;
+	}
+
 	function killCrewAboard(crewStatus: WorldState['crewStatus'], shuttleId: number): void {
 		for (const member of crewStatus) {
 			const isAboard = member.location.kind === 'craft' && member.location.craftClass === 'shuttlecraft' && member.location.id === shuttleId;
@@ -184,7 +189,10 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 	}
 
 	function applyDamageAssignments(assignments: DamageAssignment[]): void {
-		for (const assignment of assignments) applyDamage(assignment.fleet, assignment.craftId, assignment.amount);
+		for (const assignment of assignments) {
+			const shieldedAmount = damageAfterShield(assignment.amount, shieldFunctionalOf(assignment.fleet, assignment.craftId));
+			applyDamage(assignment.fleet, assignment.craftId, shieldedAmount);
+		}
 	}
 
 	// A single tick can resolve several torpedo explosions/weapon fires at once, so these push onto
@@ -393,8 +401,9 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				// The target's own shields aren't modeled yet (only the Enterprise's device catalogue is) — treat non-Enterprise craft as unshielded.
 				const charge = state.helm.phaserCharge[bank];
 				if (charge <= 0) return { ok: false, reason: `Phaser bank (${bank}) has no charge` };
-				const damage = computePhaserDamage(distance, 0) * charge;
-				applyDamage(fleet, craft.id, damage);
+				const shotConnects = resolvePhaserHit(fleet === 'shuttlecraft', rng);
+				const damage = shotConnects ? computePhaserDamage(distance, shieldFunctionalOf(fleet, craft.id)) * charge : 0;
+				if (shotConnects) applyDamage(fleet, craft.id, damage);
 				state = produce(state, (draft) => {
 					draft.helm = dischargePhaserBank(draft.helm, bank);
 				});
@@ -618,7 +627,9 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				// function, testable without an Engine or Immer.
 				const findTarget = (fleet: Fleet, id: number) => {
 					const craft = draft[fleet].find((c) => c.id === id);
-					return craft ? { position: { x: craft.position.x, y: craft.position.y, z: craft.position.z }, speed: craft.speed } : undefined;
+					return craft
+						? { position: { x: craft.position.x, y: craft.position.y, z: craft.position.z }, speed: craft.speed, isNimble: fleet === 'shuttlecraft' }
+						: undefined;
 				};
 				const result = advanceTorpedoes(draft.torpedoes, findTarget, deltaMs, draft.simulatedTimeMs, rng);
 				draft.torpedoes = result.torpedoes;

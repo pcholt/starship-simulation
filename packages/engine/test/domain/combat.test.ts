@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage, resolveTorpedoHit } from '../../src/domain/combat.js';
+import { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage, damageAfterShield, resolvePhaserHit, resolveTorpedoHit } from '../../src/domain/combat.js';
 
 describe('bankLocationForRelativePosition', () => {
 	it('is "fore" when the target is ahead along +x', () => {
@@ -64,5 +64,48 @@ describe('resolveTorpedoHit', () => {
 
 	it('hits a target moving faster than warp 5 when the coin flip favors it', () => {
 		expect(resolveTorpedoHit(6, () => 0.99)).toBe(true);
+	});
+});
+
+describe('resolveTorpedoHit for a nimble target', () => {
+	it('hits a slow nimble target when the roll is under 35 percent', () => {
+		expect(resolveTorpedoHit(0, () => 0.34, true)).toBe(true);
+	});
+
+	it('misses a slow nimble target when the roll is 35 percent or more', () => {
+		expect(resolveTorpedoHit(0, () => 0.35, true)).toBe(false);
+	});
+
+	it('is harder to hit than an ordinary slow target, which is a certain hit', () => {
+		expect(resolveTorpedoHit(0, () => 0.9, false)).toBe(true);
+		expect(resolveTorpedoHit(0, () => 0.9, true)).toBe(false);
+	});
+});
+
+describe('resolvePhaserHit', () => {
+	it('always hits an ordinary target', () => {
+		expect(resolvePhaserHit(false, () => 0)).toBe(true);
+	});
+
+	it('is evaded by a nimble target when the roll is under 40 percent', () => {
+		expect(resolvePhaserHit(true, () => 0.39)).toBe(false);
+	});
+
+	it('hits a nimble target when the roll is 40 percent or more', () => {
+		expect(resolvePhaserHit(true, () => 0.4)).toBe(true);
+	});
+});
+
+describe('damageAfterShield', () => {
+	it('leaves damage unchanged with no shield', () => {
+		expect(damageAfterShield(50, 0)).toBe(50);
+	});
+
+	it('removes the shield percentage of the damage', () => {
+		expect(damageAfterShield(50, 20)).toBeCloseTo(40);
+	});
+
+	it('removes all damage with a full shield', () => {
+		expect(damageAfterShield(50, 100)).toBe(0);
 	});
 });

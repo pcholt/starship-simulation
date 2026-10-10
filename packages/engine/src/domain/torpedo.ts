@@ -99,7 +99,8 @@ function stepTorpedo(
 	targetSpeed: number,
 	deltaMs: number,
 	nowMs: number,
-	rng: () => number
+	rng: () => number,
+	targetIsNimble: boolean
 ): TorpedoAdvanceResult {
 	const bearing = bearingTo(torpedo.position, targetPosition);
 	const maxDeltaDeg = turnRateDegPerSecond(torpedo.velocity.warpSpeed) * TORPEDO_TURN_RATE_MULTIPLIER * (deltaMs / 1000);
@@ -131,7 +132,7 @@ function stepTorpedo(
 	if (inProximity) {
 		// Copy rather than reference `targetPosition` directly — it may be an Immer draft that's
 		// revoked by the time the caller reads this explosion, once its `produce()` call returns.
-		if (resolveTorpedoHit(targetSpeed, rng)) return { torpedo: null, explosion: { position: { ...targetPosition }, hitTarget: true } };
+		if (resolveTorpedoHit(targetSpeed, rng, targetIsNimble)) return { torpedo: null, explosion: { position: { ...targetPosition }, hitTarget: true } };
 	}
 
 	if (fuel <= 0) return { torpedo: null, explosion: { position, hitTarget: false } };
@@ -158,9 +159,10 @@ export function advanceTorpedo(
 	targetSpeed: number,
 	deltaMs: number,
 	nowMs: number,
-	rng: () => number
+	rng: () => number,
+	targetIsNimble = false
 ): TorpedoAdvanceResult {
-	if (deltaMs <= MAX_STEP_MS) return stepTorpedo(torpedo, targetPosition, targetSpeed, deltaMs, nowMs, rng);
+	if (deltaMs <= MAX_STEP_MS) return stepTorpedo(torpedo, targetPosition, targetSpeed, deltaMs, nowMs, rng, targetIsNimble);
 
 	const steps = Math.ceil(deltaMs / MAX_STEP_MS);
 	const stepMs = deltaMs / steps;
@@ -169,7 +171,7 @@ export function advanceTorpedo(
 	let current = torpedo;
 	for (let i = 1; i <= steps; i++) {
 		const stepNowMs = tickStartMs + stepMs * i;
-		const result = stepTorpedo(current, targetPosition, targetSpeed, stepMs, stepNowMs, rng);
+		const result = stepTorpedo(current, targetPosition, targetSpeed, stepMs, stepNowMs, rng, targetIsNimble);
 		if (!result.torpedo) return result;
 		current = result.torpedo;
 	}
@@ -185,7 +187,7 @@ export interface TorpedoExplosion {
 }
 
 /** Looks up a torpedo's target by fleet and id, returning its current position/speed, or `undefined` if it no longer exists (destroyed by something else mid-flight). */
-export type TorpedoTargetLookup = (fleet: Fleet, id: number) => { position: Vector3; speed: number } | undefined;
+export type TorpedoTargetLookup = (fleet: Fleet, id: number) => { position: Vector3; speed: number; isNimble?: boolean } | undefined;
 
 /**
  * Advances every torpedo in `torpedoes` by one tick, resolving each against its own target via
@@ -209,7 +211,7 @@ export function advanceTorpedoes(
 			explosions.push({ position: { ...torpedo.position }, hitTarget: false, targetFleet: torpedo.targetFleet, targetId: torpedo.targetId });
 			continue;
 		}
-		const result = advanceTorpedo(torpedo, target.position, target.speed, deltaMs, nowMs, rng);
+		const result = advanceTorpedo(torpedo, target.position, target.speed, deltaMs, nowMs, rng, target.isNimble ?? false);
 		if (result.torpedo) {
 			survivors.push(result.torpedo);
 		} else if (result.explosion) {

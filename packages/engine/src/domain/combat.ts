@@ -44,7 +44,25 @@ export const TORPEDO_SPLASH_RADIUS = 3;
 
 const TARGET_FAST_THRESHOLD = 5;
 
-/** Whether a torpedo within proximity-fuze range of its target actually connects: a certain hit against a target at warp 5 or slower, a 50/50 coin flip otherwise. */
-export function resolveTorpedoHit(targetSpeed: number, rng: () => number): boolean {
+const NIMBLE_TORPEDO_HIT_CHANCE = 0.35;
+const NIMBLE_PHASER_EVASION_CHANCE = 0.4;
+
+/**
+ * Whether a torpedo within proximity-fuze range of its target actually connects: a certain hit against
+ * a target at warp 5 or slower, a 50/50 coin flip otherwise. A nimble target (a shuttle) is a 35% hit
+ * whatever its speed.
+ */
+export function resolveTorpedoHit(targetSpeed: number, rng: () => number, targetIsNimble = false): boolean {
+	if (targetIsNimble) return rng() < NIMBLE_TORPEDO_HIT_CHANCE;
 	return targetSpeed <= TARGET_FAST_THRESHOLD || rng() >= 0.5;
+}
+
+/** Whether a phaser shot connects: always against an ordinary target, but a nimble target (a shuttle) evades 40% of shots. */
+export function resolvePhaserHit(targetIsNimble: boolean, rng: () => number): boolean {
+	return !targetIsNimble || rng() >= NIMBLE_PHASER_EVASION_CHANCE;
+}
+
+/** Damage after a target's shield (0-100 functional status) absorbs its share. */
+export function damageAfterShield(damage: number, shieldFunctional: number): number {
+	return damage * (1 - shieldFunctional / 100);
 }
