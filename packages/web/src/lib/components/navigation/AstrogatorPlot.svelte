@@ -258,6 +258,7 @@
 		<div class="plot-box">
 		<svg
 			data-testid="astrogator-svg"
+			data-ui-sound="plotSelect"
 			viewBox="0 0 {VIEW_SIZE} {VIEW_SIZE}"
 			role="img"
 			aria-label="Tactical plot — click to set course"

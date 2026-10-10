@@ -43,6 +43,7 @@
 
 <div class="compass">
 	<svg
+		data-ui-sound="plotSelect"
 		data-testid="compass-dial"
 		viewBox="0 0 {VIEW_SIZE} {VIEW_SIZE}"
 		role="slider"

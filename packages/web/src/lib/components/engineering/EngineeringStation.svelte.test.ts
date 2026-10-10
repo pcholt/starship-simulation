@@ -160,4 +160,25 @@ describe('EngineeringStation', () => {
 
 		await expect.element(page.getByLabelText('warpEngine-1 Energy')).toHaveAttribute('max', '1100');
 	});
+
+	it('sets the overdrive warning limit of a slider to its nominal maximum', async () => {
+		const store = setup();
+		render(EngineeringStation, { store });
+
+		await expect.element(page.getByLabelText('warpEngine-1 Energy')).toHaveAttribute('data-warn-above', '1000');
+	});
+
+	it('sets the below-minimum warning limit of a slider to its minimum operational energy', async () => {
+		const store = setup();
+		render(EngineeringStation, { store });
+
+		await expect.element(page.getByLabelText('warpEngine-1 Energy')).toHaveAttribute('data-warn-below', '100');
+	});
+
+	it('sets no below-minimum warning limit for a system with no minimum', async () => {
+		const store = setup();
+		render(EngineeringStation, { store });
+
+		await expect.element(page.getByLabelText('phaser-fore Energy')).not.toHaveAttribute('data-warn-below');
+	});
 });

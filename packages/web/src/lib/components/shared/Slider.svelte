@@ -16,6 +16,10 @@
 		/** Puts an orange background behind the whole slider. */
 		overdrive?: boolean;
 		rowTestId?: string;
+		/** Dragging above this value sounds a warning tone as it is crossed. */
+		warnAbove?: number;
+		/** Dragging below this value sounds a different warning tone as it is crossed. */
+		warnBelow?: number;
 		accentVar?: string;
 		/** Overrides the value readout's data-testid — useful on a page with many sliders where `slider-value` alone wouldn't be unique. */
 		testId?: string;
@@ -24,7 +28,7 @@
 		behindTrack?: Snippet;
 	}
 
-	let { label, value, min, max, step, unit = '', displayLabel, labelAlert = false, labelTestId, overdrive = false, rowTestId, accentVar = 'chrome-neutral', testId = 'slider-value', onChange, behindTrack }: Props = $props();
+	let { label, value, min, max, step, unit = '', displayLabel, labelAlert = false, labelTestId, overdrive = false, rowTestId, warnAbove, warnBelow, accentVar = 'chrome-neutral', testId = 'slider-value', onChange, behindTrack }: Props = $props();
 
 	function handleInput(event: Event) {
 		onChange(Number((event.currentTarget as HTMLInputElement).value));
@@ -39,7 +43,17 @@
 		{:else}
 			<span class="slider__rail"></span>
 		{/if}
-		<input type="range" aria-label={label} {min} {max} {step} {value} oninput={handleInput} />
+		<input
+			type="range"
+			aria-label={label}
+			{min}
+			{max}
+			{step}
+			{value}
+			data-warn-above={warnAbove}
+			data-warn-below={warnBelow}
+			oninput={handleInput}
+		/>
 	</span>
 	<span data-testid={testId} class="slider__value">{value}{unit ? ` ${unit}` : ''}</span>
 </label>

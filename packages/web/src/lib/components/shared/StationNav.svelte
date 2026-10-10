@@ -1,6 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { STATION_NAV_ITEMS, isActiveStation } from './station-nav-items.js';
+
+	interface Props {
+		soundEnabled: boolean;
+		onSoundEnabledChange: (enabled: boolean) => void;
+	}
+
+	let { soundEnabled, onSoundEnabledChange }: Props = $props();
 </script>
 
 <nav aria-label="Bridge stations" class="lcars-nav">
@@ -21,6 +28,14 @@
 			</li>
 		{/each}
 	</ul>
+	<button
+		type="button"
+		class="lcars-nav__sound"
+		aria-pressed={soundEnabled}
+		onclick={() => onSoundEnabledChange(!soundEnabled)}
+	>
+		Sound {soundEnabled ? 'on' : 'off'}
+	</button>
 </nav>
 
 <style>
@@ -55,6 +70,13 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-2);
+	}
+
+	.lcars-nav__sound {
+		margin-top: auto;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--text-muted);
 	}
 
 	.lcars-pill {

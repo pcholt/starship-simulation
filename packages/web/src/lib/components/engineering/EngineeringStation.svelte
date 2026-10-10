@@ -136,6 +136,8 @@
 										max={overdriveEnergyLimit(id)}
 										step={overdriveEnergyLimit(id) <= 50 ? 1 : 10}
 										overdrive={Math.round(device.energyRequested) > nominalMaximumEnergy(id)}
+										warnAbove={nominalMaximumEnergy(id)}
+										warnBelow={minimumOperationalEnergy(id) || undefined}
 										rowTestId={`device-${id}-row`}
 										unit="EU"
 										accentVar={group.accentVar}

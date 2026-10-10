@@ -55,4 +55,18 @@ describe('Slider', () => {
 
 		await expect.element(page.getByTestId('warp-row')).toHaveAttribute('data-overdrive', 'false');
 	});
+
+	it('exposes warning limits on the slider when given', async () => {
+		render(Slider, { label: 'Warp', value: 1, min: 0, max: 2, step: 1, warnAbove: 1, warnBelow: 0.5, onChange: () => {} });
+
+		const slider = page.getByLabelText('Warp');
+		await expect.element(slider).toHaveAttribute('data-warn-above', '1');
+		await expect.element(slider).toHaveAttribute('data-warn-below', '0.5');
+	});
+
+	it('exposes no warning limits when none are given', async () => {
+		render(Slider, { label: 'Warp', value: 1, min: 0, max: 2, step: 1, onChange: () => {} });
+
+		await expect.element(page.getByLabelText('Warp')).not.toHaveAttribute('data-warn-above');
+	});
 });
