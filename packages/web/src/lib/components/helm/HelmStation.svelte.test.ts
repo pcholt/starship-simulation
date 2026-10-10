@@ -138,4 +138,105 @@ describe('HelmStation', () => {
 
 		await expect.element(page.getByRole('alert')).toBeInTheDocument();
 	});
+
+	describe('safety cover over weapons aimed at Federation craft', () => {
+		function storeWithFederationCraft() {
+			const store = setup();
+			store.dispatch({ module: 'controller', type: 'CreateFederationCraft', name: 'USS Excelsior', mission: 'patrol', position: { x: 40, y: 0, z: 0 } });
+			return store;
+		}
+
+		it('covers the fire buttons for a Federation craft until the cover is lifted', async () => {
+			render(HelmStation, { store: storeWithFederationCraft() });
+
+			await expect.element(page.getByTestId('safety-cover-USS Excelsior')).toHaveAttribute('data-open', 'false');
+			expect(page.getByTestId('fire-phasers-USS Excelsior').element().closest('[inert]')).not.toBeNull();
+		});
+
+		it('does not fire when the cover is clicked, only lifts it', async () => {
+			const store = storeWithFederationCraft();
+			render(HelmStation, { store });
+
+			await page.getByTestId('safety-cover-USS Excelsior').click();
+
+			await expect.element(page.getByTestId('weapons-log')).not.toHaveTextContent('USS Excelsior');
+			expect(store.state.federationCraft[0]!.hullIntegrity).toBe(100);
+		});
+
+		it('fires phasers at the Federation craft once the cover has been lifted', async () => {
+			render(HelmStation, { store: storeWithFederationCraft() });
+			await page.getByTestId('safety-cover-USS Excelsior').click();
+
+			await page.getByTestId('fire-phasers-USS Excelsior').click();
+
+			await expect.element(page.getByTestId('weapons-log')).toHaveTextContent('Phasers fired at USS Excelsior');
+		});
+
+		it('closes the cover again after firing', async () => {
+			render(HelmStation, { store: storeWithFederationCraft() });
+			await page.getByTestId('safety-cover-USS Excelsior').click();
+
+			await page.getByTestId('fire-torpedo-USS Excelsior').click();
+
+			await expect.element(page.getByTestId('safety-cover-USS Excelsior')).toHaveAttribute('data-open', 'false');
+		});
+
+		it('does not put a cover over the weapons for an enemy craft', async () => {
+			const store = setup();
+			store.dispatch({ module: 'controller', type: 'CreateEnemyCraft', name: 'Raider', mission: 'unconditionalAttack', position: { x: 40, y: 0, z: 0 } });
+			render(HelmStation, { store });
+
+			await expect.element(page.getByTestId('safety-cover-Raider')).not.toBeInTheDocument();
+			expect(page.getByTestId('fire-phasers-Raider').element().closest('[inert]')).toBeNull();
+		});
+
+		it('keeps each Federation craft cover independent', async () => {
+			const store = storeWithFederationCraft();
+			store.dispatch({ module: 'controller', type: 'CreateFederationCraft', name: 'USS Reliant', mission: 'patrol', position: { x: -40, y: 0, z: 0 } });
+			render(HelmStation, { store });
+
+			await page.getByTestId('safety-cover-USS Excelsior').click();
+
+			await expect.element(page.getByTestId('safety-cover-USS Reliant')).toHaveAttribute('data-open', 'false');
+		});
+
+		it('keeps a lifted cover lifted when the station is closed and opened again', async () => {
+			const store = storeWithFederationCraft();
+			const first = render(HelmStation, { store });
+			await page.getByTestId('safety-cover-USS Excelsior').click();
+			first.unmount();
+
+			render(HelmStation, { store });
+
+			await expect.element(page.getByTestId('safety-cover-USS Excelsior')).toHaveAttribute('data-open', 'true');
+		});
+
+		it('keeps a closed cover closed when the station is closed and opened again', async () => {
+			const store = storeWithFederationCraft();
+			const first = render(HelmStation, { store });
+			first.unmount();
+
+			render(HelmStation, { store });
+
+			await expect.element(page.getByTestId('safety-cover-USS Excelsior')).toHaveAttribute('data-open', 'false');
+		});
+
+		it('shows a cover as lifted when it was lifted from another station using the same shared state', async () => {
+			const store = storeWithFederationCraft();
+			await store.dispatch({ module: 'helm', type: 'SetWeaponCover', craftId: store.state.federationCraft[0]!.id, lifted: true });
+
+			render(HelmStation, { store });
+
+			await expect.element(page.getByTestId('safety-cover-USS Excelsior')).toHaveAttribute('data-open', 'true');
+		});
+
+		it('shows why firing was refused when the Aim Point is on a covered Federation craft', async () => {
+			render(HelmStation, { store: storeWithFederationCraft() });
+			await page.getByLabelText('Aim X').fill('40');
+
+			await page.getByRole('button', { name: 'Fire Phasers at Aim Point' }).click();
+
+			await expect.element(page.getByRole('alert')).toHaveTextContent('safety cover over USS Excelsior is closed');
+		});
+	});
 });

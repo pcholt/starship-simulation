@@ -5,6 +5,7 @@ import { createInitialWorldState, appendBoundedEvent, type WorldState } from './
 import { advancePosition, advanceHeading, advanceWarpSpeed, bearingTo, maximumWarpSpeed } from './domain/navigation.js';
 import type { Location } from './domain/location.js';
 import { scanCelestialObject, scanCraft, distanceBetween, scanQualityForDistance, type ScanResult } from './domain/sciences.js';
+import { isWeaponCoverLifted, setWeaponCoverLifted } from './domain/helm.js';
 import { DEVICE_GROUP_IDS } from './domain/device-groups.js';
 import { advanceEnergyLevels, totalWarpDriveEnergy, allocateEnergy, allocateMinimumEnergyToGroup, setGroupLocked } from './domain/engineering.js';
 import { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage } from './domain/combat.js';
@@ -116,6 +117,17 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 		return { ...resolved, distance };
 	}
 
+	function weaponCoverRefusal(fleet: Fleet, craft: Craft): string | null {
+		if (fleet !== 'federationCraft' || isWeaponCoverLifted(state.helm, craft.id)) return null;
+		return `The weapons safety cover over ${craft.name} is closed`;
+	}
+
+	function closeWeaponCover(craftId: number): void {
+		state = produce(state, (draft) => {
+			draft.helm = setWeaponCoverLifted(draft.helm, craftId, false);
+		});
+	}
+
 	function applyDamage(fleet: Fleet, craftId: number, damage: number): void {
 		state = produce(state, (draft) => {
 			const list = draft[fleet];
@@ -124,6 +136,7 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 			const nextIntegrity = Math.max(0, list[index]!.hullIntegrity - damage);
 			if (nextIntegrity <= 0) {
 				list.splice(index, 1);
+				draft.helm = setWeaponCoverLifted(draft.helm, craftId, false);
 			} else {
 				list[index]!.hullIntegrity = nextIntegrity;
 			}
@@ -339,6 +352,8 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				const resolved = resolveInRangeTarget(command.target);
 				if ('reason' in resolved) return { ok: false, reason: resolved.reason };
 				const { craft, fleet, distance } = resolved;
+				const refusal = weaponCoverRefusal(fleet, craft);
+				if (refusal) return { ok: false, reason: refusal };
 				const bank = bankLocationForRelativePosition(state.enterpriseNavigation.position, craft.position);
 				const phaserBank = state.engineering.devices[`phaser-${bank}`];
 				if (!phaserBank || phaserBank.functionalStatus <= 0) {
@@ -347,6 +362,7 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				// The target's own shields aren't modeled yet (only the Enterprise's device catalogue is) — treat non-Enterprise craft as unshielded.
 				const damage = computePhaserDamage(distance, 0);
 				applyDamage(fleet, craft.id, damage);
+				closeWeaponCover(craft.id);
 				recordWeaponFire('phaser', state.enterpriseNavigation.position, craft.position);
 				return { ok: true };
 			}
@@ -354,6 +370,8 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				const resolved = resolveInRangeTarget(command.target);
 				if ('reason' in resolved) return { ok: false, reason: resolved.reason };
 				const { craft, fleet, distance } = resolved;
+				const refusal = weaponCoverRefusal(fleet, craft);
+				if (refusal) return { ok: false, reason: refusal };
 				if (distance > TORPEDO_MAX_RANGE) return { ok: false, reason: 'Target out of torpedo range' };
 				const hasFunctionalTube = Object.entries(state.engineering.devices).some(
 					([id, device]) => id.startsWith('torpedoTube-') && device.functionalStatus > 0
@@ -369,8 +387,19 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				state = produce(state, (draft) => {
 					draft.torpedoes.push(torpedo);
 				});
+				closeWeaponCover(craft.id);
 				emit({ type: 'StateChanged', paths: ['torpedoes'] });
 				recordWeaponFire('torpedo', state.enterpriseNavigation.position, craft.position);
+				return { ok: true };
+			}
+			case 'SetWeaponCover': {
+				if (!state.federationCraft.some((craft) => craft.id === command.craftId)) {
+					return { ok: false, reason: `No Federation craft with id ${command.craftId}` };
+				}
+				state = produce(state, (draft) => {
+					draft.helm = setWeaponCoverLifted(draft.helm, command.craftId, command.lifted);
+				});
+				emit({ type: 'StateChanged', paths: ['helm'] });
 				return { ok: true };
 			}
 			case 'SetShieldLevel': {

@@ -4,6 +4,7 @@
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import Panel from '../shared/Panel.svelte';
 	import Slider from '../shared/Slider.svelte';
+	import SafetyCover from '../shared/SafetyCover.svelte';
 	import AstrogatorPlot from '../navigation/AstrogatorPlot.svelte';
 	import { toPlotEntities } from '../navigation/plot-entities.js';
 	import { createWeaponFireOverlayState } from '../navigation/weapon-fire-overlay-state.svelte.js';
@@ -66,6 +67,13 @@
 		return `coordinates (${Math.round(aimPoint.x)}, ${Math.round(aimPoint.y)})`;
 	}
 
+	let liftedCoverCraftIds = $derived(store.state.helm.liftedWeaponCoverCraftIds);
+
+	async function handleSetWeaponCover(craftId: number, lifted: boolean) {
+		const result = await store.dispatch({ module: 'helm', type: 'SetWeaponCover', craftId, lifted });
+		errorMessage = result.ok ? null : result.reason;
+	}
+
 	function logWeaponResult(weapon: 'Phasers' | 'Torpedo', targetName: string) {
 		weaponsLog = [`${weapon} fired at ${targetName}`, ...weaponsLog].slice(0, 10);
 	}
@@ -99,6 +107,11 @@
 		if (result.ok) logWeaponResult('Torpedo', describeAimPoint());
 	}
 </script>
+
+{#snippet fireButtons(targetName: string)}
+	<button data-testid={`fire-phasers-${targetName}`} onclick={() => handleFirePhasers(targetName)}>Fire Phasers</button>
+	<button data-testid={`fire-torpedo-${targetName}`} onclick={() => handleFireTorpedo(targetName)}>Fire Torpedo</button>
+{/snippet}
 
 <section aria-label="Helm station">
 	<h2>Helm</h2>
@@ -181,8 +194,18 @@
 								<span class="hull-bar"><span class="hull-bar-fill" style={`width: ${target.hullIntegrity}%`}></span></span>
 								<span data-testid={`target-hull-${target.id}`}>{target.hullIntegrity}%</span>
 							</span>
-							<button data-testid={`fire-phasers-${target.name}`} onclick={() => handleFirePhasers(target.name)}>Fire Phasers</button>
-							<button data-testid={`fire-torpedo-${target.name}`} onclick={() => handleFireTorpedo(target.name)}>Fire Torpedo</button>
+							{#if target.kind === 'federation craft'}
+								<SafetyCover
+									protects={`weapons aimed at ${target.name}`}
+									open={liftedCoverCraftIds.includes(target.id)}
+									onOpenChange={(lifted) => handleSetWeaponCover(target.id, lifted)}
+									testId={`safety-cover-${target.name}`}
+								>
+									{@render fireButtons(target.name)}
+								</SafetyCover>
+							{:else}
+								{@render fireButtons(target.name)}
+							{/if}
 						</li>
 					{/each}
 				</ul>

@@ -150,4 +150,41 @@ describe('ControllerStation', () => {
 		await expect.element(page.getByRole('alert')).toHaveTextContent('Enter a name');
 		expect(store.state.enemyCraft).toHaveLength(0);
 	});
+
+	it('highlights the JSON keys and numbers in the variable display', async () => {
+		const store = setup();
+		render(ControllerStation, { store });
+
+		const lifeSupport = page.getByTestId('variable-lifeSupport').element();
+
+		expect(lifeSupport.querySelector('.hljs-attr')?.textContent).toBe('"air"');
+		expect(lifeSupport.querySelector('.hljs-number')?.textContent).toBe('100');
+	});
+
+	it('highlights null as a literal in the variable display', async () => {
+		const store = setup();
+		render(ControllerStation, { store });
+
+		const lastScan = page.getByTestId('variable-lastScanResult').element();
+
+		expect(lastScan.querySelector('.hljs-literal')?.textContent).toBe('null');
+	});
+
+	it('colors keys and numbers differently', async () => {
+		const store = setup();
+		render(ControllerStation, { store });
+
+		const lifeSupport = page.getByTestId('variable-lifeSupport').element();
+		const keyColor = getComputedStyle(lifeSupport.querySelector('.hljs-attr')!).color;
+		const numberColor = getComputedStyle(lifeSupport.querySelector('.hljs-number')!).color;
+
+		expect(keyColor).not.toBe(numberColor);
+	});
+
+	it('keeps the original JSON text readable once highlighted', async () => {
+		const store = setup();
+		render(ControllerStation, { store });
+
+		await expect.element(page.getByTestId('variable-lifeSupport')).toHaveTextContent('{"air":100,"water":100,"food":100}');
+	});
 });

@@ -4,6 +4,7 @@
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import Panel from '../shared/Panel.svelte';
 	import CreateObjectPanel from './CreateObjectPanel.svelte';
+	import { highlightJson } from './highlight-json.js';
 	import { PRESET_SCENARIOS, type PresetScenario } from './preset-scenarios.js';
 
 	interface Props {
@@ -25,7 +26,7 @@
 		const source = selectedModule === 'all' ? state : { [selectedModule]: state[selectedModule] };
 		return Object.entries(source).map(([name, value]) => ({
 			name,
-			value: typeof value === 'object' ? JSON.stringify(value) : String(value)
+			value: JSON.stringify(value) ?? 'undefined'
 		}));
 	});
 
@@ -171,7 +172,7 @@
 					{#each displayedVariables as row (row.name)}
 						<tr>
 							<td>{row.name}</td>
-							<td>{row.value}</td>
+							<td class="json-value" data-testid={`variable-${row.name}`}>{@html highlightJson(row.value)}</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -211,6 +212,26 @@
 
 	.controls-column > :global(*) {
 		flex-shrink: 0;
+	}
+
+	.json-value :global(.hljs-attr) {
+		color: #ff9c41;
+	}
+
+	.json-value :global(.hljs-string) {
+		color: #8fd9a8;
+	}
+
+	.json-value :global(.hljs-number) {
+		color: #7fb8e0;
+	}
+
+	.json-value :global(.hljs-literal) {
+		color: #c9a0dc;
+	}
+
+	.json-value :global(.hljs-punctuation) {
+		color: #8a8da0;
 	}
 
 	.variable-scroller td:first-child {

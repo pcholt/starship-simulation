@@ -3,6 +3,7 @@ import type { Craft } from './craft.js';
 import { ALL_MODULE_NAMES, type ModuleName, type ModuleRunState } from './module.js';
 import { createNavigationState, type NavigationState } from './navigation.js';
 import { createLifeSupportState, type LifeSupportState, type ScanResult } from './sciences.js';
+import { createHelmState, type HelmState } from './helm.js';
 import { createEngineeringState, type EngineeringState } from './engineering.js';
 import { createMedicalState, type MedicalState } from './medical.js';
 import { createCommunicationsState, type CommunicationsState } from './communications.js';
@@ -67,6 +68,7 @@ export interface WorldState {
 	/** Most recent torpedo-explosion events, oldest first, capped at `MAX_TRACKED_WEAPON_EVENTS`. */
 	torpedoExplosionEvents: TorpedoExplosionEvent[];
 	engineering: EngineeringState;
+	helm: HelmState;
 	medical: MedicalState;
 	communications: CommunicationsState;
 	celestialObjects: CelestialObject[];
@@ -93,6 +95,7 @@ export function createInitialWorldState(): WorldState {
 		weaponFireEvents: [],
 		torpedoExplosionEvents: [],
 		engineering: createEngineeringState(),
+		helm: createHelmState(),
 		medical: createMedicalState(),
 		communications: createCommunicationsState(),
 		celestialObjects: [],

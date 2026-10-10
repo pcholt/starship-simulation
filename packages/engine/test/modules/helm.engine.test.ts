@@ -148,6 +148,7 @@ describe('helm commands', () => {
 		const engine = createEngine();
 		engine.dispatch({ module: 'controller', type: 'CreateEnemyCraft', name: 'Alpha', mission: 'none', position: { x: 0.1, y: 0, z: 0 } });
 		engine.dispatch({ module: 'controller', type: 'CreateFederationCraft', name: 'Beta', mission: 'none', position: { x: -0.1, y: 0, z: 0 } });
+		engine.dispatch({ module: 'helm', type: 'SetWeaponCover', craftId: engine.getState().federationCraft[0]!.id, lifted: true });
 		engine.dispatch({ module: 'helm', type: 'FireTorpedo', target: { kind: 'object', name: 'Alpha' } });
 		engine.dispatch({ module: 'helm', type: 'FireTorpedo', target: { kind: 'object', name: 'Beta' } });
 		engine.tick(1); // both torpedoes launched right next to their targets — resolve on the very first tick
@@ -165,5 +166,137 @@ describe('helm commands', () => {
 		const engine = createEngine();
 		engine.dispatch({ module: 'helm', type: 'SetShieldLevel', location: 'aft', level: 150 });
 		expect(engine.getState().engineering.devices['shield-aft']!.operationalStatus).toBe(100);
+	});
+
+	describe('weapons safety cover over Federation craft', () => {
+		function engineWithFederationCraft() {
+			const engine = createEngine();
+			engine.dispatch({ module: 'controller', type: 'CreateFederationCraft', name: 'USS Excelsior', mission: 'patrol', position: { x: 40, y: 0, z: 0 } });
+			const craftId = engine.getState().federationCraft[0]!.id;
+			return { engine, craftId };
+		}
+
+		it('starts with every cover closed', () => {
+			const { engine } = engineWithFederationCraft();
+
+			expect(engine.getState().helm.liftedWeaponCoverCraftIds).toEqual([]);
+		});
+
+		it('records a lifted cover in the helm state', () => {
+			const { engine, craftId } = engineWithFederationCraft();
+
+			engine.dispatch({ module: 'helm', type: 'SetWeaponCover', craftId, lifted: true });
+
+			expect(engine.getState().helm.liftedWeaponCoverCraftIds).toEqual([craftId]);
+		});
+
+		it('records a closed cover by removing it from the lifted list', () => {
+			const { engine, craftId } = engineWithFederationCraft();
+			engine.dispatch({ module: 'helm', type: 'SetWeaponCover', craftId, lifted: true });
+
+			engine.dispatch({ module: 'helm', type: 'SetWeaponCover', craftId, lifted: false });
+
+			expect(engine.getState().helm.liftedWeaponCoverCraftIds).toEqual([]);
+		});
+
+		it('rejects a cover command for a craft that is not a Federation craft', () => {
+			const engine = createEngine();
+
+			const result = engine.dispatch({ module: 'helm', type: 'SetWeaponCover', craftId: 99, lifted: true });
+
+			expect(result.ok).toBe(false);
+		});
+
+		it('refuses to fire phasers at a Federation craft while its cover is closed', () => {
+			const { engine } = engineWithFederationCraft();
+
+			const result = engine.dispatch({ module: 'helm', type: 'FirePhasers', target: { kind: 'object', name: 'USS Excelsior' } });
+
+			expect(result).toEqual({ ok: false, reason: 'The weapons safety cover over USS Excelsior is closed' });
+		});
+
+		it('refuses to fire a torpedo at a Federation craft while its cover is closed', () => {
+			const { engine } = engineWithFederationCraft();
+
+			const result = engine.dispatch({ module: 'helm', type: 'FireTorpedo', target: { kind: 'object', name: 'USS Excelsior' } });
+
+			expect(result.ok).toBe(false);
+			expect(engine.getState().torpedoes).toHaveLength(0);
+		});
+
+		it('refuses to fire at a Federation craft by coordinates while its cover is closed', () => {
+			const { engine } = engineWithFederationCraft();
+
+			const result = engine.dispatch({ module: 'helm', type: 'FirePhasers', target: { kind: 'coordinates', position: { x: 40, y: 0, z: 0 } } });
+
+			expect(result.ok).toBe(false);
+		});
+
+		it('does not damage a Federation craft whose cover is closed', () => {
+			const { engine } = engineWithFederationCraft();
+			engine.dispatch({ module: 'helm', type: 'FirePhasers', target: { kind: 'object', name: 'USS Excelsior' } });
+
+			expect(engine.getState().federationCraft[0]!.hullIntegrity).toBe(100);
+		});
+
+		it('fires phasers at a Federation craft once its cover is lifted', () => {
+			const { engine, craftId } = engineWithFederationCraft();
+			engine.dispatch({ module: 'helm', type: 'SetWeaponCover', craftId, lifted: true });
+
+			const result = engine.dispatch({ module: 'helm', type: 'FirePhasers', target: { kind: 'object', name: 'USS Excelsior' } });
+
+			expect(result.ok).toBe(true);
+			expect(engine.getState().federationCraft[0]!.hullIntegrity).toBeLessThan(100);
+		});
+
+		it('closes the cover again after phasers are fired', () => {
+			const { engine, craftId } = engineWithFederationCraft();
+			engine.dispatch({ module: 'helm', type: 'SetWeaponCover', craftId, lifted: true });
+
+			engine.dispatch({ module: 'helm', type: 'FirePhasers', target: { kind: 'object', name: 'USS Excelsior' } });
+
+			expect(engine.getState().helm.liftedWeaponCoverCraftIds).toEqual([]);
+		});
+
+		it('closes the cover again after a torpedo is fired', () => {
+			const { engine, craftId } = engineWithFederationCraft();
+			engine.dispatch({ module: 'helm', type: 'SetWeaponCover', craftId, lifted: true });
+
+			engine.dispatch({ module: 'helm', type: 'FireTorpedo', target: { kind: 'object', name: 'USS Excelsior' } });
+
+			expect(engine.getState().helm.liftedWeaponCoverCraftIds).toEqual([]);
+		});
+
+		it('leaves the cover lifted when a shot is refused because the target is out of sensor range', () => {
+			const engine = createEngine();
+			engine.dispatch({ module: 'controller', type: 'CreateFederationCraft', name: 'USS Distant', mission: 'patrol', position: { x: 100_000, y: 0, z: 0 } });
+			const craftId = engine.getState().federationCraft[0]!.id;
+			engine.dispatch({ module: 'helm', type: 'SetWeaponCover', craftId, lifted: true });
+
+			const result = engine.dispatch({ module: 'helm', type: 'FirePhasers', target: { kind: 'object', name: 'USS Distant' } });
+
+			expect(result.ok).toBe(false);
+			expect(engine.getState().helm.liftedWeaponCoverCraftIds).toEqual([craftId]);
+		});
+
+		it('never needs a cover to be lifted to fire at an enemy craft', () => {
+			const engine = createEngine();
+			engine.dispatch({ module: 'controller', type: 'CreateEnemyCraft', name: 'Raider', mission: 'unconditionalAttack', position: { x: 40, y: 0, z: 0 } });
+
+			const result = engine.dispatch({ module: 'helm', type: 'FirePhasers', target: { kind: 'object', name: 'Raider' } });
+
+			expect(result.ok).toBe(true);
+		});
+
+		it('forgets a lifted cover when its craft is destroyed', () => {
+			const { engine, craftId } = engineWithFederationCraft();
+			engine.dispatch({ module: 'helm', type: 'SetWeaponCover', craftId, lifted: true });
+			for (let shot = 0; shot < 30 && engine.getState().federationCraft.length > 0; shot++) {
+				engine.dispatch({ module: 'helm', type: 'SetWeaponCover', craftId, lifted: true });
+				engine.dispatch({ module: 'helm', type: 'FirePhasers', target: { kind: 'object', name: 'USS Excelsior' } });
+			}
+
+			expect(engine.getState().helm.liftedWeaponCoverCraftIds).not.toContain(craftId);
+		});
 	});
 });

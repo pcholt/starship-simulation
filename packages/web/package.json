@@ -19,7 +19,8 @@
 		"@fontsource/inter": "^5.2.8",
 		"@fontsource/jetbrains-mono": "^5.2.8",
 		"@fontsource/orbitron": "^5.2.8",
-		"@starship/engine": "*"
+		"@starship/engine": "*",
+		"highlight.js": "^11.12.0"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",

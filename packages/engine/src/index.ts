@@ -59,3 +59,5 @@ export type { Message, CommunicationsState } from './domain/communications.js';
 export { createCommunicationsState, enqueueMessage, displayNextMessage } from './domain/communications.js';
 export type { DeviceGroupId, EnergyChangeRate } from './domain/device-groups.js';
 export { DEVICE_GROUP_IDS, MAXIMUM_ENERGY_UNITS_CHANGE_PER_SECOND, groupIdForDevice, minimumOperationalEnergy, nominalMaximumEnergy, overdriveEnergyLimit, OVERDRIVE_PERCENT_OF_NOMINAL_MAXIMUM } from './domain/device-groups.js';
+export type { HelmState } from './domain/helm.js';
+export { createHelmState, isWeaponCoverLifted, setWeaponCoverLifted } from './domain/helm.js';
