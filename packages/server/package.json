@@ -9,7 +9,8 @@
 		"dev": "tsx watch src/index.ts",
 		"test": "vitest run",
 		"test:watch": "vitest",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit",
+		"test:coverage": "vitest run --coverage"
 	},
 	"dependencies": {
 		"@starship/engine": "*",
@@ -17,6 +18,7 @@
 	},
 	"devDependencies": {
 		"@types/ws": "^8.5.13",
+		"@vitest/coverage-v8": "^3.2.7",
 		"tsx": "^4.19.0",
 		"typescript": "^5.7.0",
 		"vitest": "^3.0.0"

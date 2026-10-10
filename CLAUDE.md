@@ -39,6 +39,7 @@ No unit tests are allowed real I/O/network — dispatch through the engine or a 
 - Web: two Vitest projects in the same run (`packages/web/vite.config.ts`) —
   - `client` project (real Chromium via `vitest-browser-svelte`/Playwright): any `*.svelte.test.ts`.
   - `server` project (Node): any other `*.test.ts` (pure logic modules like `*-math.ts`, `*-grid.ts`).
+- Coverage: `npm run coverage` from repo root runs every package with the v8 provider (`@vitest/coverage-v8`), writes `packages/*/coverage/` (gitignored) and prints per-package and overall figures via `tools/coverage-summary.mjs`; it fails if line, statement or function coverage is below 90%, in every package and overall (branch coverage is reported but not enforced; web's is ~72%). The web run may print a harmless "close timed out" after finishing.
 - Run everything: `npm test` from repo root. Typecheck the web package: `npm run check --workspace @starship/web` (svelte-check).
 - **Always prefix web test/typecheck commands with `EDITOR=true VISUAL=true`** — without it, a Vite error can trigger an "open in editor" prompt that hangs the shell with no TTY.
 

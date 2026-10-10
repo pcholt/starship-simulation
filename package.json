@@ -3,11 +3,14 @@
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
-	"workspaces": ["packages/*"],
+	"workspaces": [
+		"packages/*"
+	],
 	"scripts": {
 		"test": "npm run test --workspaces --if-present",
 		"lint": "npm run lint --workspaces --if-present",
-		"dev": "npm run dev --workspace @starship/web"
+		"dev": "npm run dev --workspace @starship/web",
+		"coverage": "npm run test:coverage --workspaces --if-present && node tools/coverage-summary.mjs"
 	},
 	"devDependencies": {
 		"typescript": "^5.7.0"
