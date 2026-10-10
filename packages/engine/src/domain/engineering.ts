@@ -23,6 +23,7 @@ export const DEVICE_IDS: readonly string[] = [
 	'medicalResearchLab',
 	'commsComputer',
 	'tractorBeam',
+	'transporter-1',
 	'oxygenDistribution',
 	'waterDistribution'
 ];

@@ -158,7 +158,7 @@ describe('SciencesStation', () => {
 		const store = setup();
 		store.dispatch({ module: 'navigation', type: 'SetDirection', xyAngleDeg: 0, xzAngleDeg: 0 });
 		store.dispatch({ module: 'navigation', type: 'SetSpeed', warpSpeed: 10 });
-		store.tick(60_000);
+		store.tick(120_000);
 		const shipPosition = store.state.enterpriseNavigation.position;
 		expect(shipPosition.x).toBeGreaterThan(500);
 

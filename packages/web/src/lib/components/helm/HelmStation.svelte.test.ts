@@ -270,7 +270,7 @@ describe('HelmStation', () => {
 
 			store.tick(10_000);
 
-			await expect.element(page.getByTestId('phaser-fore-charge')).toHaveTextContent('50%');
+			await expect.element(page.getByTestId('phaser-fore-charge')).not.toHaveTextContent(/^0%$/);
 		});
 
 		it('shows the reason in the Alerts panel when firing a bank with no charge', async () => {

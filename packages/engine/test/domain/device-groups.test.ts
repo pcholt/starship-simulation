@@ -10,6 +10,7 @@ describe('minimumOperationalEnergy', () => {
 		['oxygenDistribution', 10],
 		['waterDistribution', 10],
 		['tractorBeam', 100],
+		['transporter-1', 50],
 		['navigationComputer', 30],
 		['medicalComputer', 30],
 		['shield-starboard', 100],
@@ -27,7 +28,8 @@ describe('groupIdForDevice', () => {
 		['shield-aft', 'shields'],
 		['warpEngine-1', 'propulsion'],
 		['commsComputer', 'computers'],
-		['tractorBeam', 'lifeSupport']
+		['tractorBeam', 'lifeSupport'],
+		['transporter-1', 'lifeSupport']
 	])('puts %s in the %s group', (deviceId, expectedGroup) => {
 		expect(groupIdForDevice(deviceId)).toBe(expectedGroup);
 	});
@@ -44,6 +46,7 @@ describe('nominalMaximumEnergy', () => {
 		['oxygenDistribution', 20],
 		['waterDistribution', 20],
 		['tractorBeam', 1000],
+		['transporter-1', 500],
 		['sciencesComputer', 200],
 		['shield-port', 1000]
 	])('lets %s run continuously at %i units', (deviceId, expectedMaximum) => {
@@ -61,6 +64,7 @@ describe('overdriveEnergyLimit', () => {
 		['torpedoTube-1', 110],
 		['impulseEngine-1', 550],
 		['oxygenDistribution', 22],
+		['transporter-1', 550],
 		['navigationComputer', 220]
 	])('lets %s overdrive up to %d units', (deviceId, expectedLimit) => {
 		expect(overdriveEnergyLimit(deviceId)).toBe(expectedLimit);

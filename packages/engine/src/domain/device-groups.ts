@@ -33,6 +33,7 @@ const MINIMUM_OPERATIONAL_ENERGY_UNITS_BY_DEVICE_ID_PATTERN: ReadonlyArray<reado
 	[/^impulseEngine-/, 10],
 	[/^(intensiveCareUnit|medicalResearchLab|oxygenDistribution|waterDistribution)$/, 10],
 	[/^tractorBeam$/, 100],
+	[/^transporter-/, 50],
 	[/Computer$/, 30],
 	[/^shield-/, 100]
 ];
@@ -50,6 +51,7 @@ const NOMINAL_MAXIMUM_ENERGY_UNITS_BY_DEVICE_ID_PATTERN: ReadonlyArray<readonly 
 	[/^impulseEngine-/, 500],
 	[/^(intensiveCareUnit|medicalResearchLab|oxygenDistribution|waterDistribution)$/, 20],
 	[/^tractorBeam$/, 1000],
+	[/^transporter-/, 500],
 	[/Computer$/, 200],
 	[/^shield-/, 1000]
 ];

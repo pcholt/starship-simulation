@@ -39,6 +39,20 @@ describe('createEngineeringState', () => {
 	});
 });
 
+describe('transporter device', () => {
+	it('is part of the ship device catalogue', () => {
+		expect(DEVICE_IDS).toContain('transporter-1');
+	});
+
+	it('starts receiving energy like every other device', () => {
+		expect(createEngineeringState().devices['transporter-1']!.energyAssigned).toBeGreaterThan(0);
+	});
+
+	it('starts at or below its nominal maximum', () => {
+		expect(createEngineeringState().devices['transporter-1']!.energyAssigned).toBeLessThanOrEqual(500);
+	});
+});
+
 describe('allocateEnergy', () => {
 	it('assigns the requested amount to the target device', () => {
 		const state = createEngineeringState();

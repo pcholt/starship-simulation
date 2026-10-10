@@ -181,4 +181,20 @@ describe('EngineeringStation', () => {
 
 		await expect.element(page.getByLabelText('phaser-fore Energy')).not.toHaveAttribute('data-warn-below');
 	});
+
+	it('has a transporter slider under Life Support and Utilities', async () => {
+		const store = setup();
+		render(EngineeringStation, { store });
+
+		await expect.element(page.getByLabelText('transporter-1 Energy')).toBeInTheDocument();
+		await expect.element(page.getByTestId('device-transporter-1-label')).toHaveTextContent('Transporter 1');
+	});
+
+	it('sets the transporter warning limits to its nominal maximum and minimum operational energy', async () => {
+		const store = setup();
+		render(EngineeringStation, { store });
+
+		await expect.element(page.getByLabelText('transporter-1 Energy')).toHaveAttribute('data-warn-above', '500');
+		await expect.element(page.getByLabelText('transporter-1 Energy')).toHaveAttribute('data-warn-below', '50');
+	});
 });
