@@ -3,6 +3,7 @@
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import Panel from '../shared/Panel.svelte';
+	import CrewRosterPanel from './CrewRosterPanel.svelte';
 
 	interface Props {
 		store: WorldStateStore;
@@ -35,6 +36,7 @@
 	<StationStatusBar {store} moduleName="medical" />
 
 	<div class="grid">
+		<div class="left-column">
 		<Panel title="Intensive Care Unit" accentVar="chrome-medical">
 			<div class="icu-grid">
 				{#each icu as patient, i (i)}
@@ -69,16 +71,37 @@
 		<Panel title="Alerts" accentVar="chrome-neutral">
 			<div aria-label="Alerts"></div>
 		</Panel>
+		</div>
+
+		<div class="right-column">
+			<CrewRosterPanel crewStatus={store.state.crewStatus} />
+		</div>
 	</div>
 
 	<p><em>Medical has no direct operator commands — patients are admitted via the Communications officer.</em></p>
 </section>
 
 <style>
-	.grid {
+	section {
+		height: 100%;
 		display: flex;
 		flex-direction: column;
+	}
+
+	.grid {
+		flex: 1;
+		min-height: 0;
+		display: grid;
+		grid-template-columns: minmax(18rem, 1fr) minmax(0, 2fr);
 		gap: var(--space-4);
+	}
+
+	.left-column,
+	.right-column {
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+		min-width: 0;
 	}
 
 	.icu-grid {

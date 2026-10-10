@@ -197,4 +197,39 @@ describe('EngineeringStation', () => {
 		await expect.element(page.getByLabelText('transporter-1 Energy')).toHaveAttribute('data-warn-above', '500');
 		await expect.element(page.getByLabelText('transporter-1 Energy')).toHaveAttribute('data-warn-below', '50');
 	});
+
+	describe('shuttle bay', () => {
+		it('lists every shuttle as in the bay to begin with', async () => {
+			render(EngineeringStation, { store: setup() });
+
+			for (let id = 1; id <= 6; id++) {
+				await expect.element(page.getByTestId(`shuttle-stats-${id}`)).toBeInTheDocument();
+			}
+			await expect.element(page.getByText('In bay').first()).toBeInTheDocument();
+		});
+
+		it('shows a shuttle as in flight once it has launched', async () => {
+			const store = setup();
+			render(EngineeringStation, { store });
+
+			await store.dispatch({ module: 'controller', type: 'LaunchShuttle', shuttleId: 1 });
+
+			await expect.element(page.getByText('In flight')).toBeInTheDocument();
+		});
+
+		it('shows a shuttle hull, shield and crew', async () => {
+			render(EngineeringStation, { store: setup() });
+
+			await expect.element(page.getByTestId('shuttle-stats-1')).toHaveTextContent('Hull 100% · Shield 20% · Crew 0');
+		});
+
+		it('counts the crew aboard a shuttle', async () => {
+			const store = setup();
+			const initial = store.state;
+			expect(initial.crewStatus.length).toBeGreaterThan(0);
+			render(EngineeringStation, { store });
+
+			await expect.element(page.getByTestId('shuttle-stats-2')).toHaveTextContent('Crew 0');
+		});
+	});
 });

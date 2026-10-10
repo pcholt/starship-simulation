@@ -4,6 +4,7 @@
 	import Panel from '../shared/Panel.svelte';
 	import Slider from '../shared/Slider.svelte';
 	import LevelBar from '../shared/LevelBar.svelte';
+	import StatusChip from '../shared/StatusChip.svelte';
 	import { minimumOperationalEnergy, nominalMaximumEnergy, overdriveEnergyLimit } from '@starship/engine';
 	import { DEVICE_GROUPS, type DeviceGroupId, deviceHealth, groupIdForDevice, humanizeDeviceId, summarizeGroupEnergy } from './device-groups.js';
 	import { VALID_MISSIONS } from './shuttlecraft-missions.js';
@@ -17,6 +18,12 @@
 
 	let devices = $derived(Object.entries(store.state.engineering.devices));
 	let shuttlecraft = $derived(store.state.shuttlecraft);
+
+	function crewAboard(shuttleId: number): number {
+		return store.state.crewStatus.filter(
+			(member) => member.location.kind === 'craft' && member.location.craftClass === 'shuttlecraft' && member.location.id === shuttleId
+		).length;
+	}
 	let totalEnergy = $derived(store.state.engineering.totalEnergy);
 	let radiatedEnergy = $derived(store.state.engineering.radiatedEnergy);
 	let lockedGroups = $derived(store.state.engineering.lockedGroups);
@@ -163,11 +170,20 @@
 		</div>
 
 		<div class="right-column">
-			<Panel title="Shuttlecraft" accentVar="chrome-engineering">
+			<Panel title="Shuttle Bay" accentVar="chrome-engineering">
 				<div class="shuttle-grid">
 					{#each shuttlecraft as shuttle (shuttle.id)}
 						<label class="shuttle-card">
-							<span class="shuttle-card__title">Shuttle {shuttle.id}</span>
+							<span class="shuttle-card__header">
+								<span class="shuttle-card__title">{shuttle.name}</span>
+								<StatusChip
+									label={shuttle.status === 'inFlight' ? 'In flight' : 'In bay'}
+									status={shuttle.status === 'inFlight' ? 'warning' : 'ok'}
+								/>
+							</span>
+							<span class="shuttle-card__stats" data-testid={`shuttle-stats-${shuttle.id}`}>
+								Hull {Math.round(shuttle.hullIntegrity)}% · Shield {shuttle.shieldFunctional}% · Crew {crewAboard(shuttle.id)}
+							</span>
 							<select
 								class="mission-select"
 								aria-label={`Shuttlecraft ${shuttle.id} Mission`}
@@ -413,6 +429,19 @@
 		background: var(--panel-alt);
 		border-top: 0.2rem solid var(--chrome-engineering);
 		border-radius: var(--radius-sm);
+	}
+
+	.shuttle-card__header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.shuttle-card__stats {
+		font-family: var(--font-data);
+		font-size: 0.7rem;
+		color: var(--text-muted);
 	}
 
 	.shuttle-card__title {

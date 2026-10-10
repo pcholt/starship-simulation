@@ -1,0 +1,17 @@
+table.dense-table {
+	font-size: 0.68rem;
+	line-height: 1.25;
+}
+
+.dense-table th,
+.dense-table td {
+	padding: 1px 6px;
+	font-size: inherit;
+}
+
+.dense-table thead th {
+	position: sticky;
+	top: 0;
+	background: var(--panel);
+	z-index: 1;
+}

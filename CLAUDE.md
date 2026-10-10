@@ -13,6 +13,7 @@ npm-workspaces monorepo:
 - `packages/engine` — pure TypeScript domain/engine. No UI, no I/O, no framework. `createEngine()` returns `{ dispatch, getState, subscribe, tick, loadScenario, destroy }`. `Command`/`EngineEvent` are discriminated unions. State updates go through Immer (`produce`) and are frozen for runtime immutability.
 - `packages/web` — SvelteKit frontend, one `*Station.svelte` component per bridge station (`Controller`, `Navigation`, `Sciences`, `Engineering`, `Helm`, `Medical`, `Communications`) under `packages/web/src/lib/components/<station>/`.
 - `packages/server` — Node WebSocket host for multiplayer, wrapping the same engine package. One shared `Engine` instance per session; broadcasts full state after every dispatch/tick.
+- Crew and shuttles (engine): `CREW_ROSTER`/`RESERVE_CREW` (`domain/crew-roster-data.ts`) are hand-authored, never regenerated, and shared by import — only live `WorldState.crewStatus` (location, health) is sent each tick. Shuttles are real craft in `WorldState.shuttlecraft`; a shuttle in the bay is off every radar, target list and scan (`isOnRadar`), and in-flight shuttles are friendly targets behind the Helm safety cover. Long lists use the `dense-table` style (`lib/dense-table.css`).
 - `book/` — full Markdown transcription of the source book, kept for reference/proofreading only.
 
 ## Architecture rules
