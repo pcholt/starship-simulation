@@ -187,4 +187,43 @@ describe('ControllerStation', () => {
 
 		await expect.element(page.getByTestId('variable-lifeSupport')).toHaveTextContent('{"air":100,"water":100,"food":100}');
 	});
+
+	describe('shuttle controls', () => {
+		it('lists all six shuttles as in the bay to begin with', async () => {
+			render(ControllerStation, { store: setup() });
+
+			for (let id = 1; id <= 6; id++) {
+				await expect.element(page.getByTestId(`shuttle-status-${id}`)).toHaveTextContent('IN BAY');
+			}
+		});
+
+		it('launches a shuttle with its Launch button', async () => {
+			const store = setup();
+			render(ControllerStation, { store });
+
+			await page.getByRole('button', { name: 'Launch Shuttle 2' }).click();
+
+			await expect.element(page.getByTestId('shuttle-status-2')).toHaveTextContent('IN FLIGHT');
+			expect(store.state.shuttlecraft.find((shuttle) => shuttle.id === 2)!.status).toBe('inFlight');
+		});
+
+		it('offers Recall instead of Launch for a shuttle in flight', async () => {
+			const store = setup();
+			render(ControllerStation, { store });
+			await page.getByRole('button', { name: 'Launch Shuttle 2' }).click();
+
+			await expect.element(page.getByRole('button', { name: 'Recall Shuttle 2' })).toBeInTheDocument();
+			await expect.element(page.getByRole('button', { name: 'Launch Shuttle 2' })).not.toBeInTheDocument();
+		});
+
+		it('recalls a shuttle with its Recall button', async () => {
+			const store = setup();
+			render(ControllerStation, { store });
+			await page.getByRole('button', { name: 'Launch Shuttle 2' }).click();
+
+			await page.getByRole('button', { name: 'Recall Shuttle 2' }).click();
+
+			await expect.element(page.getByTestId('shuttle-status-2')).toHaveTextContent('IN BAY');
+		});
+	});
 });

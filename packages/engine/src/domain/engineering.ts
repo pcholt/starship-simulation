@@ -1,6 +1,5 @@
 import { createDeviceStatus, type DeviceStatus } from './device.js';
 import { MAXIMUM_ENERGY_UNITS_CHANGE_PER_SECOND, groupIdForDevice, minimumOperationalEnergy, nominalMaximumEnergy, overdriveEnergyLimit, type DeviceGroupId } from './device-groups.js';
-import type { Location } from './location.js';
 
 const TORPEDO_TUBES = [1, 2, 3, 4, 5, 6];
 /** Phaser banks and deflector shields both come in four directional units that pair up — the ship has no top/bottom banks. */
@@ -28,14 +27,6 @@ export const DEVICE_IDS: readonly string[] = [
 	'waterDistribution'
 ];
 
-export type ShuttlecraftMission = 'none' | 'deliverCargo' | 'seekSensorData' | 'transportPersonnel' | 'seekEnterprise';
-
-export interface Shuttlecraft {
-	id: number;
-	mission: ShuttlecraftMission;
-	destination: Location | null;
-}
-
 export interface EngineeringState {
 	devices: Record<string, DeviceStatus>;
 	totalEnergy: number;
@@ -43,11 +34,9 @@ export interface EngineeringState {
 	lockedGroups: DeviceGroupId[];
 	/** Energy in the pool that no device is currently drawing; the radiators bleed it off. */
 	radiatedEnergy: number;
-	shuttlecraft: Shuttlecraft[];
 }
 
 const DEFAULT_TOTAL_ENERGY = 6000;
-const SHUTTLECRAFT_COUNT = 6;
 
 export function createEngineeringState(): EngineeringState {
 	const initialEnergy = distributeEnergyWithinLimits(
@@ -55,12 +44,7 @@ export function createEngineeringState(): EngineeringState {
 		DEFAULT_TOTAL_ENERGY
 	);
 	const devices = Object.fromEntries(DEVICE_IDS.map((id) => [id, createDeviceStatus({ energyAssigned: initialEnergy[id]! })]));
-	const shuttlecraft = Array.from({ length: SHUTTLECRAFT_COUNT }, (_, i) => ({
-		id: i + 1,
-		mission: 'none' as ShuttlecraftMission,
-		destination: null
-	}));
-	return { devices, totalEnergy: DEFAULT_TOTAL_ENERGY, lockedGroups: [], radiatedEnergy: 0, shuttlecraft };
+	return { devices, totalEnergy: DEFAULT_TOTAL_ENERGY, lockedGroups: [], radiatedEnergy: 0 };
 }
 
 interface EnergyClaimant {

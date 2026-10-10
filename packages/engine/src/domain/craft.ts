@@ -1,7 +1,7 @@
 import type { Vector3 } from './vector.js';
 
-/** Which of `WorldState`'s two parallel craft arrays a non-Enterprise craft belongs to. */
-export type Fleet = 'enemyCraft' | 'federationCraft';
+/** Which of `WorldState`'s parallel craft arrays a non-Enterprise craft belongs to. */
+export type Fleet = 'enemyCraft' | 'federationCraft' | 'shuttlecraft';
 
 /** A non-Enterprise spacecraft (enemy or Federation). Shared shape per the book's parallel data arrays. */
 export interface Craft {

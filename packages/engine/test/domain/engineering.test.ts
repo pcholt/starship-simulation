@@ -32,11 +32,6 @@ describe('createEngineeringState', () => {
 		for (const id of DEVICE_IDS) expect(state.devices[id]!.energyRequested).toBe(state.devices[id]!.energyAssigned);
 	});
 
-	it('creates six shuttlecraft, all with no mission assigned', () => {
-		const state = createEngineeringState();
-		expect(state.shuttlecraft).toHaveLength(6);
-		for (const shuttle of state.shuttlecraft) expect(shuttle.mission).toBe('none');
-	});
 });
 
 describe('transporter device', () => {

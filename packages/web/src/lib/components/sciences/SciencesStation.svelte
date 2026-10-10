@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { FULL_SCAN_RANGE, PARTIAL_SCAN_RANGE } from '@starship/engine';
+	import { FULL_SCAN_RANGE, PARTIAL_SCAN_RANGE, isOnRadar } from '@starship/engine';
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import Panel from '../shared/Panel.svelte';
@@ -23,7 +23,8 @@
 	let scanTargets = $derived([
 		...store.state.celestialObjects.map((o) => ({ id: o.id, name: o.name, kind: 'celestial object' })),
 		...store.state.enemyCraft.map((c) => ({ id: c.id, name: c.name, kind: 'enemy craft' })),
-		...store.state.federationCraft.map((c) => ({ id: c.id, name: c.name, kind: 'federation craft' }))
+		...store.state.federationCraft.map((c) => ({ id: c.id, name: c.name, kind: 'federation craft' })),
+		...store.state.shuttlecraft.filter(isOnRadar).map((c) => ({ id: c.id, name: c.name, kind: 'shuttlecraft' }))
 	]);
 
 	let plotEntities = $derived(toPlotEntities(store.state));

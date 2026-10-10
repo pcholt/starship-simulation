@@ -27,6 +27,8 @@ export type Command =
 			radius: number;
 			mass: number;
 	  }
+	| { module: 'controller'; type: 'LaunchShuttle'; shuttleId: number }
+	| { module: 'controller'; type: 'RecallShuttle'; shuttleId: number }
 	| { module: 'controller'; type: 'RunScenario' }
 	| { module: 'controller'; type: 'HaltScenario' }
 	| { module: 'navigation'; type: 'SetCourse'; destination: Location }

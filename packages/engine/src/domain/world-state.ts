@@ -3,6 +3,7 @@ import type { Craft } from './craft.js';
 import { ALL_MODULE_NAMES, type ModuleName, type ModuleRunState } from './module.js';
 import { createNavigationState, type NavigationState } from './navigation.js';
 import { createLifeSupportState, type LifeSupportState, type ScanResult } from './sciences.js';
+import { createShuttles, type Shuttle } from './shuttle.js';
 import { createInitialCrewStatus, type CrewStatus } from './crew-status.js';
 import { createHelmState, type HelmState } from './helm.js';
 import { createEngineeringState, type EngineeringState } from './engineering.js';
@@ -77,6 +78,7 @@ export interface WorldState {
 	celestialObjects: CelestialObject[];
 	enemyCraft: Craft[];
 	federationCraft: Craft[];
+	shuttlecraft: Shuttle[];
 	torpedoes: Torpedo[];
 	scenario: ScenarioRuntimeState | null;
 }
@@ -105,6 +107,7 @@ export function createInitialWorldState(): WorldState {
 		celestialObjects: [],
 		enemyCraft: [],
 		federationCraft: [],
+		shuttlecraft: createShuttles(),
 		torpedoes: [],
 		scenario: null
 	};

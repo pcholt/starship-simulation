@@ -72,12 +72,13 @@ describe('HelmStation', () => {
 			position: { x: 50, y: 0, z: 0 }
 		});
 		render(HelmStation, { store });
+		const raiderId = store.state.enemyCraft[0]!.id;
 
-		await expect.element(page.getByTestId('target-hull-1')).toHaveTextContent('100');
+		await expect.element(page.getByTestId(`target-hull-${raiderId}`)).toHaveTextContent('100');
 
 		await page.getByTestId('fire-phasers-Klingon Bird of Prey').click();
 
-		await expect.element(page.getByTestId('target-hull-1')).not.toHaveTextContent('100');
+		await expect.element(page.getByTestId(`target-hull-${raiderId}`)).not.toHaveTextContent('100');
 	});
 
 	it('fires a torpedo at a listed target by clicking its Fire Torpedo button (point-and-click, no typed command)', async () => {
@@ -286,6 +287,33 @@ describe('HelmStation', () => {
 			render(HelmStation, { store: setup() });
 
 			await expect.element(page.getByLabelText('phaser-fore charge')).toHaveAttribute('aria-valuenow', '100');
+		});
+	});
+
+	describe('shuttles', () => {
+		it('does not list a shuttle that is in the shuttle bay as a target', async () => {
+			render(HelmStation, { store: setup() });
+
+			await expect.element(page.getByTestId('fire-phasers-Shuttle 1')).not.toBeInTheDocument();
+		});
+
+		it('lists a shuttle in flight as a target, behind a safety cover', async () => {
+			const store = setup();
+			store.dispatch({ module: 'controller', type: 'LaunchShuttle', shuttleId: 1 });
+			render(HelmStation, { store });
+
+			await expect.element(page.getByTestId('safety-cover-Shuttle 1')).toHaveAttribute('data-open', 'false');
+			expect(page.getByTestId('fire-phasers-Shuttle 1').element().closest('[inert]')).not.toBeNull();
+		});
+
+		it('removes a shuttle from the targets when it is recalled to the bay', async () => {
+			const store = setup();
+			store.dispatch({ module: 'controller', type: 'LaunchShuttle', shuttleId: 1 });
+			render(HelmStation, { store });
+
+			await store.dispatch({ module: 'controller', type: 'RecallShuttle', shuttleId: 1 });
+
+			await expect.element(page.getByTestId('safety-cover-Shuttle 1')).not.toBeInTheDocument();
 		});
 	});
 });

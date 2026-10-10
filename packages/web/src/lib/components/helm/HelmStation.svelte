@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { PARTIAL_SCAN_RANGE, type BankLocation } from '@starship/engine';
+	import { PARTIAL_SCAN_RANGE, isOnRadar, type BankLocation } from '@starship/engine';
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import Panel from '../shared/Panel.svelte';
@@ -38,7 +38,8 @@
 
 	let targets = $derived([
 		...store.state.enemyCraft.map((c) => ({ id: c.id, name: c.name, kind: 'enemy craft', hullIntegrity: c.hullIntegrity })),
-		...store.state.federationCraft.map((c) => ({ id: c.id, name: c.name, kind: 'federation craft', hullIntegrity: c.hullIntegrity }))
+		...store.state.federationCraft.map((c) => ({ id: c.id, name: c.name, kind: 'federation craft', hullIntegrity: c.hullIntegrity })),
+		...store.state.shuttlecraft.filter(isOnRadar).map((c) => ({ id: c.id, name: c.name, kind: 'shuttlecraft', hullIntegrity: c.hullIntegrity }))
 	]);
 
 	let plotEntities = $derived(toPlotEntities(store.state));
@@ -202,7 +203,7 @@
 								<span class="hull-bar"><span class="hull-bar-fill" style={`width: ${target.hullIntegrity}%`}></span></span>
 								<span data-testid={`target-hull-${target.id}`}>{target.hullIntegrity}%</span>
 							</span>
-							{#if target.kind === 'federation craft'}
+							{#if target.kind !== 'enemy craft'}
 								<SafetyCover
 									protects={`weapons aimed at ${target.name}`}
 									open={liftedCoverCraftIds.includes(target.id)}

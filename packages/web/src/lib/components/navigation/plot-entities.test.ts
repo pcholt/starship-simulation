@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createShuttles, launchedBeside } from '@starship/engine';
 import { toPlotEntities } from './plot-entities.js';
 
 function state(overrides: Partial<Parameters<typeof toPlotEntities>[0]> = {}) {
@@ -6,6 +7,7 @@ function state(overrides: Partial<Parameters<typeof toPlotEntities>[0]> = {}) {
 		celestialObjects: [],
 		enemyCraft: [],
 		federationCraft: [],
+		shuttlecraft: [],
 		torpedoes: [],
 		...overrides
 	};
@@ -88,5 +90,28 @@ describe('toPlotEntities', () => {
 			})
 		);
 		expect(entities.map((e) => e.kind)).toEqual(['celestialObject', 'enemyCraft', 'federationCraft', 'torpedo']);
+	});
+
+	it('leaves out a shuttle that is in the shuttle bay', () => {
+		const entities = toPlotEntities(state({ shuttlecraft: createShuttles() }));
+
+		expect(entities).toEqual([]);
+	});
+
+	it('maps a shuttle in flight to a shuttlecraft-kind plot entity', () => {
+		const flying = launchedBeside(createShuttles()[0]!, { x: 100, y: 0, z: 0 });
+
+		const entities = toPlotEntities(state({ shuttlecraft: [flying] }));
+
+		expect(entities).toEqual([{ id: 1, name: 'Shuttle 1', kind: 'shuttlecraft', position: { x: 110, y: 0, z: 0 } }]);
+	});
+
+	it('shows only the shuttles that are in flight when some are docked', () => {
+		const [first, second] = createShuttles();
+		const flying = launchedBeside(first!, { x: 0, y: 0, z: 0 });
+
+		const entities = toPlotEntities(state({ shuttlecraft: [flying, second!] }));
+
+		expect(entities.map((entity) => entity.name)).toEqual(['Shuttle 1']);
 	});
 });

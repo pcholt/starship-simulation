@@ -64,7 +64,7 @@ describe('engine.dispatch — creating craft and celestial objects', () => {
 		});
 		expect(engine.getState().enemyCraft).toEqual([
 			{
-				id: 1,
+				id: 7,
 				name: 'Klingon Bird of Prey',
 				mission: 'unconditionalAttack',
 				position: { x: 1, y: 2, z: 3 },
@@ -99,7 +99,7 @@ describe('engine.dispatch — creating craft and celestial objects', () => {
 		expect(engine.getState().celestialObjects).toHaveLength(1);
 	});
 
-	it('assigns increasing ids to successively created enemy craft', () => {
+	it('assigns increasing ids to successively created enemy craft, after the six shuttle ids', () => {
 		const engine = createEngine();
 		engine.dispatch({
 			module: 'controller',
@@ -115,7 +115,7 @@ describe('engine.dispatch — creating craft and celestial objects', () => {
 			mission: 'm',
 			position: { x: 0, y: 0, z: 0 }
 		});
-		expect(engine.getState().enemyCraft.map((c) => c.id)).toEqual([1, 2]);
+		expect(engine.getState().enemyCraft.map((c) => c.id)).toEqual([7, 8]);
 	});
 });
 

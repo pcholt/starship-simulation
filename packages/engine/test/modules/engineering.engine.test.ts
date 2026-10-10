@@ -49,7 +49,7 @@ describe('engineering commands', () => {
 			mission: 'seekSensorData',
 			destination: { kind: 'celestialObject', id: 1 }
 		});
-		const shuttle = engine.getState().engineering.shuttlecraft.find((s) => s.id === 1);
+		const shuttle = engine.getState().shuttlecraft.find((s) => s.id === 1);
 		expect(shuttle).toMatchObject({ mission: 'seekSensorData', destination: { kind: 'celestialObject', id: 1 } });
 	});
 

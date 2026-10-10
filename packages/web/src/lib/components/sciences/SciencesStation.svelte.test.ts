@@ -177,4 +177,14 @@ describe('SciencesStation', () => {
 
 		await expect.element(page.getByTestId('scan-identity')).toHaveTextContent('Relative Object');
 	});
+
+	it('lists a shuttle as a scan target only while it is in flight', async () => {
+		const store = setup();
+		render(SciencesStation, { store });
+		await expect.element(page.getByTestId('scan-target-Shuttle 1')).not.toBeInTheDocument();
+
+		await store.dispatch({ module: 'controller', type: 'LaunchShuttle', shuttleId: 1 });
+
+		await expect.element(page.getByTestId('scan-target-Shuttle 1')).toBeInTheDocument();
+	});
 });

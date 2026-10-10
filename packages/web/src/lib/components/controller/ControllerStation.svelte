@@ -4,6 +4,7 @@
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import Panel from '../shared/Panel.svelte';
 	import CreateObjectPanel from './CreateObjectPanel.svelte';
+	import ShuttleControlPanel from './ShuttleControlPanel.svelte';
 	import { highlightJson } from './highlight-json.js';
 	import { PRESET_SCENARIOS, type PresetScenario } from './preset-scenarios.js';
 
@@ -58,6 +59,16 @@
 
 	async function handleCreateObject(command: Parameters<WorldStateStore['dispatch']>[0]) {
 		const result = await store.dispatch(command);
+		errorMessage = result.ok ? null : result.reason;
+	}
+
+	async function handleLaunchShuttle(shuttleId: number) {
+		const result = await store.dispatch({ module: 'controller', type: 'LaunchShuttle', shuttleId });
+		errorMessage = result.ok ? null : result.reason;
+	}
+
+	async function handleRecallShuttle(shuttleId: number) {
+		const result = await store.dispatch({ module: 'controller', type: 'RecallShuttle', shuttleId });
 		errorMessage = result.ok ? null : result.reason;
 	}
 
@@ -121,6 +132,8 @@
 		</Panel>
 
 		<CreateObjectPanel onCreate={handleCreateObject} onInvalid={(reason) => (errorMessage = reason)} />
+
+		<ShuttleControlPanel shuttles={store.state.shuttlecraft} onLaunch={handleLaunchShuttle} onRecall={handleRecallShuttle} />
 
 		<Panel title="Scenario" accentVar="chrome-controller">
 			<p data-testid="scenario-status">SCENARIO {scenarioRunning ? 'IS RUNNING' : 'IS NOT RUNNING'}</p>

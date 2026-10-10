@@ -27,6 +27,13 @@
 				stroke="currentColor"
 				stroke-width="0.3"
 			/>
+		{:else if entity.kind === 'shuttlecraft'}
+			<polygon
+				points="{entity.plotX},{entity.plotY - 0.9} {entity.plotX + 0.9},{entity.plotY} {entity.plotX},{entity.plotY + 0.9} {entity.plotX - 0.9},{entity.plotY}"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="0.3"
+			/>
 		{:else if entity.kind === 'torpedo'}
 			<circle cx={entity.plotX} cy={entity.plotY} r="0.4" fill="currentColor" />
 		{:else}

@@ -358,6 +358,7 @@
 		<li>◉ ENTERPRISE</li>
 		<li>△ ENEMY CRAFT</li>
 		<li>▢ FEDERATION CRAFT</li>
+		<li>◇ SHUTTLECRAFT</li>
 		<li>○ CELESTIAL OBJECT</li>
 		<li>● TORPEDO</li>
 		<li class="universe-grid-key">▦ UNIVERSE GRID</li>

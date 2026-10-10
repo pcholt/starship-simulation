@@ -16,7 +16,7 @@
 	let errorMessage: string | null = $state(null);
 
 	let devices = $derived(Object.entries(store.state.engineering.devices));
-	let shuttlecraft = $derived(store.state.engineering.shuttlecraft);
+	let shuttlecraft = $derived(store.state.shuttlecraft);
 	let totalEnergy = $derived(store.state.engineering.totalEnergy);
 	let radiatedEnergy = $derived(store.state.engineering.radiatedEnergy);
 	let lockedGroups = $derived(store.state.engineering.lockedGroups);

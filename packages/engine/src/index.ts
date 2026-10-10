@@ -42,7 +42,9 @@ export {
 	FULL_SCAN_RANGE,
 	PARTIAL_SCAN_RANGE
 } from './domain/sciences.js';
-export type { EngineeringState, Shuttlecraft, ShuttlecraftMission, BankLocation } from './domain/engineering.js';
+export type { EngineeringState, BankLocation } from './domain/engineering.js';
+export type { Shuttle, ShuttleStatus, ShuttlecraftMission } from './domain/shuttle.js';
+export { createShuttles, isOnRadar, launchedBeside, returnedToBay } from './domain/shuttle.js';
 export { createEngineeringState, allocateEnergy, totalWarpDriveEnergy, allocateEnergyToDevices, allocateMinimumEnergyToGroup, setGroupLocked, advanceEnergyLevels, DEVICE_IDS, BANK_LOCATIONS } from './domain/engineering.js';
 export {
 	bankLocationForRelativePosition,

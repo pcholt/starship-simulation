@@ -363,4 +363,38 @@ describe('NavigationStation', () => {
 
 		expect(store.state.enterpriseNavigation.position.z).toBe(0);
 	});
+
+	it('shows no shuttle on the plot or in Nearby Objects while it is in the shuttle bay', async () => {
+		render(NavigationStation, { store: setup() });
+
+		await expect.element(page.getByTestId('plot-mark-shuttlecraft-Shuttle 1')).not.toBeInTheDocument();
+		await expect.element(page.getByTestId('nearby-objects')).not.toHaveTextContent('Shuttle 1');
+	});
+
+	it('shows a launched shuttle on the plot and in Nearby Objects', async () => {
+		const store = setup();
+		render(NavigationStation, { store });
+
+		await store.dispatch({ module: 'controller', type: 'LaunchShuttle', shuttleId: 1 });
+
+		await expect.element(page.getByTestId('plot-mark-shuttlecraft-Shuttle 1')).toBeInTheDocument();
+		await expect.element(page.getByTestId('nearby-objects')).toHaveTextContent('Shuttle 1');
+		await expect.element(page.getByTestId('nearby-objects')).toHaveTextContent('shuttlecraft');
+	});
+
+	it('hides the shuttle from the plot again once it is recalled', async () => {
+		const store = setup();
+		render(NavigationStation, { store });
+		await store.dispatch({ module: 'controller', type: 'LaunchShuttle', shuttleId: 1 });
+
+		await store.dispatch({ module: 'controller', type: 'RecallShuttle', shuttleId: 1 });
+
+		await expect.element(page.getByTestId('plot-mark-shuttlecraft-Shuttle 1')).not.toBeInTheDocument();
+	});
+
+	it('lists shuttlecraft in the plot symbol key', async () => {
+		render(NavigationStation, { store: setup() });
+
+		await expect.element(page.getByTestId('symbol-key')).toHaveTextContent('SHUTTLECRAFT');
+	});
 });

@@ -63,7 +63,12 @@
 			return store.state.celestialObjects.find((o) => o.id === destination.id)?.position ?? null;
 		}
 		if (destination.kind === 'craft') {
-			const fleet = destination.craftClass === 'enemy' ? store.state.enemyCraft : store.state.federationCraft;
+			const fleet =
+				destination.craftClass === 'enemy'
+					? store.state.enemyCraft
+					: destination.craftClass === 'shuttlecraft'
+						? store.state.shuttlecraft
+						: store.state.federationCraft;
 			return fleet.find((c) => c.id === destination.id)?.position ?? null;
 		}
 		return null;
@@ -88,6 +93,7 @@
 		celestialObject: 'celestial object',
 		enemyCraft: 'enemy craft',
 		federationCraft: 'federation craft',
+		shuttlecraft: 'shuttlecraft',
 		torpedo: 'torpedo'
 	};
 

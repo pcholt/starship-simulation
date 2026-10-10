@@ -3,6 +3,7 @@ import type { Command, CommandResult, WeaponTarget } from './commands.js';
 import { ALL_MODULE_NAMES } from './domain/module.js';
 import { FULL_HEALTH } from './domain/crew-status.js';
 import { shipStation } from './domain/location.js';
+import { isOnRadar, launchedBeside, returnedToBay } from './domain/shuttle.js';
 import { createInitialWorldState, appendBoundedEvent, type WorldState } from './domain/world-state.js';
 import { advancePosition, advanceHeading, advanceWarpSpeed, bearingTo, maximumWarpSpeed } from './domain/navigation.js';
 import type { Location } from './domain/location.js';
@@ -41,10 +42,14 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 	// Routed through `produce` so immer's auto-freeze applies even to the untouched initial
 	// state, keeping `getState()` snapshots honestly readonly at runtime, not just by type.
 	let state: WorldState = produce(deps.initialState ?? createInitialWorldState(), () => {});
-	let nextCraftId = 1;
+	let nextCraftId = 1 + Math.max(0, ...[...state.enemyCraft, ...state.federationCraft, ...state.shuttlecraft].map((craft) => craft.id));
 	let nextTorpedoId = 1;
 	const rng = deps.rng ?? Math.random;
 	const listeners = new Set<(event: EngineEvent) => void>();
+
+	function shuttlesOnRadar() {
+		return state.shuttlecraft.filter(isOnRadar);
+	}
 
 	function scannableEntries(): { name: string; scan: (fromPosition: Vector3) => ScanResult }[] {
 		return [
@@ -56,7 +61,8 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 			...state.federationCraft.map((craft) => ({
 				name: craft.name,
 				scan: (fromPosition: Vector3) => scanCraft(craft, fromPosition)
-			}))
+			})),
+			...shuttlesOnRadar().map((craft) => ({ name: craft.name, scan: (fromPosition: Vector3) => scanCraft(craft, fromPosition) }))
 		];
 	}
 
@@ -69,6 +75,8 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 		if (enemy) return { craft: enemy, fleet: 'enemyCraft' };
 		const federation = state.federationCraft.find((c) => c.name === name);
 		if (federation) return { craft: federation, fleet: 'federationCraft' };
+		const shuttle = shuttlesOnRadar().find((c) => c.name === name);
+		if (shuttle) return { craft: shuttle, fleet: 'shuttlecraft' };
 		return undefined;
 	}
 
@@ -79,7 +87,14 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 			return state.celestialObjects.find((o) => o.id === destination.id)?.position ?? null;
 		}
 		if (destination.kind === 'craft') {
-			const fleet = destination.craftClass === 'enemy' ? state.enemyCraft : destination.craftClass === 'federation' ? state.federationCraft : null;
+			const fleet =
+				destination.craftClass === 'enemy'
+					? state.enemyCraft
+					: destination.craftClass === 'federation'
+						? state.federationCraft
+						: destination.craftClass === 'shuttlecraft'
+							? shuttlesOnRadar()
+							: null;
 			return fleet?.find((c) => c.id === destination.id)?.position ?? null;
 		}
 		return null;
@@ -88,8 +103,13 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 	const WEAPON_HIT_RADIUS = 5;
 
 	function findCraftNear(position: { x: number; y: number; z: number }): { craft: Craft; fleet: Fleet } | undefined {
-		for (const fleet of ['enemyCraft', 'federationCraft'] as const) {
-			const craft = state[fleet].find((c) => distanceBetween(c.position, position) <= WEAPON_HIT_RADIUS);
+		const fleets: { fleet: Fleet; craft: Craft[] }[] = [
+			{ fleet: 'enemyCraft', craft: state.enemyCraft },
+			{ fleet: 'federationCraft', craft: state.federationCraft },
+			{ fleet: 'shuttlecraft', craft: shuttlesOnRadar() }
+		];
+		for (const { fleet, craft: candidates } of fleets) {
+			const craft = candidates.find((c) => distanceBetween(c.position, position) <= WEAPON_HIT_RADIUS);
 			if (craft) return { craft, fleet };
 		}
 		return undefined;
@@ -120,7 +140,7 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 	}
 
 	function weaponCoverRefusal(fleet: Fleet, craft: Craft): string | null {
-		if (fleet !== 'federationCraft' || isWeaponCoverLifted(state.helm, craft.id)) return null;
+		if (fleet === 'enemyCraft' || isWeaponCoverLifted(state.helm, craft.id)) return null;
 		return `The weapons safety cover over ${craft.name} is closed`;
 	}
 
@@ -130,6 +150,13 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 		});
 	}
 
+	function killCrewAboard(crewStatus: WorldState['crewStatus'], shuttleId: number): void {
+		for (const member of crewStatus) {
+			const isAboard = member.location.kind === 'craft' && member.location.craftClass === 'shuttlecraft' && member.location.id === shuttleId;
+			if (isAboard) member.health = 0;
+		}
+	}
+
 	function applyDamage(fleet: Fleet, craftId: number, damage: number): void {
 		state = produce(state, (draft) => {
 			const list = draft[fleet];
@@ -137,8 +164,9 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 			if (index === -1) return;
 			const nextIntegrity = Math.max(0, list[index]!.hullIntegrity - damage);
 			if (nextIntegrity <= 0) {
-				list.splice(index, 1);
+				const destroyed = list.splice(index, 1)[0]!;
 				draft.helm = setWeaponCoverLifted(draft.helm, craftId, false);
+				if (fleet === 'shuttlecraft') killCrewAboard(draft.crewStatus, destroyed.id);
 			} else {
 				list[index]!.hullIntegrity = nextIntegrity;
 			}
@@ -150,7 +178,8 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 	function allCraft(): { fleet: Fleet; id: number; position: Vector3 }[] {
 		return [
 			...state.enemyCraft.map((c) => ({ fleet: 'enemyCraft' as const, id: c.id, position: c.position })),
-			...state.federationCraft.map((c) => ({ fleet: 'federationCraft' as const, id: c.id, position: c.position }))
+			...state.federationCraft.map((c) => ({ fleet: 'federationCraft' as const, id: c.id, position: c.position })),
+			...shuttlesOnRadar().map((c) => ({ fleet: 'shuttlecraft' as const, id: c.id, position: c.position }))
 		];
 	}
 
@@ -400,8 +429,9 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				return { ok: true };
 			}
 			case 'SetWeaponCover': {
-				if (!state.federationCraft.some((craft) => craft.id === command.craftId)) {
-					return { ok: false, reason: `No Federation craft with id ${command.craftId}` };
+				const friendlyCraftIds = [...state.federationCraft, ...shuttlesOnRadar()].map((craft) => craft.id);
+				if (!friendlyCraftIds.includes(command.craftId)) {
+					return { ok: false, reason: `No Federation craft or shuttle in flight with id ${command.craftId}` };
 				}
 				state = produce(state, (draft) => {
 					draft.helm = setWeaponCoverLifted(draft.helm, command.craftId, command.lifted);
@@ -508,14 +538,37 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				return { ok: true };
 			}
 			case 'SetShuttlecraftMission': {
-				const shuttle = state.engineering.shuttlecraft.find((s) => s.id === command.shuttlecraftId);
+				const shuttle = state.shuttlecraft.find((s) => s.id === command.shuttlecraftId);
 				if (!shuttle) return { ok: false, reason: `No shuttlecraft numbered ${command.shuttlecraftId}` };
 				state = produce(state, (draft) => {
-					const draftShuttle = draft.engineering.shuttlecraft.find((s) => s.id === command.shuttlecraftId)!;
+					const draftShuttle = draft.shuttlecraft.find((s) => s.id === command.shuttlecraftId)!;
 					draftShuttle.mission = command.mission;
 					draftShuttle.destination = command.destination ?? null;
 				});
-				emit({ type: 'StateChanged', paths: ['engineering.shuttlecraft'] });
+				emit({ type: 'StateChanged', paths: ['shuttlecraft'] });
+				return { ok: true };
+			}
+			case 'LaunchShuttle': {
+				const shuttle = state.shuttlecraft.find((s) => s.id === command.shuttleId);
+				if (!shuttle) return { ok: false, reason: `No shuttlecraft numbered ${command.shuttleId}` };
+				if (isOnRadar(shuttle)) return { ok: false, reason: `${shuttle.name} is already in flight` };
+				state = produce(state, (draft) => {
+					const index = draft.shuttlecraft.findIndex((s) => s.id === command.shuttleId);
+					draft.shuttlecraft[index] = launchedBeside(draft.shuttlecraft[index]!, draft.enterpriseNavigation.position);
+				});
+				emit({ type: 'StateChanged', paths: ['shuttlecraft'] });
+				return { ok: true };
+			}
+			case 'RecallShuttle': {
+				const shuttle = state.shuttlecraft.find((s) => s.id === command.shuttleId);
+				if (!shuttle) return { ok: false, reason: `No shuttlecraft numbered ${command.shuttleId}` };
+				if (!isOnRadar(shuttle)) return { ok: false, reason: `${shuttle.name} is already in the shuttle bay` };
+				state = produce(state, (draft) => {
+					const index = draft.shuttlecraft.findIndex((s) => s.id === command.shuttleId);
+					draft.shuttlecraft[index] = returnedToBay(draft.shuttlecraft[index]!);
+					draft.helm = setWeaponCoverLifted(draft.helm, command.shuttleId, false);
+				});
+				emit({ type: 'StateChanged', paths: ['shuttlecraft', 'helm'] });
 				return { ok: true };
 			}
 		}
