@@ -54,7 +54,7 @@ export {
 } from './domain/combat.js';
 export type { WeaponTarget } from './commands.js';
 export type { Patient, MedicalState, AdmitResult, RecoveryOptions } from './domain/medical.js';
-export { createMedicalState, admitPatient, dischargePatient, recoverPatient, ICU_CAPACITY } from './domain/medical.js';
+export { createMedicalState, admitPatient, dischargePatient, recoveredHealth, ICU_CAPACITY } from './domain/medical.js';
 export type { Message, CommunicationsState } from './domain/communications.js';
 export { createCommunicationsState, enqueueMessage, displayNextMessage } from './domain/communications.js';
 export type { DeviceGroupId, EnergyChangeRate } from './domain/device-groups.js';
@@ -62,3 +62,8 @@ export { DEVICE_GROUP_IDS, MAXIMUM_ENERGY_UNITS_CHANGE_PER_SECOND, groupIdForDev
 export type { HelmState } from './domain/helm.js';
 export { createHelmState, isWeaponCoverLifted, setWeaponCoverLifted, advancePhaserCharges, dischargePhaserBank } from './domain/helm.js';
 export { advancePhaserCharge } from './domain/phaser-charge.js';
+export type { Rank, Speciality, CrewProfile } from './domain/crew-roster.js';
+export { RANKS_BY_SENIORITY, RANK_LABELS, SPECIALITY_LABELS, ALL_SPECIALITIES, isOfficer } from './domain/crew-roster.js';
+export { CREW_ROSTER, RESERVE_CREW } from './domain/crew-roster-data.js';
+export type { CrewStatus } from './domain/crew-status.js';
+export { createInitialCrewStatus, FULL_HEALTH } from './domain/crew-status.js';

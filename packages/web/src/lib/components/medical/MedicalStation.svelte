@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { CREW_ROSTER, RANK_LABELS } from '@starship/engine';
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import Panel from '../shared/Panel.svelte';
@@ -9,7 +10,14 @@
 
 	let { store }: Props = $props();
 
-	let icu = $derived(store.state.medical.icu);
+	let icu = $derived(
+		store.state.medical.icu.map((slot) => {
+			if (!slot) return null;
+			const profile = CREW_ROSTER.find((candidate) => candidate.id === slot.personnelId)!;
+			const status = store.state.crewStatus.find((candidate) => candidate.id === slot.personnelId)!;
+			return { name: `${RANK_LABELS[profile.rank]} ${profile.name}`, health: status.health };
+		})
+	);
 	let computer = $derived(store.state.engineering.devices.intensiveCareUnit!);
 
 	/** Health is 0-10 (0 = dead, 10 = fully recovered) — a different scale from the device percent fields elsewhere. */

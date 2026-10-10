@@ -49,7 +49,7 @@ export type Command =
 	| { module: 'helm'; type: 'FireTorpedo'; target: WeaponTarget }
 	| { module: 'helm'; type: 'SetWeaponCover'; craftId: number; lifted: boolean }
 	| { module: 'helm'; type: 'SetShieldLevel'; location: BankLocation; level: number }
-	| { module: 'medical'; type: 'AdmitPatient'; personnelId: number; name: string; health: number }
+	| { module: 'medical'; type: 'AdmitPatient'; personnelId: number; health?: number }
 	| { module: 'communications'; type: 'ReceiveMessage'; from: string; text: string }
 	| { module: 'communications'; type: 'DisplayNextMessage' }
 	| { module: 'communications'; type: 'SendDistressMessage' }

@@ -3,6 +3,7 @@ import type { Craft } from './craft.js';
 import { ALL_MODULE_NAMES, type ModuleName, type ModuleRunState } from './module.js';
 import { createNavigationState, type NavigationState } from './navigation.js';
 import { createLifeSupportState, type LifeSupportState, type ScanResult } from './sciences.js';
+import { createInitialCrewStatus, type CrewStatus } from './crew-status.js';
 import { createHelmState, type HelmState } from './helm.js';
 import { createEngineeringState, type EngineeringState } from './engineering.js';
 import { createMedicalState, type MedicalState } from './medical.js';
@@ -70,6 +71,8 @@ export interface WorldState {
 	engineering: EngineeringState;
 	helm: HelmState;
 	medical: MedicalState;
+	/** Where every crew member aboard is and how well they are; who they are lives in `CREW_ROSTER`. */
+	crewStatus: CrewStatus[];
 	communications: CommunicationsState;
 	celestialObjects: CelestialObject[];
 	enemyCraft: Craft[];
@@ -97,6 +100,7 @@ export function createInitialWorldState(): WorldState {
 		engineering: createEngineeringState(),
 		helm: createHelmState(),
 		medical: createMedicalState(),
+		crewStatus: createInitialCrewStatus(),
 		communications: createCommunicationsState(),
 		celestialObjects: [],
 		enemyCraft: [],

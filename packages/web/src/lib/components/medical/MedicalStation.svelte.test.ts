@@ -25,9 +25,9 @@ describe('MedicalStation', () => {
 		const store = setup();
 		render(MedicalStation, { store });
 
-		store.dispatch({ module: 'medical', type: 'AdmitPatient', personnelId: 1, name: 'Ensign Kim', health: 4 });
+		store.dispatch({ module: 'medical', type: 'AdmitPatient', personnelId: 1, health: 4 });
 
-		await expect.element(page.getByTestId('icu-slot-0')).toHaveTextContent('Ensign Kim');
+		await expect.element(page.getByTestId('icu-slot-0')).toHaveTextContent('Captain Aiko Bianchi');
 		await expect.element(page.getByTestId('icu-slot-0')).toHaveTextContent('4');
 	});
 

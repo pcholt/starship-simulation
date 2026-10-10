@@ -1,6 +1,8 @@
 import { produce } from 'immer';
 import type { Command, CommandResult, WeaponTarget } from './commands.js';
 import { ALL_MODULE_NAMES } from './domain/module.js';
+import { FULL_HEALTH } from './domain/crew-status.js';
+import { shipStation } from './domain/location.js';
 import { createInitialWorldState, appendBoundedEvent, type WorldState } from './domain/world-state.js';
 import { advancePosition, advanceHeading, advanceWarpSpeed, bearingTo, maximumWarpSpeed } from './domain/navigation.js';
 import type { Location } from './domain/location.js';
@@ -9,7 +11,7 @@ import { advancePhaserCharges, dischargePhaserBank, isWeaponCoverLifted, setWeap
 import { DEVICE_GROUP_IDS } from './domain/device-groups.js';
 import { advanceEnergyLevels, totalWarpDriveEnergy, allocateEnergy, allocateMinimumEnergyToGroup, setGroupLocked } from './domain/engineering.js';
 import { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage } from './domain/combat.js';
-import { admitPatient, recoverPatient } from './domain/medical.js';
+import { admitPatient, recoveredHealth } from './domain/medical.js';
 import { enqueueMessage, displayNextMessage } from './domain/communications.js';
 import { launchTorpedo, advanceTorpedoes, resolveExplosionDamage, TORPEDO_MAX_RANGE, type DamageAssignment } from './domain/torpedo.js';
 import type { Craft, Fleet } from './domain/craft.js';
@@ -417,16 +419,18 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 				return { ok: true };
 			}
 			case 'AdmitPatient': {
-				const result = admitPatient(state.medical, {
-					personnelId: command.personnelId,
-					name: command.name,
-					health: command.health
-				});
+				if (!state.crewStatus.some((member) => member.id === command.personnelId)) {
+					return { ok: false, reason: `No crew member with id ${command.personnelId}` };
+				}
+				const result = admitPatient(state.medical, { personnelId: command.personnelId });
 				if (!result.ok) return { ok: false, reason: result.reason };
 				state = produce(state, (draft) => {
 					draft.medical = result.state;
+					const member = draft.crewStatus.find((candidate) => candidate.id === command.personnelId)!;
+					member.location = shipStation('intensiveCareUnit');
+					if (command.health !== undefined) member.health = command.health;
 				});
-				emit({ type: 'StateChanged', paths: ['medical.icu'] });
+				emit({ type: 'StateChanged', paths: ['medical.icu', 'crewStatus'] });
 				return { ok: true };
 			}
 			case 'ReceiveMessage': {
@@ -547,8 +551,10 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 					const icuFunctionalStatus = draft.engineering.devices.intensiveCareUnit!.functionalStatus;
 					draft.medical.icu = draft.medical.icu.map((patient) => {
 						if (!patient) return null;
-						const recovered = recoverPatient(patient, { icuFunctionalStatus, deltaMs });
-						return recovered.health <= 0 || recovered.health >= 10 ? null : recovered;
+						const member = draft.crewStatus.find((candidate) => candidate.id === patient.personnelId)!;
+						member.health = recoveredHealth(member.health, { icuFunctionalStatus, deltaMs });
+						if (member.health >= FULL_HEALTH) member.location = shipStation('crewQuarters');
+						return member.health <= 0 || member.health >= FULL_HEALTH ? null : patient;
 					});
 				}
 				if (draft.scenario?.runState === 'running') {

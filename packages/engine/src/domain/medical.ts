@@ -1,8 +1,5 @@
 export interface Patient {
 	personnelId: number;
-	name: string;
-	/** 0-10, per the book's health-status scale. 0 = dead, 10 = fully recovered. */
-	health: number;
 }
 
 export const ICU_CAPACITY = 4;
@@ -36,14 +33,16 @@ export interface RecoveryOptions {
 }
 
 const HEALTH_CHANGE_PER_SECOND_AT_FULL_FUNCTION = 0.5;
+const MINIMUM_HEALTH = 0;
+const MAXIMUM_HEALTH = 10;
 
 /**
- * Health improves when the ICU is in good working order and worsens when it
- * isn't, per the book's description of recovery/decline being driven by
- * device status. 50% functional status is the break-even point.
+ * Health (0-10, per the book's health-status scale) improves when the ICU is in good working order
+ * and worsens when it isn't, per the book's description of recovery/decline being driven by device
+ * status. 50% functional status is the break-even point.
  */
-export function recoverPatient(patient: Patient, options: RecoveryOptions): Patient {
+export function recoveredHealth(health: number, options: RecoveryOptions): number {
 	const rate = (options.icuFunctionalStatus - 50) / 50;
 	const change = rate * HEALTH_CHANGE_PER_SECOND_AT_FULL_FUNCTION * (options.deltaMs / 1000);
-	return { ...patient, health: Math.min(10, Math.max(0, patient.health + change)) };
+	return Math.min(MAXIMUM_HEALTH, Math.max(MINIMUM_HEALTH, health + change));
 }
