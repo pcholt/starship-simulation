@@ -5,7 +5,7 @@ import { createInitialWorldState, appendBoundedEvent, type WorldState } from './
 import { advancePosition, advanceHeading, advanceWarpSpeed, bearingTo, maximumWarpSpeed } from './domain/navigation.js';
 import type { Location } from './domain/location.js';
 import { scanCelestialObject, scanCraft, distanceBetween, scanQualityForDistance, type ScanResult } from './domain/sciences.js';
-import { isWeaponCoverLifted, setWeaponCoverLifted } from './domain/helm.js';
+import { advancePhaserCharges, dischargePhaserBank, isWeaponCoverLifted, setWeaponCoverLifted } from './domain/helm.js';
 import { DEVICE_GROUP_IDS } from './domain/device-groups.js';
 import { advanceEnergyLevels, totalWarpDriveEnergy, allocateEnergy, allocateMinimumEnergyToGroup, setGroupLocked } from './domain/engineering.js';
 import { bankLocationForRelativePosition, computePhaserDamage, computeTorpedoDamage } from './domain/combat.js';
@@ -360,8 +360,13 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 					return { ok: false, reason: `Phaser bank (${bank}) is not operational` };
 				}
 				// The target's own shields aren't modeled yet (only the Enterprise's device catalogue is) — treat non-Enterprise craft as unshielded.
-				const damage = computePhaserDamage(distance, 0);
+				const charge = state.helm.phaserCharge[bank];
+				if (charge <= 0) return { ok: false, reason: `Phaser bank (${bank}) has no charge` };
+				const damage = computePhaserDamage(distance, 0) * charge;
 				applyDamage(fleet, craft.id, damage);
+				state = produce(state, (draft) => {
+					draft.helm = dischargePhaserBank(draft.helm, bank);
+				});
 				closeWeaponCover(craft.id);
 				recordWeaponFire('phaser', state.enterpriseNavigation.position, craft.position);
 				return { ok: true };
@@ -528,6 +533,7 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 			state = produce(state, (draft) => {
 				draft.simulatedTimeMs += deltaMs;
 				draft.engineering = advanceEnergyLevels(draft.engineering, deltaMs);
+				draft.helm = advancePhaserCharges(draft.helm, draft.engineering.devices, deltaMs);
 				if (draft.modules.navigation === 'running') {
 					draft.enterpriseNavigation.velocity.warpSpeed = advanceWarpSpeed(
 						draft.enterpriseNavigation.velocity.warpSpeed,

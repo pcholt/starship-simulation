@@ -239,4 +239,53 @@ describe('HelmStation', () => {
 			await expect.element(page.getByRole('alert')).toHaveTextContent('safety cover over USS Excelsior is closed');
 		});
 	});
+
+	describe('phaser charge', () => {
+		function storeWithRaiderAhead() {
+			const store = setup();
+			store.dispatch({ module: 'controller', type: 'CreateEnemyCraft', name: 'Raider', mission: 'unconditionalAttack', position: { x: 40, y: 0, z: 0 } });
+			return store;
+		}
+
+		it('shows each phaser bank fully charged at the start', async () => {
+			render(HelmStation, { store: setup() });
+
+			await expect.element(page.getByTestId('phaser-fore-charge')).toHaveTextContent('100%');
+			await expect.element(page.getByTestId('phaser-starboard-charge')).toHaveTextContent('100%');
+		});
+
+		it('drops the charge of the bank that fired to 0%', async () => {
+			render(HelmStation, { store: storeWithRaiderAhead() });
+
+			await page.getByTestId('fire-phasers-Raider').click();
+
+			await expect.element(page.getByTestId('phaser-fore-charge')).toHaveTextContent('0%');
+			await expect.element(page.getByTestId('phaser-aft-charge')).toHaveTextContent('100%');
+		});
+
+		it('shows the charge rising again as time passes', async () => {
+			const store = storeWithRaiderAhead();
+			render(HelmStation, { store });
+			await page.getByTestId('fire-phasers-Raider').click();
+
+			store.tick(10_000);
+
+			await expect.element(page.getByTestId('phaser-fore-charge')).toHaveTextContent('50%');
+		});
+
+		it('shows the reason in the Alerts panel when firing a bank with no charge', async () => {
+			render(HelmStation, { store: storeWithRaiderAhead() });
+			await page.getByTestId('fire-phasers-Raider').click();
+
+			await page.getByTestId('fire-phasers-Raider').click();
+
+			await expect.element(page.getByRole('alert')).toHaveTextContent('Phaser bank (fore) has no charge');
+		});
+
+		it('exposes the charge as an accessible meter', async () => {
+			render(HelmStation, { store: setup() });
+
+			await expect.element(page.getByLabelText('phaser-fore charge')).toHaveAttribute('aria-valuenow', '100');
+		});
+	});
 });

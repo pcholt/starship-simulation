@@ -294,9 +294,113 @@ describe('helm commands', () => {
 			for (let shot = 0; shot < 30 && engine.getState().federationCraft.length > 0; shot++) {
 				engine.dispatch({ module: 'helm', type: 'SetWeaponCover', craftId, lifted: true });
 				engine.dispatch({ module: 'helm', type: 'FirePhasers', target: { kind: 'object', name: 'USS Excelsior' } });
+				engine.tick(20_000);
 			}
 
 			expect(engine.getState().helm.liftedWeaponCoverCraftIds).not.toContain(craftId);
+		});
+	});
+
+	describe('phaser charge', () => {
+		function engineWithEnemyAt(distance: number) {
+			const engine = createEngine();
+			engine.dispatch({ module: 'controller', type: 'CreateEnemyCraft', name: 'Raider', mission: 'unconditionalAttack', position: { x: distance, y: 0, z: 0 } });
+			return engine;
+		}
+
+		const fireAtRaider = (engine: ReturnType<typeof createEngine>) =>
+			engine.dispatch({ module: 'helm', type: 'FirePhasers', target: { kind: 'object', name: 'Raider' } });
+
+		it('starts with every phaser bank fully charged', () => {
+			expect(createEngine().getState().helm.phaserCharge).toEqual({ fore: 1, aft: 1, port: 1, starboard: 1 });
+		});
+
+		it('empties the bank that fired when phasers are fired', () => {
+			const engine = engineWithEnemyAt(40);
+
+			fireAtRaider(engine);
+
+			expect(engine.getState().helm.phaserCharge.fore).toBe(0);
+		});
+
+		it('leaves the other banks charged when one fires', () => {
+			const engine = engineWithEnemyAt(40);
+
+			fireAtRaider(engine);
+
+			expect(engine.getState().helm.phaserCharge.aft).toBe(1);
+		});
+
+		it('refuses to fire a bank that has no charge', () => {
+			const engine = engineWithEnemyAt(40);
+			fireAtRaider(engine);
+
+			const result = fireAtRaider(engine);
+
+			expect(result).toEqual({ ok: false, reason: 'Phaser bank (fore) has no charge' });
+		});
+
+		it('does not damage the target when the bank has no charge', () => {
+			const engine = engineWithEnemyAt(40);
+			fireAtRaider(engine);
+			const hullAfterFirstShot = engine.getState().enemyCraft[0]!.hullIntegrity;
+
+			fireAtRaider(engine);
+
+			expect(engine.getState().enemyCraft[0]!.hullIntegrity).toBe(hullAfterFirstShot);
+		});
+
+		it('recharges an emptied bank over time at the rate its power allows', () => {
+			const engine = engineWithEnemyAt(40);
+			engine.dispatch({ module: 'engineering', type: 'SetEnergyAllocation', deviceId: 'phaser-fore', amount: 1000 });
+			engine.tick(60_000);
+			fireAtRaider(engine);
+
+			engine.tick(3000);
+
+			expect(engine.getState().helm.phaserCharge.fore).toBeCloseTo(0.5, 1);
+		});
+
+		it('fires again once the bank has recharged', () => {
+			const engine = engineWithEnemyAt(40);
+			fireAtRaider(engine);
+			engine.tick(60_000);
+
+			expect(fireAtRaider(engine).ok).toBe(true);
+		});
+
+		it('does more damage with a fuller charge', () => {
+			const fullChargeEngine = engineWithEnemyAt(250);
+			fireAtRaider(fullChargeEngine);
+			const fullChargeDamage = 100 - fullChargeEngine.getState().enemyCraft[0]!.hullIntegrity;
+
+			const partialChargeEngine = engineWithEnemyAt(250);
+			fireAtRaider(partialChargeEngine);
+			partialChargeEngine.tick(10_000);
+			const hullBefore = partialChargeEngine.getState().enemyCraft[0]!.hullIntegrity;
+			fireAtRaider(partialChargeEngine);
+			const partialChargeDamage = hullBefore - partialChargeEngine.getState().enemyCraft[0]!.hullIntegrity;
+
+			expect(partialChargeDamage).toBeGreaterThan(0);
+			expect(partialChargeDamage).toBeLessThan(fullChargeDamage);
+		});
+
+		it('drains the charge of a bank whose power is cut below 10%', () => {
+			const engine = createEngine();
+			engine.dispatch({ module: 'engineering', type: 'SetEnergyAllocation', deviceId: 'phaser-fore', amount: 50 });
+
+			engine.tick(60_000);
+
+			expect(engine.getState().helm.phaserCharge.fore).toBe(0);
+		});
+
+		it('keeps a full charge while the bank has at least 10% power', () => {
+			const engine = createEngine();
+			engine.dispatch({ module: 'engineering', type: 'SetEnergyAllocation', deviceId: 'phaser-fore', amount: 100 });
+
+			engine.tick(60_000);
+
+			expect(engine.getState().helm.phaserCharge.fore).toBe(1);
 		});
 	});
 });

@@ -28,7 +28,8 @@
 	let phasers = $derived(
 		LOCATIONS.map((location) => ({
 			location,
-			device: store.state.engineering.devices[`phaser-${location}`]!
+			device: store.state.engineering.devices[`phaser-${location}`]!,
+			charge: store.state.helm.phaserCharge[location]
 		}))
 	);
 	let torpedoTubes = $derived(
@@ -142,6 +143,7 @@
 					<thead>
 						<tr>
 							<th>NBR</th>
+							<th>CHARGE</th>
 							<th>OP</th>
 							<th>FUNC</th>
 							<th>REL</th>
@@ -151,6 +153,12 @@
 						{#each phasers as phaser (phaser.location)}
 							<tr>
 								<td>{phaser.location.toUpperCase()}</td>
+								<td class="charge-cell">
+									<span class="charge-bar" role="meter" aria-label={`phaser-${phaser.location} charge`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(phaser.charge * 100)}>
+										<span class="charge-bar__fill" style:width="{phaser.charge * 100}%"></span>
+									</span>
+									<span data-testid={`phaser-${phaser.location}-charge`}>{Math.round(phaser.charge * 100)}%</span>
+								</td>
 								<td>{phaser.device.operationalStatus}</td>
 								<td data-testid={`phaser-${phaser.location}-func`}>{phaser.device.functionalStatus}</td>
 								<td>{phaser.device.reliabilityFactor}</td>
@@ -254,6 +262,28 @@
 </section>
 
 <style>
+	.charge-cell {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.charge-bar {
+		flex: 1;
+		min-width: 3rem;
+		height: 0.6rem;
+		background: rgba(255, 255, 255, 0.1);
+		border-radius: 999px;
+		overflow: hidden;
+	}
+
+	.charge-bar__fill {
+		display: block;
+		height: 100%;
+		background: var(--chrome-helm);
+		transition: width 0.15s linear;
+	}
+
 	section {
 		height: 100%;
 		display: flex;
