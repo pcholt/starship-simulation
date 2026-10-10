@@ -33,7 +33,7 @@ describe('scanQualityForDistance', () => {
 
 describe('scanCelestialObject', () => {
 	it('returns full identity and physical data when close', () => {
-		const object = { id: 1, name: 'Rigel VII', position: { x: 10, y: 0, z: 0 }, radius: 6000, mass: 5.9e24 };
+		const object = { id: 1, name: 'Rigel VII', position: { x: 10, y: 0, z: 0 }, radius: 6000, mass: 5.9e24, cargo: [] };
 		const result = scanCelestialObject(object, { x: 0, y: 0, z: 0 });
 		expect(result.quality).toBe('full');
 		expect(result.identity).toBe('Rigel VII');
@@ -42,7 +42,7 @@ describe('scanCelestialObject', () => {
 	});
 
 	it('omits physical data when the object is out of sensor range', () => {
-		const object = { id: 1, name: 'Rigel VII', position: { x: 100000, y: 0, z: 0 }, radius: 6000, mass: 5.9e24 };
+		const object = { id: 1, name: 'Rigel VII', position: { x: 100000, y: 0, z: 0 }, radius: 6000, mass: 5.9e24, cargo: [] };
 		const result = scanCelestialObject(object, { x: 0, y: 0, z: 0 });
 		expect(result.quality).toBe('none');
 		expect(result.radius).toBeUndefined();

@@ -26,6 +26,7 @@ export function createShuttles(): Shuttle[] {
 		mission: 'none',
 		position: { x: 0, y: 0, z: 0 },
 		hullIntegrity: 100,
+		cargo: [],
 		speed: 0,
 		status: 'inShuttleBay',
 		destination: null,

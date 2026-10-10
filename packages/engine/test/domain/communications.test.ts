@@ -1,3 +1,5 @@
+import { communicationsRange } from '../../src/domain/communications.js';
+import { createDeviceStatus } from '../../src/domain/device.js';
 import { describe, expect, it } from 'vitest';
 import { createCommunicationsState, enqueueMessage, displayNextMessage } from '../../src/domain/communications.js';
 
@@ -39,5 +41,37 @@ describe('displayNextMessage', () => {
 		const { state: next, message } = displayNextMessage(state);
 		expect(message).toBeNull();
 		expect(next).toBe(state);
+	});
+});
+
+describe('communicationsRange', () => {
+	const computer = (overrides: Parameters<typeof createDeviceStatus>[0]) => ({ commsComputer: createDeviceStatus(overrides) });
+
+	it('is a full 1000 units with an undamaged, fully powered computer', () => {
+		expect(communicationsRange(computer({ energyAssigned: 200 }))).toBe(1000);
+	});
+
+	it('does not grow when the computer is overdriven', () => {
+		expect(communicationsRange(computer({ energyAssigned: 220 }))).toBe(1000);
+	});
+
+	it('shrinks in proportion to missing power', () => {
+		expect(communicationsRange(computer({ energyAssigned: 100 }))).toBe(500);
+	});
+
+	it('shrinks in proportion to damage', () => {
+		expect(communicationsRange(computer({ energyAssigned: 200, functionalStatus: 40 }))).toBe(400);
+	});
+
+	it('combines damage and missing power', () => {
+		expect(communicationsRange(computer({ energyAssigned: 100, functionalStatus: 50 }))).toBe(250);
+	});
+
+	it('is zero with no power', () => {
+		expect(communicationsRange(computer({ energyAssigned: 0 }))).toBe(0);
+	});
+
+	it('is zero for a destroyed computer', () => {
+		expect(communicationsRange(computer({ energyAssigned: 200, functionalStatus: 0 }))).toBe(0);
 	});
 });

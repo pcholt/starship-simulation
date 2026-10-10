@@ -1,9 +1,11 @@
 <script lang="ts">
 	import type { ShipStation } from '@starship/engine';
-	import { SHIP_STATIONS } from '@starship/engine';
+	import { SHIP_STATIONS, communicationsRange, manifestsInRange } from '@starship/engine';
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import Panel from '../shared/Panel.svelte';
+	import CargoManifestPanel from './CargoManifestPanel.svelte';
+	import CrewRosterPanel from '../crew/CrewRosterPanel.svelte';
 
 	interface Props {
 		store: WorldStateStore;
@@ -17,6 +19,14 @@
 	let log = $derived(store.state.communications.log);
 	let federationCraft = $derived(store.state.federationCraft);
 	let enemyCraft = $derived(store.state.enemyCraft);
+	let range = $derived(communicationsRange(store.state.engineering.devices));
+	let manifests = $derived(
+		manifestsInRange(
+			{ federationCraft: store.state.federationCraft, celestialObjects: store.state.celestialObjects },
+			store.state.enterpriseNavigation.position,
+			range
+		)
+	);
 
 	let personnelName = $state('');
 	let personnelStation: ShipStation = $state(SHIP_STATIONS[0]);
@@ -173,16 +183,35 @@
 				</div>
 			</Panel>
 
+			<CargoManifestPanel enterpriseCargo={store.state.cargo} manifestsInRange={manifests} communicationsRange={range} />
+		</div>
+
+		<div class="roster-column">
+			<CrewRosterPanel crewStatus={store.state.crewStatus} />
 		</div>
 	</div>
 </section>
 
 <style>
+	section {
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+	}
+
 	.grid {
+		flex: 1;
+		min-height: 0;
 		display: grid;
-		grid-template-columns: minmax(260px, 320px) 1fr;
+		grid-template-columns: minmax(260px, 320px) minmax(0, 1fr) minmax(0, 1.2fr);
 		gap: var(--space-4);
-		align-items: start;
+	}
+
+	.roster-column {
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+		min-width: 0;
 	}
 
 	.sidebar {

@@ -20,7 +20,7 @@ describe('toPlotEntities', () => {
 
 	it('maps celestial objects to celestialObject-kind plot entities', () => {
 		const entities = toPlotEntities(
-			state({ celestialObjects: [{ id: 1, name: 'Rigel VII', position: { x: 1, y: 2, z: 3 }, radius: 6000, mass: 1 }] })
+			state({ celestialObjects: [{ id: 1, name: 'Rigel VII', position: { x: 1, y: 2, z: 3 }, radius: 6000, mass: 1, cargo: [] }] })
 		);
 		expect(entities).toEqual([{ id: 1, name: 'Rigel VII', kind: 'celestialObject', position: { x: 1, y: 2, z: 3 } }]);
 	});
@@ -29,7 +29,7 @@ describe('toPlotEntities', () => {
 		const entities = toPlotEntities(
 			state({
 				enemyCraft: [
-					{ id: 2, name: 'Klingon Bird of Prey', mission: 'unconditionalAttack', position: { x: 4, y: 5, z: 6 }, hullIntegrity: 100, speed: 0 }
+					{ id: 2, name: 'Klingon Bird of Prey', mission: 'unconditionalAttack', position: { x: 4, y: 5, z: 6 }, hullIntegrity: 100, cargo: [], speed: 0 }
 				]
 			})
 		);
@@ -39,7 +39,7 @@ describe('toPlotEntities', () => {
 	it('maps federation craft to federationCraft-kind plot entities', () => {
 		const entities = toPlotEntities(
 			state({
-				federationCraft: [{ id: 3, name: 'USS Excelsior', mission: 'patrol', position: { x: 7, y: 8, z: 9 }, hullIntegrity: 100, speed: 0 }]
+				federationCraft: [{ id: 3, name: 'USS Excelsior', mission: 'patrol', position: { x: 7, y: 8, z: 9 }, hullIntegrity: 100, cargo: [], speed: 0 }]
 			})
 		);
 		expect(entities).toEqual([{ id: 3, name: 'USS Excelsior', kind: 'federationCraft', position: { x: 7, y: 8, z: 9 } }]);
@@ -69,11 +69,11 @@ describe('toPlotEntities', () => {
 	it('combines all kinds together', () => {
 		const entities = toPlotEntities(
 			state({
-				celestialObjects: [{ id: 1, name: 'Rigel VII', position: { x: 0, y: 0, z: 0 }, radius: 1, mass: 1 }],
+				celestialObjects: [{ id: 1, name: 'Rigel VII', position: { x: 0, y: 0, z: 0 }, radius: 1, mass: 1, cargo: [] }],
 				enemyCraft: [
-					{ id: 2, name: 'Klingon Bird of Prey', mission: 'unconditionalAttack', position: { x: 0, y: 0, z: 0 }, hullIntegrity: 100, speed: 0 }
+					{ id: 2, name: 'Klingon Bird of Prey', mission: 'unconditionalAttack', position: { x: 0, y: 0, z: 0 }, hullIntegrity: 100, cargo: [], speed: 0 }
 				],
-				federationCraft: [{ id: 3, name: 'USS Excelsior', mission: 'patrol', position: { x: 0, y: 0, z: 0 }, hullIntegrity: 100, speed: 0 }],
+				federationCraft: [{ id: 3, name: 'USS Excelsior', mission: 'patrol', position: { x: 0, y: 0, z: 0 }, hullIntegrity: 100, cargo: [], speed: 0 }],
 				torpedoes: [
 					{
 						id: 9,

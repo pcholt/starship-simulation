@@ -1,3 +1,5 @@
+import type { CargoType } from './domain/cargo.js';
+import type { CraftKind } from './domain/craft.js';
 import type { DeviceGroupId } from './domain/device-groups.js';
 import type { ModuleName } from './domain/module.js';
 import type { Location } from './domain/location.js';
@@ -7,6 +9,8 @@ import type { BankLocation } from './domain/engineering.js';
 export type WeaponTarget = { kind: 'object'; name: string } | { kind: 'coordinates'; position: Vector3 };
 
 export type ModuleTarget = ModuleName | 'all';
+
+export type CargoHolder = { kind: 'enterprise' } | { kind: 'federationCraft'; id: number } | { kind: 'celestialObject'; id: number };
 
 /**
  * Every command a player or a scenario step can dispatch. Text parsing of the
@@ -18,7 +22,8 @@ export type Command =
 	| { module: 'controller'; type: 'Execute'; target: ModuleTarget }
 	| { module: 'controller'; type: 'Halt'; target: ModuleTarget }
 	| { module: 'controller'; type: 'CreateEnemyCraft'; name: string; mission: string; position: Vector3; speed?: number }
-	| { module: 'controller'; type: 'CreateFederationCraft'; name: string; mission: string; position: Vector3; speed?: number }
+	| { module: 'controller'; type: 'CreateFederationCraft'; name: string; mission: string; position: Vector3; speed?: number; kind?: CraftKind }
+	| { module: 'controller'; type: 'SetCargo'; holder: CargoHolder; cargoType: CargoType; quantity: number }
 	| {
 			module: 'controller';
 			type: 'CreateCelestialObject';

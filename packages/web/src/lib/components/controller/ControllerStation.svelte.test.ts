@@ -226,4 +226,59 @@ describe('ControllerStation', () => {
 			await expect.element(page.getByTestId('shuttle-status-2')).toHaveTextContent('IN BAY');
 		});
 	});
+
+	describe('starbases and cargo', () => {
+		it('creates a starbase from the Create Object form, without asking for a mission', async () => {
+			const store = setup();
+			render(ControllerStation, { store });
+
+			await page.getByLabelText('Kind of object').selectOptions('starbase');
+			await expect.element(page.getByLabelText('Craft mission')).not.toBeInTheDocument();
+			await page.getByLabelText('Object name').fill('Starbase 12');
+			await page.getByRole('button', { name: 'Create', exact: true }).click();
+
+			expect(store.state.federationCraft[0]).toMatchObject({ name: 'Starbase 12', kind: 'starbase' });
+		});
+
+		it('sets the cargo of the Enterprise from the Set Cargo form', async () => {
+			const store = setup();
+			render(ControllerStation, { store });
+
+			await page.getByLabelText('Cargo type to set').selectOptions('water');
+			await page.getByLabelText('Cargo quantity').fill('42');
+			await page.getByRole('button', { name: 'Set Cargo' }).click();
+
+			expect(store.state.cargo.find((item) => item.type === 'water')!.quantity).toBe(42);
+		});
+
+		it('offers newly created craft and planets as cargo holders', async () => {
+			const store = setup();
+			store.dispatch({ module: 'controller', type: 'CreateFederationCraft', name: 'USS Excelsior', mission: 'patrol', position: { x: 0, y: 0, z: 0 } });
+			render(ControllerStation, { store });
+
+			await expect.element(page.getByLabelText('Cargo holder')).toHaveTextContent('USS Excelsior (ship)');
+		});
+
+		it('gives cargo to a Federation craft chosen in the form', async () => {
+			const store = setup();
+			store.dispatch({ module: 'controller', type: 'CreateFederationCraft', name: 'USS Excelsior', mission: 'patrol', position: { x: 0, y: 0, z: 0 } });
+			render(ControllerStation, { store });
+
+			await page.getByLabelText('Cargo holder').selectOptions(`federationCraft:${store.state.federationCraft[0]!.id}`);
+			await page.getByLabelText('Cargo type to set').selectOptions('food');
+			await page.getByLabelText('Cargo quantity').fill('12');
+			await page.getByRole('button', { name: 'Set Cargo' }).click();
+
+			expect(store.state.federationCraft[0]!.cargo).toEqual([{ type: 'food', quantity: 12 }]);
+		});
+
+		it('shows a reason in the Alerts panel when the quantity is missing', async () => {
+			render(ControllerStation, { store: setup() });
+
+			await page.getByLabelText('Cargo quantity').fill('');
+			await page.getByRole('button', { name: 'Set Cargo' }).click();
+
+			await expect.element(page.getByRole('alert')).toHaveTextContent('Enter a cargo quantity');
+		});
+	});
 });

@@ -75,4 +75,17 @@ describe('buildCreateObjectCommand', () => {
 			reason: 'Enter a mass greater than zero'
 		});
 	});
+
+	it('builds a starbase as a Federation craft of kind starbase with no mission to fill in', () => {
+		const result = buildCreateObjectCommand(form({ kind: 'starbase', name: 'Starbase 12', mission: '', x: 10, y: 20 }));
+
+		expect(result).toEqual({
+			ok: true,
+			command: { module: 'controller', type: 'CreateFederationCraft', name: 'Starbase 12', mission: 'none', position: { x: 10, y: 20, z: 0 }, kind: 'starbase' }
+		});
+	});
+
+	it('still needs a name for a starbase', () => {
+		expect(buildCreateObjectCommand(form({ kind: 'starbase', name: ' ' }))).toEqual({ ok: false, reason: 'Enter a name for the new object' });
+	});
 });

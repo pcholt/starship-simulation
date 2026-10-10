@@ -3,6 +3,7 @@ import type { Command, CommandResult, WeaponTarget } from './commands.js';
 import { ALL_MODULE_NAMES } from './domain/module.js';
 import { FULL_HEALTH } from './domain/crew-status.js';
 import { shipStation } from './domain/location.js';
+import { withCargoQuantity, withEnterpriseCargoQuantity } from './domain/cargo.js';
 import { isOnRadar, launchedBeside, returnedToBay } from './domain/shuttle.js';
 import { createInitialWorldState, appendBoundedEvent, type WorldState } from './domain/world-state.js';
 import { advancePosition, advanceHeading, advanceWarpSpeed, bearingTo, maximumWarpSpeed } from './domain/navigation.js';
@@ -234,6 +235,7 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 						mission: command.mission,
 						position: command.position,
 						hullIntegrity: 100,
+						cargo: [],
 						speed: command.speed ?? 0
 					});
 				});
@@ -249,6 +251,8 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 						mission: command.mission,
 						position: command.position,
 						hullIntegrity: 100,
+						cargo: [],
+						...(command.kind ? { kind: command.kind } : {}),
 						speed: command.speed ?? 0
 					});
 				});
@@ -263,7 +267,8 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 						name: command.name,
 						position: command.position,
 						radius: command.radius,
-						mass: command.mass
+						mass: command.mass,
+						cargo: []
 					});
 				});
 				emit({ type: 'StateChanged', paths: ['celestialObjects'] });
@@ -555,6 +560,30 @@ export function createEngine(deps: EngineDeps = {}): Engine {
 					draftShuttle.destination = command.destination ?? null;
 				});
 				emit({ type: 'StateChanged', paths: ['shuttlecraft'] });
+				return { ok: true };
+			}
+			case 'SetCargo': {
+				if (!Number.isFinite(command.quantity) || command.quantity < 0) {
+					return { ok: false, reason: 'Cargo quantity must be zero or more' };
+				}
+				const { holder } = command;
+				if (holder.kind === 'enterprise') {
+					state = produce(state, (draft) => {
+						draft.cargo = withEnterpriseCargoQuantity(draft.cargo, command.cargoType, command.quantity);
+					});
+					emit({ type: 'StateChanged', paths: ['cargo'] });
+					return { ok: true };
+				}
+				const holders = holder.kind === 'federationCraft' ? state.federationCraft : state.celestialObjects;
+				if (!holders.some((candidate) => candidate.id === holder.id)) {
+					return { ok: false, reason: `No ${holder.kind === 'federationCraft' ? 'Federation craft' : 'celestial object'} with id ${holder.id}` };
+				}
+				state = produce(state, (draft) => {
+					const list = holder.kind === 'federationCraft' ? draft.federationCraft : draft.celestialObjects;
+					const target = list.find((candidate) => candidate.id === holder.id)!;
+					target.cargo = withCargoQuantity(target.cargo, command.cargoType, command.quantity);
+				});
+				emit({ type: 'StateChanged', paths: [holder.kind === 'federationCraft' ? 'federationCraft' : 'celestialObjects'] });
 				return { ok: true };
 			}
 			case 'LaunchShuttle': {

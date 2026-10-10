@@ -17,8 +17,9 @@
 	let { onCreate, onInvalid }: Props = $props();
 	let form = $state(createEmptyObjectForm());
 
-	let isCraft = $derived(form.kind !== 'celestialObject');
-	let suggestedMissions = $derived(form.kind === 'celestialObject' ? [] : SUGGESTED_MISSIONS[form.kind]);
+	let needsMission = $derived(form.kind === 'enemyCraft' || form.kind === 'federationCraft');
+	let isCelestialObject = $derived(form.kind === 'celestialObject');
+	let suggestedMissions = $derived(form.kind === 'enemyCraft' || form.kind === 'federationCraft' ? SUGGESTED_MISSIONS[form.kind] : []);
 
 	function handleSubmit(event: SubmitEvent) {
 		event.preventDefault();
@@ -46,7 +47,7 @@
 			Name
 			<input type="text" bind:value={form.name} aria-label="Object name" />
 		</label>
-		{#if isCraft}
+		{#if needsMission}
 			<label>
 				Mission
 				<input type="text" bind:value={form.mission} aria-label="Craft mission" list="suggested-missions" />
@@ -61,7 +62,7 @@
 			<label>X <input type="number" bind:value={form.x} aria-label="Object X" /></label>
 			<label>Y <input type="number" bind:value={form.y} aria-label="Object Y" /></label>
 		</div>
-		{#if !isCraft}
+		{#if isCelestialObject}
 			<div class="coordinates">
 				<label>Radius <input type="number" bind:value={form.radius} aria-label="Object radius" /></label>
 				<label>Mass <input type="number" bind:value={form.mass} aria-label="Object mass" /></label>

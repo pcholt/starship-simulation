@@ -3,7 +3,7 @@
 	import type { WorldStateStore } from '../../stores/world-state.svelte.js';
 	import StationStatusBar from '../shared/StationStatusBar.svelte';
 	import Panel from '../shared/Panel.svelte';
-	import CrewRosterPanel from './CrewRosterPanel.svelte';
+	import CrewRosterPanel from '../crew/CrewRosterPanel.svelte';
 
 	interface Props {
 		store: WorldStateStore;

@@ -1,3 +1,4 @@
+import type { CargoItem } from './cargo.js';
 import type { Vector3 } from './vector.js';
 
 export interface CelestialObject {
@@ -6,4 +7,6 @@ export interface CelestialObject {
 	position: Vector3;
 	radius: number;
 	mass: number;
+	/** What the world is holding; a civilization's stockpile of supplies. */
+	cargo: CargoItem[];
 }

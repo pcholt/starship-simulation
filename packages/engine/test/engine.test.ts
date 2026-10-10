@@ -69,6 +69,7 @@ describe('engine.dispatch — creating craft and celestial objects', () => {
 				mission: 'unconditionalAttack',
 				position: { x: 1, y: 2, z: 3 },
 				hullIntegrity: 100,
+				cargo: [],
 				speed: 0
 			}
 		]);

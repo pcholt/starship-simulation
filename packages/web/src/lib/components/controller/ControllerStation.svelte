@@ -5,6 +5,8 @@
 	import Panel from '../shared/Panel.svelte';
 	import CreateObjectPanel from './CreateObjectPanel.svelte';
 	import ShuttleControlPanel from './ShuttleControlPanel.svelte';
+	import SetCargoPanel from './SetCargoPanel.svelte';
+	import { listCargoHolders } from './set-cargo-command.js';
 	import { highlightJson } from './highlight-json.js';
 	import { PRESET_SCENARIOS, type PresetScenario } from './preset-scenarios.js';
 
@@ -61,6 +63,8 @@
 		const result = await store.dispatch(command);
 		errorMessage = result.ok ? null : result.reason;
 	}
+
+	let cargoHolders = $derived(listCargoHolders(store.state.federationCraft, store.state.celestialObjects));
 
 	async function handleLaunchShuttle(shuttleId: number) {
 		const result = await store.dispatch({ module: 'controller', type: 'LaunchShuttle', shuttleId });
@@ -132,6 +136,8 @@
 		</Panel>
 
 		<CreateObjectPanel onCreate={handleCreateObject} onInvalid={(reason) => (errorMessage = reason)} />
+
+		<SetCargoPanel holders={cargoHolders} onSetCargo={handleCreateObject} onInvalid={(reason) => (errorMessage = reason)} />
 
 		<ShuttleControlPanel shuttles={store.state.shuttlecraft} onLaunch={handleLaunchShuttle} onRecall={handleRecallShuttle} />
 

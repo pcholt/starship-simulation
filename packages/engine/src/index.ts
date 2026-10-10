@@ -1,6 +1,6 @@
 export { createEngine } from './engine.js';
 export type { Engine, EngineDeps } from './engine.js';
-export type { Command, CommandResult, ModuleTarget } from './commands.js';
+export type { CargoHolder, Command, CommandResult, ModuleTarget } from './commands.js';
 export type { EngineEvent, Unsubscribe } from './events.js';
 export type { ScenarioScript, ScenarioStep, ScenarioRuntimeState, ScenarioRunState } from './scenario/scenario.js';
 export type { ClientMessage, ServerMessage } from './protocol.js';
@@ -69,3 +69,9 @@ export { RANKS_BY_SENIORITY, RANK_LABELS, SPECIALITY_LABELS, ALL_SPECIALITIES, i
 export { CREW_ROSTER, RESERVE_CREW } from './domain/crew-roster-data.js';
 export type { CrewStatus } from './domain/crew-status.js';
 export { createInitialCrewStatus, FULL_HEALTH } from './domain/crew-status.js';
+export type { CargoType, CargoItem, StoredCargoItem } from './domain/cargo.js';
+export { CARGO_TYPES, CARGO_LABELS, createEnterpriseCargo, withCargoQuantity, withEnterpriseCargoQuantity, sortedByCargoType } from './domain/cargo.js';
+export type { CargoManifest, ManifestHolderKind, ManifestSources } from './domain/cargo-manifests.js';
+export { manifestsInRange } from './domain/cargo-manifests.js';
+export type { CraftKind } from './domain/craft.js';
+export { communicationsRange } from './domain/communications.js';

@@ -1,3 +1,6 @@
+import { nominalMaximumEnergy } from './device-groups.js';
+import type { DeviceStatus } from './device.js';
+
 export interface Message {
 	id: number;
 	from: string;
@@ -29,4 +32,18 @@ export function displayNextMessage(state: CommunicationsState): { state: Communi
 
 export function appendLog(state: CommunicationsState, entry: string): CommunicationsState {
 	return { ...state, log: [...state.log, entry] };
+}
+
+const BASE_COMMUNICATIONS_RANGE = 1000;
+const COMMUNICATIONS_COMPUTER_ID = 'commsComputer';
+
+/**
+ * How far the Enterprise can talk to other craft and planets: a full 1000 units with an undamaged,
+ * fully powered communications computer, shrinking in proportion to damage and to missing power.
+ */
+export function communicationsRange(devices: Record<string, DeviceStatus>): number {
+	const computer = devices[COMMUNICATIONS_COMPUTER_ID]!;
+	const powerFraction = Math.min(1, computer.energyAssigned / nominalMaximumEnergy(COMMUNICATIONS_COMPUTER_ID));
+	const functionalFraction = computer.functionalStatus / 100;
+	return BASE_COMMUNICATIONS_RANGE * powerFraction * functionalFraction;
 }

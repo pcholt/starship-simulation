@@ -3,6 +3,7 @@ import type { Craft } from './craft.js';
 import { ALL_MODULE_NAMES, type ModuleName, type ModuleRunState } from './module.js';
 import { createNavigationState, type NavigationState } from './navigation.js';
 import { createLifeSupportState, type LifeSupportState, type ScanResult } from './sciences.js';
+import { createEnterpriseCargo, type StoredCargoItem } from './cargo.js';
 import { createShuttles, type Shuttle } from './shuttle.js';
 import { createInitialCrewStatus, type CrewStatus } from './crew-status.js';
 import { createHelmState, type HelmState } from './helm.js';
@@ -74,6 +75,8 @@ export interface WorldState {
 	medical: MedicalState;
 	/** Where every crew member aboard is and how well they are; who they are lives in `CREW_ROSTER`. */
 	crewStatus: CrewStatus[];
+	/** What the Enterprise is carrying and where it is stored. */
+	cargo: StoredCargoItem[];
 	communications: CommunicationsState;
 	celestialObjects: CelestialObject[];
 	enemyCraft: Craft[];
@@ -103,6 +106,7 @@ export function createInitialWorldState(): WorldState {
 		helm: createHelmState(),
 		medical: createMedicalState(),
 		crewStatus: createInitialCrewStatus(),
+		cargo: createEnterpriseCargo(),
 		communications: createCommunicationsState(),
 		celestialObjects: [],
 		enemyCraft: [],
