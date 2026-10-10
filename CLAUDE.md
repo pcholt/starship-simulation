@@ -2,7 +2,7 @@
 
 ## What this is
 
-A modern reimplementation of *The Complete STAR SHIP: A Simulation Project* (Roger Garrett, ~1980). The book's stations, commands, and data are a **starting point, not a spec** — the game is expected to grow well beyond what's in the book. Don't treat the book as a constraint; treat it as inspiration and a source of period-appropriate flavor (station names, command syntax as a fallback, figure numbers referenced in code comments).
+A modern reimplementation of *The Complete STAR SHIP: A Simulation Project* (Roger Garrett, ~1980). The book's stations, commands, and data are a **starting point, not a spec** — the game is expected to grow well beyond what's in the book. Don't treat the book as a constraint; treat it as inspiration and a source of period-appropriate flavor (station names, figure numbers referenced in code comments).
 
 Repo: https://github.com/pcholt/starship-simulation (private). Bugs and follow-up work are tracked in GitHub Issues, not in this file or in memory.
 
@@ -19,7 +19,7 @@ npm-workspaces monorepo:
 
 - `packages/engine` has zero framework/UI/transport dependencies. It must stay testable without a browser or network.
 - The web app talks to the engine through `EngineClient` (`packages/web/src/lib/adapters/engine-client.ts`) — an interface with `Promise`-based `dispatch`/`loadScenario`, so the same station components work against either `local-engine-client.ts` (in-browser) or `ws-engine-client.ts` (networked), selected in `packages/web/src/lib/app-state.svelte.ts` based on `PUBLIC_MULTIPLAYER_URL`.
-- Station commands are dispatched as typed `Command` objects. The stations no longer have a typed command box; the terse parsers (`*-command-parser.ts`) remain only as a record of the book's command set — see "UI conventions" below.
+- Station commands are dispatched as typed `Command` objects from point-and-click controls — see "UI conventions" below.
 
 ## UI conventions (apply to every station)
 
@@ -27,7 +27,6 @@ npm-workspaces monorepo:
 - **LCARS-inspired visual design.** `Panel.svelte` (capsule header + accent border) wraps every section; each station has its own `--chrome-<station>` accent CSS variable (`packages/web/src/app.css`). True-black background, no light theme — this is a deliberate single dark visual world, not an oversight.
 - Reuse shared components before writing new ones: `Panel`, `Slider` (has an optional `testId` prop for pages with many sliders), `StatusChip`/`StationStatusBar`. `AstrogatorPlot` (in `components/navigation/`) is a generic world-space plot, not Navigation-specific — Sciences already reuses it; reach for it before building another spatial view from scratch.
 - **UI audio feedback is client-side only and generic.** `packages/web/src/lib/audio/` listens for interactions at the document level (buttons, links, sliders, selects, checkboxes, plot presses and drags, new `role="alert"` elements) and plays short synthesized cues through the Web Audio API. Don't add sounds for starship events (weapons, damage, engines); to give a new control a plot-style cue, put `data-ui-sound="plotSelect"` on it. The Sound toggle in the nav mutes everything and is remembered in `localStorage`.
-- Command syntax has no spaces between the code and a concatenated-token style where the book used space-separated letters (e.g. `SPO` not `S P O`) — keep that simplification in any new parser.
 
 ## Testing - revocation of the TDD requirement
 
@@ -38,7 +37,7 @@ No unit tests are allowed real I/O/network — dispatch through the engine or a 
 - Server: plain Vitest, `packages/server/test/`, sockets faked as `{ send(data: string) }`.
 - Web: two Vitest projects in the same run (`packages/web/vite.config.ts`) —
   - `client` project (real Chromium via `vitest-browser-svelte`/Playwright): any `*.svelte.test.ts`.
-  - `server` project (Node): any other `*.test.ts` (pure logic modules like `*-math.ts`, `*-grid.ts`, command parsers).
+  - `server` project (Node): any other `*.test.ts` (pure logic modules like `*-math.ts`, `*-grid.ts`).
 - Run everything: `npm test` from repo root. Typecheck the web package: `npm run check --workspace @starship/web` (svelte-check).
 - **Always prefix web test/typecheck commands with `EDITOR=true VISUAL=true`** — without it, a Vite error can trigger an "open in editor" prompt that hangs the shell with no TTY.
 

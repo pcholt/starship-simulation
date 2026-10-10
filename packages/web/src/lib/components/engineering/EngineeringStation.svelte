@@ -6,7 +6,7 @@
 	import LevelBar from '../shared/LevelBar.svelte';
 	import { minimumOperationalEnergy, nominalMaximumEnergy, overdriveEnergyLimit } from '@starship/engine';
 	import { DEVICE_GROUPS, type DeviceGroupId, deviceHealth, groupIdForDevice, humanizeDeviceId, summarizeGroupEnergy } from './device-groups.js';
-	import { VALID_MISSIONS } from './engineering-command-parser.js';
+	import { VALID_MISSIONS } from './shuttlecraft-missions.js';
 
 	interface Props {
 		store: WorldStateStore;
